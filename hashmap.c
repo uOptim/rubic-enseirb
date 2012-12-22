@@ -74,8 +74,6 @@ void * hashmap_get(struct hashmap *h, const char *k)
 		if (strcmp(cur->key, k) == 0) {
 			return cur->data;
 		}
-
-		cur = cur->next;
 	}
 
 	fprintf(stderr, "%s: not in this hash!\n", k);
