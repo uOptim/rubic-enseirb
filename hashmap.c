@@ -10,7 +10,7 @@
 
 struct cell {
 	void *data;
-	const char *key;
+	char *key;
 	struct cell *next;
 };
 
@@ -25,7 +25,7 @@ size_t hash(const char *key)
 	size_t n = 0;
 	const char *p = key;
 
-	for (p; *p != '\0'; p++) {
+	for (; *p != '\0'; p++) {
 		n += *p;
 	}
 
@@ -52,11 +52,17 @@ struct cell * cell_new(const char *k, void *data)
 void hashmap_free(struct hashmap **h)
 {
 	unsigned int idx;
-	struct cell *cur;
+	struct cell *cur, *tmp;
 
 	for (idx = 0; idx < SIZE; idx++) {
 		cur = (*h)->array[idx];
-		if (cur != NULL) free(cur);
+
+		while (cur != NULL) {
+			tmp = cur;
+			cur = cur->next;
+			free(tmp->key);
+			free(tmp);
+		}
 	}
 
 	free((*h)->array);
@@ -89,7 +95,7 @@ void * hashmap_get(struct hashmap *h, const char *k)
 	size_t idx = hash(k);
 	struct cell *cur = h->array[idx];
 
-	for (cur; cur != NULL; cur = cur->next) {
+	for (; cur != NULL; cur = cur->next) {
 		if (strcmp(cur->key, k) == 0) {
 			return cur->data;
 		}
