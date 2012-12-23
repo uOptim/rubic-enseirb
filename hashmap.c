@@ -79,7 +79,7 @@ struct hashmap * hashmap_new()
 	if (h == NULL)
 		return NULL;
 
-	h->array = calloc(SIZE, sizeof (void *));
+	h->array = calloc(SIZE, sizeof *h->array);
 
 	if (h->array == NULL) {
 		free(h);
