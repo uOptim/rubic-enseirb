@@ -6,7 +6,8 @@
 
 struct hashmap;
 
-struct hashmap * hashmap_new(void);
+struct hashmap * hashmap_new();
+void hashmap_free(struct hashmap **);
 
 void * hashmap_get(struct hashmap *, const char *);
 int    hashmap_set(struct hashmap *, const char *, void *);
