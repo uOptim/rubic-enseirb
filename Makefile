@@ -14,3 +14,10 @@ lex.yy.o: lex.yy.c
 	$(CC) $(CFLAGS) -c $<
 rubic: y.tab.o lex.yy.o
 	$(CC) -o $@ $^ $(LDFLAGS)
+
+clean:
+	@rm -f *~ *.o
+
+mrproper:
+	@make clean
+	@rm -f rubic lex.yy.c y.tab.c y.tab.h lex.yy.c
