@@ -12,11 +12,12 @@ typedef struct {
 } class_t;
 
 typedef struct {
-	char *name;
-//	list params;
+	char 			*name;
+	unsigned char 	ret; // type de retour
+//	list 			params;
 } function_t;
 
-struct type {
+typedef struct {
 	unsigned char t; // type
 
 	union {
@@ -24,6 +25,6 @@ struct type {
 		class_t c;
 		function_t f;
 	};
-};
+} type_t;
 
 
