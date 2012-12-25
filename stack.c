@@ -29,9 +29,15 @@ struct stack * stack_new()
 }
 
 
-void stack_free(struct stack **s)
+void stack_free(struct stack *s)
 {
-	free(*s);
+	struct elt *e = s->head;
+	while (e != NULL) {
+		s->head = e->next;
+		free(e);
+		e = s->head;
+	}
+	free(s);
 }
 
 
