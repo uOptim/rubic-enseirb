@@ -23,7 +23,7 @@ int main()
 	printf("pop: %s\n", (char *) stack_pop(s));
 	printf("pop: %s\n", (char *) stack_pop(s));
 
-	stack_free(s);
+	stack_free(&s);
 	hashmap_free(&h);
 
 	return 0;

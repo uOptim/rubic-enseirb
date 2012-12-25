@@ -20,7 +20,7 @@ struct hashmap {
 
 
 
-size_t hash(const char *key)
+static size_t hash(const char *key)
 {
 	size_t n = 0;
 	const char *p = key;
@@ -33,7 +33,7 @@ size_t hash(const char *key)
 }
 
 
-struct cell * cell_new(const char *k, void *data)
+static struct cell * cell_new(const char *k, void *data)
 {
 	struct cell *c = malloc(sizeof *c);
 
