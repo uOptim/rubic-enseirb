@@ -17,8 +17,8 @@ topstmts            :
                     | topstmt
                     | topstmts terms topstmt
 ;
-topstmt             : CLASS ID term stmts END 
-                    | CLASS ID '<' ID term stmts END
+topstmt             : CLASS ID term stmts terms END 
+                    | CLASS ID '<' ID term stmts terms END
                     | stmt
 ;
 
@@ -46,6 +46,7 @@ params              : ID ',' params
 lhs                 : ID
                     | ID '.' primary
                     | ID '(' exprs ')'
+                    | ID '(' ')'
 ;
 exprs               : exprs ',' expr
                     | expr

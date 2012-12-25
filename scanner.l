@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "y.tab.h"
 
-int column=0; int lineno=0;
+int column=0; int lineno=1;
 
 /* Function that counts the current column */
 void count() {
@@ -18,7 +18,7 @@ void count() {
 }
 /* Function called in case of error during parsing */
 void yyerror(char *s) {
-  fprintf(stderr,"%s line %d col %d\n",s,lineno,column);
+  fprintf(stderr,"%s line %d col %d : %s\n",s,lineno,column, yytext);
 }
 
 %}
