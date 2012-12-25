@@ -22,46 +22,46 @@ void yyerror(char *s) {
 }
 
 %}
-F ([0-9]+\.[0-9]*)
-I ([0-9]+)
-S (\"[^\n\"]*\")
+F  ([0-9]+\.[0-9]*)
+I  ([0-9]+)
+S  (\"[^\n\"]*\")
 ID ([$@]?[a-zA-Z_][a-zA-Z_0-9]*)
 %%
-{F}      { count(); return(FLOAT); }
-{I}      { count(); return(INT); }
-{S}      { count(); return(STRING); }
-"for"    { count(); return(FOR); }
-"while"  { count(); return(WHILE);}
-"if"     { count(); return(IF); }
-"then"   { count(); return(THEN); }
-"else"   { count(); return(ELSE); }
-"return" { count(); return(RETURN); }
-"class"  { count(); return(CLASS); }
-"def"    { count(); return(DEF); }
-"in"     { count(); return(IN); }
-"end"    { count(); return(END); }
-".."	 { count(); return(TO); }
-"<="	 { count(); return(LEQ); }
-">="     { count(); return(GEQ); }
-"=="	 { count(); return(EQ); }
-"!="	 { count(); return(NEQ); }
-"&&"     { count(); return(AND); }
-"||"     { count(); return(OR); }
-";"	 { count(); return(';'); }
-","	 { count(); return(','); }
-"."	 { count(); return('.'); }
-"="      { count(); return('='); }
-"("	 { count(); return('('); }
-")"	 { count(); return(')'); }
-"-"	 { count(); return('-'); }
-"+"	 { count(); return('+'); }
-"*"	 { count(); return('*'); }
-"/"	 { count(); return('/'); }
-"<"	 { count(); return('<'); }
-">"	 { count(); return('>'); }
-{ID}     { count(); return(ID); }
-"\n"     { count(); lineno++; return('\n'); }
-[ \t\v\f]  { count(); }
-.        ;
+{F}       { count(); return(FLOAT); }
+{I}       { count(); return(INT); }
+{S}       { count(); return(STRING); }
+"for"     { count(); return(FOR); }
+"while"   { count(); return(WHILE);}
+"if"      { count(); return(IF); }
+"then"    { count(); return(THEN); }
+"else"    { count(); return(ELSE); }
+"return"  { count(); return(RETURN); }
+"class"   { count(); return(CLASS); }
+"def"     { count(); return(DEF); }
+"in"      { count(); return(IN); }
+"end"     { count(); return(END); }
+".."      { count(); return(TO); }
+"<="      { count(); return(LEQ); }
+">="      { count(); return(GEQ); }
+"=="      { count(); return(EQ); }
+"!="      { count(); return(NEQ); }
+"&&"      { count(); return(AND); }
+"||"      { count(); return(OR); }
+";"       { count(); return(';'); }
+","       { count(); return(','); }
+"."       { count(); return('.'); }
+"="       { count(); return('='); }
+"("       { count(); return('('); }
+")"       { count(); return(')'); }
+"-"       { count(); return('-'); }
+"+"       { count(); return('+'); }
+"*"       { count(); return('*'); }
+"/"       { count(); return('/'); }
+"<"       { count(); return('<'); }
+">"       { count(); return('>'); }
+{ID}      { count(); return(ID); }
+"\n"      { count(); lineno++; return('\n'); }
+[ \t\v\f] { count(); }
+.         ;
 %%
 

@@ -11,82 +11,82 @@
 %left '<' '>' LEQ GEQ EQ
 %left AND OR
 %%
-program		:  topstmts opt_terms
+program             : topstmts opt_terms
 ;
-topstmts        :      
-| topstmt
-| topstmts terms topstmt
+topstmts            :      
+                    | topstmt
+                    | topstmts terms topstmt
 ;
-topstmt	        : CLASS ID term stmts END 
-                | CLASS ID '<' ID term stmts END
-                | stmt
+topstmt             : CLASS ID term stmts END 
+                    | CLASS ID '<' ID term stmts END
+                    | stmt
 ;
 
-stmts	        : /* none */
-                | stmt
-                | stmts terms stmt
-                ;
+stmts               : /* none */
+                    | stmt
+                    | stmts terms stmt
+;
 
-stmt		: IF expr THEN stmts terms END
-                | IF expr THEN stmts terms ELSE stmts terms END 
-                | FOR ID IN expr TO expr term stmts terms END
-                | WHILE expr DO term stmts terms END 
-                | lhs '=' expr
-                | RETURN expr
-                | DEF ID opt_params term stmts terms END
+stmt                : IF expr THEN stmts terms END
+                    | IF expr THEN stmts terms ELSE stmts terms END 
+                    | FOR ID IN expr TO expr term stmts terms END
+                    | WHILE expr DO term stmts terms END 
+                    | lhs '=' expr
+                    | RETURN expr
+                    | DEF ID opt_params term stmts terms END
 ; 
 
-opt_params      : /* none */
-                | '(' ')'
-                | '(' params ')'
+opt_params          : /* none */
+                    | '(' ')'
+                    | '(' params ')'
 ;
-params          : ID ',' params
-                | ID
+params              : ID ',' params
+                    | ID
 ; 
-lhs             : ID
-                | ID '.' primary
-                | ID '(' exprs ')'
+lhs                 : ID
+                    | ID '.' primary
+                    | ID '(' exprs ')'
 ;
-exprs           : exprs ',' expr
-                | expr
+exprs               : exprs ',' expr
+                    | expr
 ;
-primary         : lhs
-                | STRING 
-                | FLOAT
-                | INT
-                | '(' expr ')'
+primary             : lhs
+                    | STRING 
+                    | FLOAT
+                    | INT
+                    | '(' expr ')'
 ;
-expr            : expr AND comp_expr
-                | expr OR comp_expr
-                | comp_expr
+expr                : expr AND comp_expr
+                    | expr OR comp_expr
+                    | comp_expr
 ;
-comp_expr       : additive_expr '<' additive_expr
-                | additive_expr '>' additive_expr
-                | additive_expr LEQ additive_expr
-                | additive_expr GEQ additive_expr
-                | additive_expr EQ additive_expr
-                | additive_expr NEQ additive_expr
-                | additive_expr
+comp_expr           : additive_expr '<' additive_expr
+                    | additive_expr '>' additive_expr
+                    | additive_expr LEQ additive_expr
+                    | additive_expr GEQ additive_expr
+                    | additive_expr EQ additive_expr
+                    | additive_expr NEQ additive_expr
+                    | additive_expr
 ;
-additive_expr   : multiplicative_expr
-                | additive_expr '+' multiplicative_expr
-                | additive_expr '-' multiplicative_expr
+additive_expr       : multiplicative_expr
+                    | additive_expr '+' multiplicative_expr
+                    | additive_expr '-' multiplicative_expr
 ;
 multiplicative_expr : multiplicative_expr '*' primary
                     | multiplicative_expr '/' primary
                     | primary
 ;
-opt_terms	: /* none */
-		| terms
-		;
+opt_terms           : /* none */
+                    | terms
+;
 
-terms		: terms ';'
-                | terms '\n'
-		| ';'
-                | '\n'
-		;
-term            : ';'
-                | '\n'
+terms               : terms ';'
+                    | terms '\n'
+                    | ';'
+                    | '\n'
+;
+term                : ';'
+                    | '\n'
 ;
 %%
 int main() {

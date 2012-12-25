@@ -1,5 +1,5 @@
 CFLAGS=   # -g, -O3 , ... par exemple
-LDFLAGS=-ll -ly # les bibliotheques necessaires
+LDFLAGS=-ll #-ly # les bibliotheques necessaires
 CC=gcc
 
 all: rubic
