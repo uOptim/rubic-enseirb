@@ -12,12 +12,12 @@ void dump_type_val (void) {
 
 void dump_class(class_t * class) { 
 	printf("class\n");
-	printf("\tname: %s\n", class->name);
+	//printf("\tname: %s\n", class->name);
 }
 
 void dump_func(function_t * func) { 
 	printf("function\n");
-	printf("\tname: %s\n", func->name);
+	//printf("\tname: %s\n", func->name);
 	printf("\treturn type: %d\n", func->ret);
 }
 
@@ -46,8 +46,8 @@ int main (void) {
 	A_type.t = OBJ;
 	f_type.t = FUN;
 
-	A_type.c.name = "A";
-	f_type.f.name = "f";
+	//A_type.c.name = "A";
+	//f_type.f.name = "f";
 	f_type.f.ret = INT;
 
 	dump_type_val();

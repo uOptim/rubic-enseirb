@@ -7,12 +7,12 @@
 #define PTR 5
 
 typedef struct {
-	char *name;
+//	char *name; //seems useless for now
 //	list members;
 } class_t;
 
 typedef struct {
-	char 			*name;
+//	char 			*name; //seems useless for now
 	unsigned char 	ret; // type de retour
 //	list 			params;
 } function_t;
