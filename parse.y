@@ -4,7 +4,7 @@
 
 %}
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
-%token STRING FLOAT INT ID FOR TO RETURN IN NEQ
+%token STRING FLOAT INT BOOL ID FOR TO RETURN IN NEQ
 %left '*' 
 %left '/'
 %left '+' '-'
@@ -52,9 +52,10 @@ exprs               : exprs ',' expr
                     | expr
 ;
 primary             : lhs
-                    | STRING 
-                    | FLOAT
-                    | INT
+                    | STRING        { fprintf(stderr, "string\n"); }
+                    | FLOAT         { fprintf(stderr, "float\n"); }
+                    | INT           { fprintf(stderr, "int\n"); }
+                    | BOOL          { fprintf(stderr, "boolean\n"); }
                     | '(' expr ')'
 ;
 expr                : expr AND comp_expr

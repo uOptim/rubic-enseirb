@@ -24,11 +24,13 @@ void yyerror(char *s) {
 %}
 F  ([0-9]+\.[0-9]*)
 I  ([0-9]+)
+B  (true|false)
 S  (\"[^\n\"]*\")
 ID ([$@]?[a-zA-Z_][a-zA-Z_0-9]*)
 %%
 {F}       { count(); return(FLOAT); }
 {I}       { count(); return(INT); }
+{B}       { count(); return(BOOL); }
 {S}       { count(); return(STRING); }
 "for"     { count(); return(FOR); }
 "while"   { count(); return(WHILE);}
