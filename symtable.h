@@ -5,8 +5,7 @@
 
 #define INT   3
 #define FLO   4
-#define PTR   5
-#define STR   6
+#define STR   5
 
 typedef struct {
 	char    *name;   // usefull to know the name of a super class

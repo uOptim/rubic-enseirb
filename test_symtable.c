@@ -7,7 +7,6 @@ void dump_type_val (void) {
 	printf("OBJ: %d\t", OBJ);
 	printf("INT: %d\t", INT);
 	printf("FLO: %d\t", FLO);
-	printf("PTR: %d\t", PTR);
 	printf("STR: %d\n\n", STR);
 }
 
@@ -44,7 +43,6 @@ void dump_type(type_t * type) {
 
 int main (void) {
 	type_t x_type;      /* float */
-	type_t p_type;  	/* pointeur */
 	type_t a_type;      /* entier */
 	type_t s_type;      /* chaîne de caractères */
 	type_t A_type;      /* classe */
@@ -53,7 +51,6 @@ int main (void) {
 	type_t MYCONST_type;/* chaîne de caractères constante */
 
 	x_type.t = FLO;
-	p_type.t = PTR;
 	a_type.t = INT;
 	s_type.t = STR;
 	A_type.t = CLA;
@@ -69,7 +66,6 @@ int main (void) {
 
 	dump_type_val();
 	dump_type(&x_type);
-	dump_type(&p_type);
 	dump_type(&a_type);
 	dump_type(&s_type);
 	dump_type(&A_type);
