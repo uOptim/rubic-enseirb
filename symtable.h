@@ -1,22 +1,28 @@
 /* Type */
 #define FUN   0
-#define OBJ   1
+#define CLA   1
+#define OBJ   2
 
-#define CHA   2
 #define INT   3
 #define FLO   4
 #define PTR   5
 #define STR   6
 
 typedef struct {
-	char *name; // object class name
-//	list members;
+	char    *name;   // usefull to know the name of a super class
+//	class_t *super;
+//	list    members;
 } class_t;
 
 typedef struct {
-//	char 			*name; //seems useless for now
-	unsigned char 	ret; // type de retour
-//	list 			params;
+	char    *cn; // object class name
+//	class_t *cp; // might be usefull one day
+} object_t;
+
+typedef struct {
+	unsigned char ret; // return type 
+	char          *cn; // class name is needed when return type is OBJ 
+//	list   params;
 } function_t;
 
 typedef struct {
@@ -30,7 +36,8 @@ typedef struct {
 
 	union {
 		/* liste chainee ou autre en fonction du type */
-		class_t c;
+		class_t    c;
+		object_t   o;
 		function_t f;
 	};
 } type_t;

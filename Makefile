@@ -16,8 +16,8 @@ rubic: y.tab.o lex.yy.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 clean:
-	@rm -f *~ *.o
+	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h lex.yy.c
 
 mrproper:
 	@make clean
-	@rm -f rubic lex.yy.c y.tab.c y.tab.h lex.yy.c
+	@rm -f rubic 
