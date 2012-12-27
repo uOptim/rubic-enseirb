@@ -19,9 +19,6 @@ struct hashmap *h;
 %token <s> STRING BOOL ID 
 %token <n> INT 
 %token <f> FLOAT 
-%type  <s> 
-%type  <n> 
-%type  <f> 
 %left '*' 
 %left '/'
 %left '+' '-'

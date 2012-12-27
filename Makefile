@@ -1,5 +1,5 @@
 CFLAGS= #-Wall -Wextra -g -O0  # -g, -O3 , ... par exemple
-LDFLAGS=-ll #-ly # les bibliotheques necessaires
+LDFLAGS=-lfl #-ly # les bibliotheques necessaires
 CC=gcc
 
 all: rubic
