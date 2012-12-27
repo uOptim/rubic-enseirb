@@ -49,7 +49,7 @@ static struct cell * cell_new(const char *k, void *data)
 }
 
 
-void hashmap_free(struct hashmap **h)
+void hashmap_free(struct hashmap **h, void (*free_data)(void *))
 {
 	unsigned int idx;
 	struct cell *cur, *tmp;
@@ -61,6 +61,7 @@ void hashmap_free(struct hashmap **h)
 			tmp = cur;
 			cur = cur->next;
 			free(tmp->key);
+			free_data(&tmp->data);
 			free(tmp);
 		}
 	}

@@ -6,16 +6,6 @@
 
 struct hashmap *h;
 
-#define SIZE 100
-type_t type_tab[SIZE];
-
-int new_id() {
-	static int i = 0;
-	if (i >= SIZE) {
-		return -1;
-	}
-	return i++;
-}
 %}
 
 %union {
@@ -46,14 +36,14 @@ topstmts            :
 ;
 topstmt             : CLASS ID term stmts terms END 
 {
-	int i = new_id();
-	if (i != -1) {
-		type_tab[i].t = CLA_T;
-		type_tab[i].c.name = $2;
-		hashmap_set(h, $2, &type_tab[i]);
-	}
+	hashmap_set(h, $2, type_new(CLA_T, $2));
+	free($2);
 }
                     | CLASS ID '<' ID term stmts terms END
+{
+	free($2);
+	free($4);
+}
                     | stmt
 ;
 
@@ -65,10 +55,16 @@ stmts               : /* none */
 stmt                : IF expr THEN stmts terms END
                     | IF expr THEN stmts terms ELSE stmts terms END 
                     | FOR ID IN expr TO expr term stmts terms END
+{
+	free($2);
+}
                     | WHILE expr DO term stmts terms END 
                     | lhs '=' expr
                     | RETURN expr
                     | DEF ID opt_params term stmts terms END
+{
+	free($2);
+}
 ; 
 
 opt_params          : /* none */
@@ -76,12 +72,30 @@ opt_params          : /* none */
                     | '(' params ')'
 ;
 params              : ID ',' params
+{
+	free($1);
+}
                     | ID
+{
+	free($1);
+}
 ; 
 lhs                 : ID
+{
+	free($1);
+}
                     | ID '.' primary
+{
+	free($1);
+}
                     | ID '(' exprs ')'
+{
+	free($1);
+}
                     | ID '(' ')'
+{
+	free($1);
+}
 ;
 exprs               : exprs ',' expr
                     | expr
@@ -129,8 +143,8 @@ term                : ';'
 int main() {
 	h = hashmap_new();
   	yyparse(); 
-	hashmap_dump(h, &dump_type);
-  	hashmap_free(&h);
+	hashmap_dump(h, &type_dump);
+  	hashmap_free(&h, &type_free);
 
 	return 0;
 }

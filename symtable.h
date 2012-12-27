@@ -41,4 +41,6 @@ typedef struct {
 	};
 } type_t;
 
-void dump_type(void *);
+void     type_dump(void *);
+type_t * type_new(int, const char *);
+void     type_free(void *);

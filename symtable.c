@@ -1,5 +1,7 @@
 #include "symtable.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define NB_T 6
 
@@ -28,22 +30,59 @@ static void dump_func(function_t * f) {
 	}
 }
 
-void dump_type(void * t) {
-	type_t * type = (type_t *)t;
-	if (type->tt < 0 || type->tt >= NB_T) {
+void type_dump(void * type) {
+	type_t * t = (type_t *)type;
+	if (t->tt < 0 || t->tt >= NB_T) {
 		printf("Invalid type.\n");
 	}
 	else {
 		printf("type: %d (%s)\t is const: %d\n",
-				type->tt, tt[type->tt], type->tc);
-		if (type->tt == CLA_T) {
-			dump_class(&type->c);
+				t->tt, tt[t->tt], t->tc);
+		if (t->tt == CLA_T) {
+			dump_class(&t->c);
 		}
-		else if (type->tt == OBJ_T) {
-			dump_obj(&type->o);
+		else if (t->tt == OBJ_T) {
+			dump_obj(&t->o);
 		}
-		else if (type->tt == FUN_T) {
-			dump_func(&type->f);
+		else if (t->tt == FUN_T) {
+			dump_func(&t->f);
 		}
 	}
+}
+
+/* name is used when type is OBJ_T, CLA_T or FUN_T.
+ * For a OBJ_T, name is the name of the object class.
+ * For a CLA_T, name is the name of the class.
+ * For a FUN_T, name is the name of the returned object class when the
+ * function returns an object.
+ */
+type_t * type_new(int type, const char * name) {
+	type_t * t = malloc(sizeof *t);
+
+	if (t == NULL)
+		return NULL;
+
+	t->t = type;
+	if (type == OBJ_T) {
+		t->o.cn = strdup(name);
+	}
+	else if (type == CLA_T) {
+		t->c.name = strdup(name);
+	}
+
+	return t;
+}
+
+void type_free(void * type) {
+	type_t **t = (type_t **) type;
+
+	if ((*t)->tt == OBJ_T) {
+		free((*t)->o.cn);
+	}
+	else if ((*t)->tt == CLA_T) {
+		free((*t)->c.name);
+	}
+	
+	free(*t);
+	*t = NULL;
 }
