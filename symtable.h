@@ -1,11 +1,11 @@
 /* Type */
-#define FUN   0
-#define CLA   1
-#define OBJ   2
+#define FUN_T   0
+#define CLA_T   1
+#define OBJ_T   2
 
-#define INT   3
-#define FLO   4
-#define STR   5
+#define INT_T   3
+#define FLO_T   4
+#define STR_T   5
 
 typedef struct {
 	char    *name;   // usefull to know the name of a super class
@@ -41,4 +41,4 @@ typedef struct {
 	};
 } type_t;
 
-
+void dump_type(void *);

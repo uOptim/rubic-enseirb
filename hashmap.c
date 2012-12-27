@@ -126,3 +126,18 @@ int hashmap_set(struct hashmap *h, const char *k, void *v)
 	return 0;
 }
 
+void hashmap_dump(struct hashmap *h, void (*dump_data)(void *))
+{
+	unsigned int idx;
+	struct cell *cur;
+
+	for (idx = 0; idx < SIZE; idx++) {
+		cur = h->array[idx];
+
+		while (cur != NULL) {
+			printf("\nKey: %s\n", cur->key);
+			dump_data(cur->data);
+			cur = cur->next;
+		}
+	}
+}

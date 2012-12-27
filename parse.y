@@ -1,10 +1,37 @@
 %{
-  #include <stdio.h>
-  #include "y.tab.h"
+#include <stdio.h>
+#include "y.tab.h"
+#include "symtable.h"
+#include "hashmap.h"
 
+struct hashmap *h;
+
+#define SIZE 100
+type_t type_tab[SIZE];
+
+int new_id() {
+	static int i = 0;
+	if (i >= SIZE) {
+		return -1;
+	}
+	return i++;
+}
 %}
+
+%union {
+	int   n;
+	float f;
+	char  *s;
+}
+
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
-%token STRING FLOAT INT BOOL ID FOR TO RETURN IN NEQ
+%token FOR TO RETURN IN NEQ
+%token <s> STRING BOOL ID 
+%token <n> INT 
+%token <f> FLOAT 
+%type  <s> 
+%type  <n> 
+%type  <f> 
 %left '*' 
 %left '/'
 %left '+' '-'
@@ -18,6 +45,14 @@ topstmts            :
                     | topstmts terms topstmt
 ;
 topstmt             : CLASS ID term stmts terms END 
+{
+	int i = new_id();
+	if (i != -1) {
+		type_tab[i].t = CLA_T;
+		type_tab[i].c.name = $2;
+		hashmap_set(h, $2, &type_tab[i]);
+	}
+}
                     | CLASS ID '<' ID term stmts terms END
                     | stmt
 ;
@@ -92,6 +127,10 @@ term                : ';'
 ;
 %%
 int main() {
-  yyparse(); 
-  return 0;
+	h = hashmap_new();
+  	yyparse(); 
+	hashmap_dump(h, &dump_type);
+  	hashmap_free(&h);
+
+	return 0;
 }

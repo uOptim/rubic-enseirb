@@ -61,7 +61,7 @@ ID ([$@]?[a-zA-Z_][a-zA-Z_0-9]*)
 "/"       { count(); return('/'); }
 "<"       { count(); return('<'); }
 ">"       { count(); return('>'); }
-{ID}      { count(); return(ID); }
+{ID}      { count(); yylval.s = strdup(yytext); return(ID); }
 "\n"      { count(); lineno++; return('\n'); }
 [ \t\v\f] { count(); }
 .         ;
