@@ -16,8 +16,8 @@ struct hashmap *h;
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
 %token FOR TO RETURN IN NEQ
-%token <s> STRING BOOL ID 
-%token <n> INT 
+%token <s> STRING ID 
+%token <n> INT BOOL 
 %token <f> FLOAT 
 %left '*' 
 %left '/'
@@ -101,7 +101,7 @@ primary             : lhs
                     | STRING        { fprintf(stderr, "string\n"); }
                     | FLOAT         { fprintf(stderr, "float\n"); }
                     | INT           { fprintf(stderr, "int\n"); }
-                    | BOOL          { fprintf(stderr, "boolean\n"); }
+                    | BOOL          { fprintf(stderr, "boolean: %d\n", $1); }
                     | '(' expr ')'
 ;
 expr                : expr AND comp_expr

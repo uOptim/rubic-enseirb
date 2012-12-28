@@ -38,6 +38,7 @@ struct type {
 
 		struct class { // class
 			char *cn;
+			struct type *super;
 			struct stack *params;
 		} cl ;
 
