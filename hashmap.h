@@ -1,9 +1,6 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
-#include <sys/types.h>
-
-
 struct hashmap;
 
 struct hashmap * hashmap_new();

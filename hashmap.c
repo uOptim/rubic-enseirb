@@ -61,7 +61,7 @@ void hashmap_free(struct hashmap **h, void (*free_data)(void *))
 			tmp = cur;
 			cur = cur->next;
 			free(tmp->key);
-			free_data(&tmp->data);
+			if (free_data != NULL) { free_data(&tmp->data); }
 			free(tmp);
 		}
 	}
