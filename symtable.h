@@ -1,3 +1,5 @@
+#include "stack.h"
+
 /* Type */
 #define FUN_T   0
 #define CLA_T   1
@@ -7,24 +9,8 @@
 #define FLO_T   4
 #define STR_T   5
 
-typedef struct {
-	char    *name;   // usefull to know the name of a super class
-//	class_t *super;
-//	list    members;
-} class_t;
 
-typedef struct {
-	char    *cn; // object class name
-//	class_t *cp; // might be usefull one day
-} object_t;
-
-typedef struct {
-	unsigned char ret; // return type 
-	char          *cn; // class name is needed when return type is OBJ 
-//	list   params;
-} function_t;
-
-typedef struct {
+struct type {
 	union {
 		unsigned char t;         // general type
 		struct {
@@ -34,13 +20,30 @@ typedef struct {
 	};
 
 	union {
-		/* liste chainee ou autre en fonction du type */
-		class_t    c;
-		object_t   o;
-		function_t f;
-	};
-} type_t;
+		int      in;
+		char     by;
+		char *   st;
+		float    fl;
 
-void     type_dump(void *);
-type_t * type_new(int, const char *);
-void     type_free(void *);
+		struct { // function
+			char *fn; 
+			struct type *ret;
+			struct stack *params;
+		} fu;
+
+		struct { // object
+			char *cn;
+			struct stack *attrs;
+		} ob;
+
+		struct class { // class
+			char *cn;
+			struct stack *params;
+		} cl ;
+
+	};
+} ;
+
+struct type * type_new(int, void *);
+void          type_free(void *);
+void          type_dump(void *);

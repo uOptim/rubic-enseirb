@@ -5,47 +5,29 @@
 
 #define NB_T 6
 
-static const char tt[NB_T][4] = {"FUN",
-                                 "CLA",
-                                 "OBJ",
-                                 "INT",
-                                 "FLO",
-                                 "STR"};
-
-static void dump_class(class_t * c) { 
-	printf("class\n");
-	printf("\tclass name: %s\n", c->name);
-}
-
-static void dump_obj(object_t * o) { 
-	printf("object\n");
-	printf("\tclass name: %s\n", o->cn);
-}
-
-static void dump_func(function_t * f) { 
-	printf("function\n");
-	printf("\treturn type: %d\n", f->ret);
-	if (f->ret == OBJ_T) {
-		printf("\treturned object class name: %s\n", f->cn);
-	}
-}
+static const char tt[NB_T][4] = {"FUN", "CLA", "OBJ", "INT", "FLO", "STR"};
 
 void type_dump(void * type) {
-	type_t * t = (type_t *)type;
+	struct type * t = (struct type *)type;
 	if (t->tt < 0 || t->tt >= NB_T) {
 		printf("Invalid type.\n");
 	}
 	else {
-		printf("type: %d (%s)\t is const: %d\n",
-				t->tt, tt[t->tt], t->tc);
+		printf("type: %d (%s)\t is const: %d\n", t->tt, tt[t->tt], t->tc);
 		if (t->tt == CLA_T) {
-			dump_class(&t->c);
+			printf("class\n");
+			printf("\tclass name: %s\n", t->cl.cn);
 		}
 		else if (t->tt == OBJ_T) {
-			dump_obj(&t->o);
+			printf("object\n");
+			printf("\tclass name: %s\n", t->ob.cn);
 		}
 		else if (t->tt == FUN_T) {
-			dump_func(&t->f);
+			printf("function\n");
+			//printf("\treturn type: %d\n", t->fu.ret);
+			//if (fu->ret == OBJ_T) {
+			//	printf("\treturned object class name: %s\n", f->cn);
+			//}
 		}
 	}
 }
@@ -56,33 +38,64 @@ void type_dump(void * type) {
  * For a FUN_T, name is the name of the returned object class when the
  * function returns an object.
  */
-type_t * type_new(int type, const char * name) {
-	type_t * t = malloc(sizeof *t);
+struct type * type_new(int type, void *data) {
+	struct type * t = malloc(sizeof *t);
 
 	if (t == NULL)
 		return NULL;
 
 	t->t = type;
-	if (type == OBJ_T) {
-		t->o.cn = strdup(name);
-	}
-	else if (type == CLA_T) {
-		t->c.name = strdup(name);
+
+	switch (type) {
+		case FUN_T:
+			t->fu.fn = strdup((char *) data);
+			break;
+		case INT_T:
+			t->in = *((int *) data);
+			break;
+		case FLO_T:
+			t->fl = *((float *) data);
+			break;
+		case STR_T:
+			t->st = strdup((char *) data);
+			break;
+		case OBJ_T:
+			t->ob.cn = strdup((char *) data);
+			break;
+		case CLA_T:
+			t->cl.cn = strdup((char *) data);
+			break;
+		default:
+			break;
 	}
 
 	return t;
 }
 
 void type_free(void * type) {
-	type_t **t = (type_t **) type;
+	struct type **t = (struct type **) type;
 
-	if ((*t)->tt == OBJ_T) {
-		free((*t)->o.cn);
+	switch ((*t)->tt) {
+		case FUN_T:
+			free((*t)->fu.fn);
+			break;
+		case INT_T:
+			break;
+		case FLO_T:
+			break;
+		case STR_T:
+			free((*t)->st);
+			break;
+		case OBJ_T:
+			free((*t)->ob.cn);
+			break;
+		case CLA_T:
+			free((*t)->cl.cn);
+			break;
+		default:
+			break;
 	}
-	else if ((*t)->tt == CLA_T) {
-		free((*t)->c.name);
-	}
-	
+
 	free(*t);
 	*t = NULL;
 }
