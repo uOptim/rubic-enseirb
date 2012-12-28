@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "stack.h"
 
@@ -31,11 +32,12 @@ struct stack * stack_new()
 
 void stack_free(struct stack **s)
 {
+	struct elt *tmp;
 	struct elt *e = (*s)->head;
 	while (e != NULL) {
-		(*s)->head = e->next;
+		tmp = e->next;
 		free(e);
-		e = (*s)->head;
+		e = tmp;
 	}
 	free(*s);
 	*s = NULL;

@@ -20,31 +20,41 @@ struct type {
 	};
 
 	union {
-		int      in;
-		char     by;
-		char *   st;
-		float    fl;
-
-		struct function {
-			char *fn; 
-			struct type *ret;
-			struct stack *params;
-		} fu;
+		int    in;
+		char   by;
+		char * st;
+		float  fl;
 
 		struct object {
 			char *cn;
 			struct stack *attrs;
 		} ob;
-
-		struct class {
-			char *cn;
-			struct class *super;
-			struct stack *params;
-		} cl ;
-
 	};
-} ;
+};
+
+
+struct function {
+	char *fn; 
+	struct type *ret;
+	struct stack *params;
+};
+
+
+struct class {
+	char *cn;
+	struct class *super;
+	struct stack *methods;
+};
+
 
 struct type * type_new(int, void *);
 void          type_free(void *);
 void          type_dump(void *);
+
+struct class * class_new(const char *, struct class *);
+void           class_free(void *);
+void           class_dump(void *);
+
+struct function * function_new(const char *);
+void              function_free(void *);
+void              function_dump(void *);

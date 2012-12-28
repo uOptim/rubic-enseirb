@@ -4,7 +4,10 @@
 #include "symtable.h"
 #include "hashmap.h"
 
-struct hashmap *h;
+// 3 namespaces
+struct hashmap *vars;
+struct hashmap *classes;
+struct hashmap *functions;
 
 %}
 
@@ -33,11 +36,18 @@ topstmts            :
 ;
 topstmt             : CLASS ID term stmts terms END 
 {
-	hashmap_set(h, $2, type_new(CLA_T, $2));
+	hashmap_set(classes, $2, class_new($2, NULL));
 	free($2);
 }
                     | CLASS ID '<' ID term stmts terms END
 {
+	struct class *super = hashmap_get(classes, $4);
+	if (NULL == super) {
+		yyerror("super class not defined");
+	} else {
+		hashmap_set(classes, $2, class_new($2, super));
+	}
+
 	free($2);
 	free($4);
 }
@@ -138,10 +148,20 @@ term                : ';'
 ;
 %%
 int main() {
-	h = hashmap_new();
+	vars = hashmap_new();
+	classes = hashmap_new();
+	functions = hashmap_new();
+
   	yyparse(); 
-	hashmap_dump(h, &type_dump);
-  	hashmap_free(&h, &type_free);
+
+	hashmap_dump(vars, &type_dump);
+  	hashmap_free(&vars, &type_free);
+
+	hashmap_dump(classes, &class_dump);
+  	hashmap_free(&classes, &class_free);
+
+	hashmap_dump(functions, &function_dump);
+  	hashmap_free(&functions, &function_free);
 
 	return 0;
 }

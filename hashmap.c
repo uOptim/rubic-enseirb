@@ -58,11 +58,11 @@ void hashmap_free(struct hashmap **h, void (*free_data)(void *))
 		cur = (*h)->array[idx];
 
 		while (cur != NULL) {
-			tmp = cur;
-			cur = cur->next;
-			free(tmp->key);
-			if (free_data != NULL) { free_data(&tmp->data); }
-			free(tmp);
+			tmp = cur->next;
+			free(cur->key);
+			if (free_data != NULL) { free_data(cur->data); }
+			free(cur);
+			cur = tmp;
 		}
 	}
 
