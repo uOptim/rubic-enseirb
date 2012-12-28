@@ -25,20 +25,20 @@ struct type {
 		char *   st;
 		float    fl;
 
-		struct { // function
+		struct function {
 			char *fn; 
 			struct type *ret;
 			struct stack *params;
 		} fu;
 
-		struct { // object
+		struct object {
 			char *cn;
 			struct stack *attrs;
 		} ob;
 
-		struct class { // class
+		struct class {
 			char *cn;
-			struct type *super;
+			struct class *super;
 			struct stack *params;
 		} cl ;
 
