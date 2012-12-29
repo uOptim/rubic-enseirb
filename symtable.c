@@ -125,7 +125,10 @@ void class_dump(void *class)
 	struct class *c = (struct class *) class;
 
 	printf("Class: %s\n", c->cn);
-	// super class?
+
+	if (c->super != NULL) {
+		printf("Super class: %s\n", c->super->cn);
+	}
 }
 
 
