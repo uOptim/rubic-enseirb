@@ -5,7 +5,7 @@ struct stack;
 
 
 struct stack * stack_new();
-void stack_free(struct stack **);
+void stack_free(struct stack **, void (*)(void *));
 
 void * stack_pop(struct stack *);
 int    stack_push(struct stack *, void *);

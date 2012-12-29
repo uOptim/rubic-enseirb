@@ -30,11 +30,12 @@ struct stack * stack_new()
 }
 
 
-void stack_free(struct stack **s)
+void stack_free(struct stack **s, void (*free_data)(void *))
 {
 	struct elt *tmp;
 	struct elt *e = (*s)->head;
 	while (e != NULL) {
+		if (free_data != NULL) free_data(e->data);
 		tmp = e->next;
 		free(e);
 		e = tmp;

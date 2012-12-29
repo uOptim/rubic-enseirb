@@ -60,7 +60,7 @@ void hashmap_free(struct hashmap **h, void (*free_data)(void *))
 		while (cur != NULL) {
 			tmp = cur->next;
 			free(cur->key);
-			if (free_data != NULL) { free_data(cur->data); }
+			if (free_data != NULL) free_data(cur->data);
 			free(cur);
 			cur = tmp;
 		}
@@ -96,10 +96,12 @@ void * hashmap_get(struct hashmap *h, const char *k)
 	size_t idx = hash(k);
 	struct cell *cur = h->array[idx];
 
-	for (; cur != NULL; cur = cur->next) {
+	while(cur != NULL) {
 		if (strcmp(cur->key, k) == 0) {
 			return cur->data;
 		}
+
+		cur = cur->next;
 	}
 
 	fprintf(stderr, "%s: not in this hash!\n", k);
@@ -114,15 +116,11 @@ int hashmap_set(struct hashmap *h, const char *k, void *v)
 
 	if (c == NULL) return -1;
 
-	if (h->array[idx] == NULL) {
-		h->array[idx] = c;
+	if (h->array[idx] != NULL) {
+		c->next = h->array[idx];
 	}
 	
-	else {
-		struct cell *cur = h->array[idx];
-		while (cur->next != NULL) cur = cur->next;
-		cur->next = c;
-	}
+	h->array[idx] = c;
 
 	return 0;
 }
@@ -136,7 +134,7 @@ void hashmap_dump(struct hashmap *h, void (*dump_data)(void *))
 		cur = h->array[idx];
 
 		while (cur != NULL) {
-			printf("\nKey: %s\n", cur->key);
+			printf("Key: %s\n", cur->key);
 			dump_data(cur->data);
 			cur = cur->next;
 		}

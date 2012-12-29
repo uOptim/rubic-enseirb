@@ -10,26 +10,23 @@ static const char tt[NB_T][4] = {"FUN", "CLA", "OBJ", "INT", "FLO", "STR"};
 
 void type_dump(void * type) {
 	struct type * t = (struct type *)type;
-	if (t->tt < 0 || t->tt >= NB_T) {
-		printf("Invalid type.\n");
-	}
-	else {
-		//printf("type: %d (%s)\t is const: %d\n", t->tt, tt[t->tt], t->tc);
-		//if (t->tt == CLA_T) {
-		//	printf("class\n");
-		//	printf("\tclass name: %s\n", t->cl.cn);
-		//}
-		//else if (t->tt == OBJ_T) {
-		//	printf("object\n");
-		//	printf("\tclass name: %s\n", t->ob.cn);
-		//}
-		//else if (t->tt == FUN_T) {
-		//	printf("function\n");
-		//	//printf("\treturn type: %d\n", t->fu.ret);
-		//	//if (fu->ret == OBJ_T) {
-		//	//	printf("\treturned object class name: %s\n", f->cn);
-		//	//}
-		//}
+
+	switch (t->tt) {
+		case INT_T:
+			puts("intger");
+			break;
+		case FLO_T:
+			puts("floating point number");
+			break;
+		case STR_T:
+			puts("String");
+			break;
+		case OBJ_T:
+			printf("object, instance of %s\n", t->ob.cn);
+			break;
+		default:
+			fprintf(stderr, "Invalid type.\n");
+			break;
 	}
 }
 
@@ -109,12 +106,9 @@ void class_free(void *class)
 {
 	struct class *c = (struct class *) class;
 
-	fprintf(stderr, "1\n");
 	free(c->cn);
-	fprintf(stderr, "2\n");
 	assert(c->methods != NULL);
-	stack_free(&c->methods);
-	fprintf(stderr, "3\n");
+	stack_free(&c->methods, NULL);
 
 	free(class);
 }
@@ -132,7 +126,7 @@ void class_dump(void *class)
 }
 
 
-struct function * function_new(const char *name)
+struct function * function_new(const char *name, struct stack *params)
 {
 	struct function *f = malloc(sizeof *f);
 
@@ -147,7 +141,10 @@ struct function * function_new(const char *name)
 	}
 
 	f->fn = strdup(name);
-	f->params = stack_new();
+	f->params = params;
+
+	assert(f->fn != NULL);
+	assert(f->params != NULL);
 
 	return f;
 }
@@ -159,7 +156,7 @@ void function_free(void *function)
 
 	free(f->fn);
 	free(f->ret);
-	stack_free(&f->params);
+	stack_free(&f->params, free); //TODO "free" must be replaced
 
 	free(f);
 }
@@ -169,6 +166,6 @@ void function_dump(void *function)
 {
 	struct function *f = (struct function *) function;
 
-	printf("Class: %s\n", f->fn);
+	printf("Function: %s\n", f->fn);
 	// params?
 }

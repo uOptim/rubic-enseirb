@@ -9,6 +9,8 @@ struct hashmap *vars;
 struct hashmap *classes;
 struct hashmap *functions;
 
+struct stack *tmp_params;
+
 %}
 
 %union {
@@ -70,6 +72,8 @@ stmt                : IF expr THEN stmts terms END
                     | RETURN expr
                     | DEF ID opt_params term stmts terms END
 {
+	hashmap_set(functions, $2, function_new($2, tmp_params));
+	tmp_params = stack_new(); // new param stack
 	free($2);
 }
 ; 
@@ -80,11 +84,15 @@ opt_params          : /* none */
 ;
 params              : ID ',' params
 {
-	free($1);
+	printf("param: %s\n", $1);
+	stack_push(tmp_params, $1); // TODO push a struct type instead
+	//free($1);
 }
                     | ID
 {
-	free($1);
+	printf("param: %s\n", $1);
+	stack_push(tmp_params, $1); // TODO push a struct type instead
+	//free($1);
 }
 ; 
 lhs                 : ID
@@ -111,7 +119,7 @@ primary             : lhs
                     | STRING        { fprintf(stderr, "string\n"); }
                     | FLOAT         { fprintf(stderr, "float\n"); }
                     | INT           { fprintf(stderr, "int\n"); }
-                    | BOOL          { fprintf(stderr, "boolean: %d\n", $1); }
+                    | BOOL          { fprintf(stderr, "boolean\n"); }
                     | '(' expr ')'
 ;
 expr                : expr AND comp_expr
@@ -152,13 +160,19 @@ int main() {
 	classes = hashmap_new();
 	functions = hashmap_new();
 
+	tmp_params = stack_new();
+
   	yyparse(); 
+
+	stack_free(&tmp_params, free);
 
 	hashmap_dump(vars, &type_dump);
   	hashmap_free(&vars, &type_free);
+	puts("");
 
 	hashmap_dump(classes, &class_dump);
   	hashmap_free(&classes, &class_free);
+	puts("");
 
 	hashmap_dump(functions, &function_dump);
   	hashmap_free(&functions, &function_free);
