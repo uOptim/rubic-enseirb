@@ -9,4 +9,7 @@ class B < A
   def g(b, c)
     return c * b + 1.5
   end
+  def h(o)
+	  a = 0
+  end
 end

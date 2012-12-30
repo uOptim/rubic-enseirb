@@ -61,6 +61,6 @@ struct class * class_new(const char *, struct class *);
 void           class_free(void *);
 void           class_dump(void *);
 
-struct function * function_new(const char *, struct stack *);
+struct function * function_new();
 void              function_free(void *);
 void              function_dump(void *);

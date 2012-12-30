@@ -4,7 +4,7 @@
 #include "symtable.h"
 #include "hashmap.h"
 
-// This should be the last include!
+// This must be the last include!
 #include "y.tab.h"
 
 
@@ -16,6 +16,7 @@ struct hashmap *classes;
 struct hashmap *functions;
 
 struct stack * tmp_params;
+struct function *tmp_func;
 
 %}
 
@@ -82,13 +83,27 @@ stmt                : IF expr THEN stmts terms END
 }
                     | WHILE expr DO term stmts terms END 
                     | lhs '=' expr
+{
+	$1 = $3;
+}
                     | RETURN expr
+{
+	tmp_func->ret = $2;
+}
                     | DEF ID opt_params term stmts terms END
 {
 
-	hashmap_set(functions, $2, function_new($2, tmp_params));
-	tmp_params = stack_new(); // new param stack
-	free($2);
+	tmp_func->fn = $2;
+	tmp_func->params = tmp_params;
+	hashmap_set(functions, $2, tmp_func);
+
+	// create new blank function
+	tmp_func = function_new();
+	// new param stack
+	tmp_params = stack_new();
+
+	// DO NOT FREE $2! It is used for the function's name ATM.
+	//free($2);
 }
 ; 
 
@@ -182,9 +197,7 @@ expr                : expr AND comp_expr
 }
                     | comp_expr
 {
-	$$ = var_new("bool");
-	$$->t = BOO_T;
-	$$->bo = $1;
+	$$ = $1;
 }
 ;
 comp_expr           : additive_expr '<' additive_expr
@@ -311,12 +324,18 @@ comp_expr           : additive_expr '<' additive_expr
 }
 ;
 additive_expr       : multiplicative_expr
+{
+	$$ = $1;
+}
                     | additive_expr '+' multiplicative_expr
                     | additive_expr '-' multiplicative_expr
 ;
 multiplicative_expr : multiplicative_expr '*' primary
                     | multiplicative_expr '/' primary
                     | primary
+{
+	$$ = $1;
+}
 ;
 opt_terms           : /* none */
                     | terms
@@ -337,20 +356,29 @@ int main() {
 	functions = hashmap_new();
 
 	tmp_params = stack_new();
+	tmp_func = function_new();
 
   	yyparse(); 
 
+	function_free(tmp_func);
 	stack_free(&tmp_params, var_free);
 
+	puts("");
+	puts("Dumping vars:");
 	hashmap_dump(vars, var_dump);
-  	hashmap_free(&vars, var_free);
-	puts("");
 
+	puts("");
+	puts("Dumping classes:");
 	hashmap_dump(classes, class_dump);
-  	hashmap_free(&classes, class_free);
-	puts("");
 
+	puts("");
+	puts("Dumping functions:");
 	hashmap_dump(functions, function_dump);
+
+	// disabled because these hashes may share variables and they might get
+	// free()'d multiple times
+  	//hashmap_free(&vars, var_free);
+  	//hashmap_free(&classes, class_free);
   	hashmap_free(&functions, function_free);
 
 	return 0;

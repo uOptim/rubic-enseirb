@@ -12,6 +12,10 @@ void var_dump(void * var)
 {
 	struct var * t = (struct var *)var;
 
+	printf("var name: %s", t->vn);
+
+	printf(" - ");
+
 	switch (t->tt) {
 		case INT_T:
 			puts("intger");
@@ -23,12 +27,14 @@ void var_dump(void * var)
 			puts("string");
 			break;
 		case OBJ_T:
-			printf("object, instance of %s\n", t->ob.cn);
+			printf("object, instance of %s", t->ob.cn);
 			break;
 		default:
-			fprintf(stderr, "unknown or invalid type.\n");
+			printf("unknown or invalid type.");
 			break;
 	}
+
+	puts("");
 }
 
 /* name is used when var is OBJ_T, CLA_T or FUN_T.
@@ -76,7 +82,10 @@ void var_free(void *var)
 {
 	struct var *v = (struct var *) var;
 
-	free(v->vn);
+	if (v->vn != NULL) {
+		free(v->vn);
+		v->vn = NULL;
+	}
 
 	switch (v->tt) {
 		case INT_T:
@@ -117,8 +126,7 @@ void class_free(void *class)
 	struct class *c = (struct class *) class;
 
 	free(c->cn);
-	assert(c->methods != NULL);
-	stack_free(&c->methods, NULL);
+	stack_free(&c->methods, function_free);
 
 	free(class);
 }
@@ -136,25 +144,16 @@ void class_dump(void *class)
 }
 
 
-struct function * function_new(const char *name, struct stack *params)
+struct function * function_new()
 {
 	struct function *f = malloc(sizeof *f);
 
 	if (f == NULL)
 		return NULL;
 
-	f->ret = malloc(sizeof *(f->ret));
-
-	if (f->ret == NULL) {
-		free(f);
-		return NULL;
-	}
-
-	f->fn = strdup(name);
-	f->params = params;
-
-	assert(f->fn != NULL);
-	assert(f->params != NULL);
+	f->fn = NULL;
+	f->ret = NULL;
+	f->params = NULL;
 
 	return f;
 }
@@ -164,9 +163,20 @@ void function_free(void *function)
 {
 	struct function *f = (struct function *) function;
 
-	free(f->fn);
-	free(f->ret);
-	stack_free(&f->params, var_free);
+	if (f->fn != NULL) {
+		free(f->fn);
+		f->fn = NULL;
+	}
+
+	if (f->ret != NULL) {
+		var_free(f->ret);
+		f->ret = NULL;
+	}
+
+	if (f->params != NULL) {
+		stack_free(&f->params, var_free);
+		f->params = NULL;
+	}
 
 	free(f);
 }
@@ -178,12 +188,23 @@ void function_dump(void *function)
 	struct function *f = (struct function *) function;
 
 	printf("Function: %s\n", f->fn);
-	printf("Params: ");
 
 	unsigned int i = 0;
-	while (NULL != (param = stack_peak(f->params, i))) {
-		printf("%s ", param->vn);
-		i++;
+	if (f->params != NULL) {
+		printf("* Params:\n");
+		while (NULL != (param = stack_peak(f->params, i))) {
+			var_dump(param);
+			i++;
+		}
+	} else {
+		printf("No params");
+	}
+
+	if (f->ret != NULL) {
+		printf("* Returns:\n");
+		var_dump(f->ret);
+	} else {
+		printf("No return");
 	}
 
 	puts("");
