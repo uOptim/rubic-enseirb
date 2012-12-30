@@ -44,7 +44,7 @@ struct var * var_new(const char *name)
 	if (v == NULL) return NULL;
 
 	v->t = 255; // undef?
-	v->name = strdup(name);
+	v->vn = strdup(name);
 
 	return v;
 }
@@ -72,26 +72,28 @@ void var_set(struct var *v, int type, void *value)
 	}
 }
 
-void var_free(void * var) {
-	struct var **t = (struct var **) var;
+void var_free(void *var)
+{
+	struct var *v = (struct var *) var;
 
-	switch ((*t)->tt) {
+	free(v->vn);
+
+	switch (v->tt) {
 		case INT_T:
 			break;
 		case FLO_T:
 			break;
 		case STR_T:
-			free((*t)->st);
+			free(v->st);
 			break;
 		case OBJ_T:
-			free((*t)->ob.cn);
+			free(v->ob.cn);
 			break;
 		default:
 			break;
 	}
 
-	free(*t);
-	*t = NULL;
+	free(v);
 }
 
 
@@ -164,7 +166,7 @@ void function_free(void *function)
 
 	free(f->fn);
 	free(f->ret);
-	stack_free(&f->params, free); //TODO "free" must be replaced
+	stack_free(&f->params, var_free);
 
 	free(f);
 }
@@ -172,7 +174,7 @@ void function_free(void *function)
 
 void function_dump(void *function) 
 {
-	char *param;
+	struct var *param;
 	struct function *f = (struct function *) function;
 
 	printf("Function: %s\n", f->fn);
@@ -180,7 +182,7 @@ void function_dump(void *function)
 
 	unsigned int i = 0;
 	while (NULL != (param = stack_peak(f->params, i))) {
-		printf("%s ", param);
+		printf("%s ", param->vn);
 		i++;
 	}
 

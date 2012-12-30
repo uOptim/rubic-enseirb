@@ -27,11 +27,11 @@ I  ([0-9]+)
 S  (\"[^\n\"]*\")
 ID ([$@]?[a-zA-Z_][a-zA-Z_0-9]*)
 %%
-{F}       { count(); return(FLOAT); }
-{I}       { count(); return(INT); }
-{S}       { count(); return(STRING); }
-"true"    { count(); yylval.n = 1; return(BOOL); }
-"false"   { count(); yylval.n = 0; return(BOOL); }
+{F}       { count(); yylval.f = atof(yytext); return(FLOAT); }
+{I}       { count(); yylval.n = atoi(yytext); return(INT); }
+{S}       { count(); yylval.s = strdup(yytext); return(STRING); }
+"true"    { count(); yylval.c = 1; return(BOOL); }
+"false"   { count(); yylval.c = 0; return(BOOL); }
 "for"     { count(); return(FOR); }
 "while"   { count(); return(WHILE);}
 "if"      { count(); return(IF); }

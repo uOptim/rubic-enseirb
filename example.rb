@@ -7,6 +7,6 @@ object = A.new()
 b = object.f(3)
 class B < A
   def g(b, c)
-    return a + 1.5
+    return c * b + 1.5
   end
 end

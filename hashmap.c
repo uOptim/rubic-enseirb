@@ -104,7 +104,6 @@ void * hashmap_get(struct hashmap *h, const char *k)
 		cur = cur->next;
 	}
 
-	fprintf(stderr, "%s: not in this hash!\n", k);
 	return NULL;
 }
 

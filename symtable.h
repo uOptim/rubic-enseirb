@@ -8,10 +8,11 @@
 #define INT_T   3
 #define FLO_T   4
 #define STR_T   5
+#define BOO_T   6
 
 
 struct var {
-	char *name;
+	char *vn;
 
 	// type
 	union {
@@ -25,7 +26,7 @@ struct var {
 	// value
 	union {
 		int    in;
-		char   by;
+		char   bo;
 		char * st;
 		float  fl;
 
