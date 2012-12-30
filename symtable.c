@@ -8,8 +8,9 @@
 
 static const char tt[NB_T][4] = {"FUN", "CLA", "OBJ", "INT", "FLO", "STR"};
 
-void type_dump(void * type) {
-	struct type * t = (struct type *)type;
+void var_dump(void * var)
+{
+	struct var * t = (struct var *)var;
 
 	switch (t->tt) {
 		case INT_T:
@@ -19,53 +20,60 @@ void type_dump(void * type) {
 			puts("floating point number");
 			break;
 		case STR_T:
-			puts("String");
+			puts("string");
 			break;
 		case OBJ_T:
 			printf("object, instance of %s\n", t->ob.cn);
 			break;
 		default:
-			fprintf(stderr, "Invalid type.\n");
+			fprintf(stderr, "unknown or invalid type.\n");
 			break;
 	}
 }
 
-/* name is used when type is OBJ_T, CLA_T or FUN_T.
+/* name is used when var is OBJ_T, CLA_T or FUN_T.
  * For a OBJ_T, name is the name of the object class.
  * For a CLA_T, name is the name of the class.
  * For a FUN_T, name is the name of the returned object class when the
  * function returns an object.
  */
-struct type * type_new(int type, void *data) {
-	struct type * t = malloc(sizeof *t);
+struct var * var_new(const char *name)
+{
+	struct var * v = malloc(sizeof *v);
 
-	if (t == NULL)
-		return NULL;
+	if (v == NULL) return NULL;
 
-	t->t = type;
+	v->t = 255; // undef?
+	v->name = strdup(name);
+
+	return v;
+}
+
+
+void var_set(struct var *v, int type, void *value)
+{
+	v->t = type;
 
 	switch (type) {
 		case INT_T:
-			t->in = *((int *) data);
+			v->in = *((int *) value);
 			break;
 		case FLO_T:
-			t->fl = *((float *) data);
+			v->fl = *((float *) value);
 			break;
 		case STR_T:
-			t->st = strdup((char *) data);
+			v->st = strdup((char *) value);
 			break;
 		case OBJ_T:
-			t->ob.cn = strdup((char *) data);
+			v->ob.cn = strdup((char *) value);
 			break;
 		default:
 			break;
 	}
-
-	return t;
 }
 
-void type_free(void * type) {
-	struct type **t = (struct type **) type;
+void var_free(void * var) {
+	struct var **t = (struct var **) var;
 
 	switch ((*t)->tt) {
 		case INT_T:

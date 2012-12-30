@@ -10,7 +10,10 @@
 #define STR_T   5
 
 
-struct type {
+struct var {
+	char *name;
+
+	// type
 	union {
 		unsigned char t;         // general type
 		struct {
@@ -19,6 +22,7 @@ struct type {
 		};
 	};
 
+	// value
 	union {
 		int    in;
 		char   by;
@@ -35,7 +39,7 @@ struct type {
 
 struct function {
 	char *fn; 
-	struct type *ret;
+	struct var *ret;
 	struct stack *params;
 };
 
@@ -47,9 +51,10 @@ struct class {
 };
 
 
-struct type * type_new(int, void *);
-void          type_free(void *);
-void          type_dump(void *);
+struct var * var_new(const char *);
+void         var_set(struct var *, int, void *);
+void         var_free(void *);
+void         var_dump(void *);
 
 struct class * class_new(const char *, struct class *);
 void           class_free(void *);

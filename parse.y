@@ -166,8 +166,8 @@ int main() {
 
 	stack_free(&tmp_params, free);
 
-	hashmap_dump(vars, &type_dump);
-  	hashmap_free(&vars, &type_free);
+	hashmap_dump(vars, &var_dump);
+  	hashmap_free(&vars, &var_free);
 	puts("");
 
 	hashmap_dump(classes, &class_dump);
