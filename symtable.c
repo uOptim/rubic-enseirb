@@ -172,8 +172,17 @@ void function_free(void *function)
 
 void function_dump(void *function) 
 {
+	char *param;
 	struct function *f = (struct function *) function;
 
 	printf("Function: %s\n", f->fn);
-	// params?
+	printf("Params: ");
+
+	unsigned int i = 0;
+	while (NULL != (param = stack_peak(f->params, i))) {
+		printf("%s ", param);
+		i++;
+	}
+
+	puts("");
 }
