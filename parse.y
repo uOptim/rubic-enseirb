@@ -34,8 +34,7 @@ struct stack * tmp_params;
 %token <n> INT BOOL 
 %token <f> FLOAT 
 
-%type <c> expr comp_expr
-%type <v> primary lhs additive_expr multiplicative_expr
+%type <v> primary lhs expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -171,132 +170,144 @@ primary             : lhs
 ;
 expr                : expr AND comp_expr
 {
-	$$ = $1 && $3;
+	$$ = var_new("bool");
+	$$->t = BOO_T;
+	$$->bo = $1 && $3;
 }
                     | expr OR comp_expr
 {
-	$$ = $1 || $3;
+	$$ = var_new("bool");
+	$$->t = BOO_T;
+	$$->bo = $1 || $3;
 }
                     | comp_expr
 {
-	$$ = $1;
+	$$ = var_new("bool");
+	$$->t = BOO_T;
+	$$->bo = $1;
 }
 ;
 comp_expr           : additive_expr '<' additive_expr
 {
+	$$ = var_new("");
+	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
-			$$ = ($1->fl < $3->fl);
+			$$->bo = ($1->fl < $3->fl);
 		} else {
-			$$ = ($1->fl < $3->in);
+			$$->bo = ($1->fl < $3->in);
 		}
 	} else {
 		if ($3->t == FLO_T) {
-			$$ = ($1->in < $3->fl);
+			$$->bo = ($1->in < $3->fl);
 		} else {
-			$$ = ($1->in < $3->in);
+			$$->bo = ($1->in < $3->in);
 		}
 	}
 }
                     | additive_expr '>' additive_expr
 {
+	$$ = var_new("");
+	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
-			$$ = ($1->fl > $3->fl);
+			$$->bo = ($1->fl > $3->fl);
 		} else {
-			$$ = ($1->fl > $3->in);
+			$$->bo = ($1->fl > $3->in);
 		}
 	} else if ($1->t == BOO_T) {
 		;
 	} else {
 		if ($3->t == FLO_T) {
-			$$ = ($1->in > $3->fl);
+			$$->bo = ($1->in > $3->fl);
 		} else {
-			$$ = ($1->in > $3->in);
+			$$->bo = ($1->in > $3->in);
 		}
 	}
 }
                     | additive_expr LEQ additive_expr
 {
+	$$ = var_new("");
+	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
-			$$ = ($1->fl <= $3->fl);
+			$$->bo = ($1->fl <= $3->fl);
 		} else {
-			$$ = ($1->fl <= $3->in);
+			$$->bo = ($1->fl <= $3->in);
 		}
 	} else if ($1->t == BOO_T) {
 		;
 	} else {
 		if ($3->t == FLO_T) {
-			$$ = ($1->in <= $3->fl);
+			$$->bo = ($1->in <= $3->fl);
 		} else {
-			$$ = ($1->in <= $3->in);
+			$$->bo = ($1->in <= $3->in);
 		}
 	}
 }
                     | additive_expr GEQ additive_expr
 {
+	$$ = var_new("");
+	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
-			$$ = ($1->fl >= $3->fl);
+			$$->bo = ($1->fl >= $3->fl);
 		} else {
-			$$ = ($1->fl >= $3->in);
+			$$->bo = ($1->fl >= $3->in);
 		}
 	} else if ($1->t == BOO_T) {
 		;
 	} else {
 		if ($3->t == FLO_T) {
-			$$ = ($1->in >= $3->fl);
+			$$->bo = ($1->in >= $3->fl);
 		} else {
-			$$ = ($1->in >= $3->in);
+			$$->bo = ($1->in >= $3->in);
 		}
 	}
 }
                     | additive_expr EQ additive_expr
 {
+	$$ = var_new("");
+	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
-			$$ = ($1->fl == $3->fl);
+			$$->bo = ($1->fl == $3->fl);
 		} else {
-			$$ = ($1->fl == $3->in);
+			$$->bo = ($1->fl == $3->in);
 		}
 	} else if ($1->t == BOO_T) {
 		;
 	} else {
 		if ($3->t == FLO_T) {
-			$$ = ($1->in == $3->fl);
+			$$->bo = ($1->in == $3->fl);
 		} else {
-			$$ = ($1->in == $3->in);
+			$$->bo = ($1->in == $3->in);
 		}
 	}
 }
                     | additive_expr NEQ additive_expr
 {
+	$$ = var_new("");
+	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
-			$$ = ($1->fl != $3->fl);
+			$$->bo = ($1->fl != $3->fl);
 		} else {
-			$$ = ($1->fl != $3->in);
+			$$->bo = ($1->fl != $3->in);
 		}
 	} else if ($1->t == BOO_T) {
 		;
 	} else {
 		if ($3->t == FLO_T) {
-			$$ = ($1->in != $3->fl);
+			$$->bo = ($1->in != $3->fl);
 		} else {
-			$$ = ($1->in != $3->in);
+			$$->bo = ($1->in != $3->in);
 		}
 	}
 }
                     | additive_expr
 {
-	if ($1->t == FLO_T) {
-		$$ = ($1->fl != 0);
-	} else if ($1->t == BOO_T) {
-		$$ = $1->bo;
-	} else {
-		$$ = ($1->in != 0);
-	}
+	$$ = $1;
 }
 ;
 additive_expr       : multiplicative_expr
