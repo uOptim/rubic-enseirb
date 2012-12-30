@@ -15,10 +15,12 @@ void stack_t()
 	stack_push(s, "truc");
 	stack_push(s, "machin");
 
+	assert(0 == strcmp("schtroumpf", (char *) stack_peak(s, 3)));
+	assert(NULL == stack_peak(s, 4));
 	assert(0 == strcmp("machin", (char *) stack_pop(s)));
 	assert(0 == strcmp("truc", (char *) stack_pop(s)));
 
-	stack_free(&s);
+	stack_free(&s, NULL);
 
 	assert(s == NULL);
 

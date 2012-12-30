@@ -75,3 +75,13 @@ int stack_push(struct stack *s, void *d)
 
 	return 0;
 }
+
+
+void * stack_peak(struct stack *s, unsigned int n)
+{
+	struct elt *e;
+	unsigned int i;
+
+	for (i = 0, e = s->head; i < n && e != NULL; ++i, e = e->next);
+	return (e == NULL) ? NULL : e->data;
+}
