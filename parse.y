@@ -12,13 +12,18 @@
 void yyerror(char *);
 
 // 3 namespaces
-struct hashmap *vars;
-struct hashmap *classes;
-struct hashmap *functions;
+struct hashmap *vars;       // variables may not be global
+struct hashmap *classes;    // classes are global
+struct hashmap *functions;  // functions are global
 
 struct stack * tmp_params;
 struct class * tmp_class;
 struct function *tmp_func;
+
+struct hashmap *tmp_func_env;
+// Pointer on the current environment.
+// (either a function environment or the "normal" environment)
+struct hashmap **env;
 
 %}
 
@@ -123,7 +128,7 @@ stmt                : COMMENT
 
 	if ($1->tt == UND_T) {
 		// New variable is added to the symtable
-		hashmap_set(vars, $1->vn, $1);
+		hashmap_set(*env, $1->vn, $1);
 	}
 	else if ($1->tc) {
 		// Existing constant should not be modified
@@ -149,6 +154,12 @@ stmt                : COMMENT
 	tmp_func = function_new();
 	// new param stack
 	tmp_params = stack_new();
+    // free the stacks but not its data, they are in the function params stack
+    hashmap_free(&tmp_func_env, NULL);
+    tmp_func_env = hashmap_new();
+
+    // Reset the "normal environmenent"
+    env = &vars;
 
 	// DO NOT FREE $2! It is used for the function's name ATM.
 	//free($2);
@@ -156,25 +167,38 @@ stmt                : COMMENT
 ; 
 
 opt_params          : /* none */
+{
+    env = &tmp_func_env;
+}
                     | '(' ')'
+{
+    env = &tmp_func_env;
+}
                     | '(' params ')'
+{
+    env = &tmp_func_env;
+}
 ;
 params              : ID ',' params
 {
+    struct var *param = var_new($1);
 	printf("param: %s\n", $1);
-	stack_push(tmp_params, var_new($1));
+	stack_push(tmp_params, param);
+    hashmap_set(tmp_func_env, $1, param);
 	free($1);
 }
                     | ID
 {
+    struct var *param = var_new($1);
 	printf("param: %s\n", $1);
-	stack_push(tmp_params, var_new($1));
+	stack_push(tmp_params, param);
+    hashmap_set(tmp_func_env, $1, param);
 	free($1);
 }
 ; 
 lhs                 : ID
 {
-	struct var *var = hashmap_get(vars, $1);
+	struct var *var = hashmap_get(*env, $1);
 
 	if (var == NULL) {
 		printf("New var: %s\n", $1);
@@ -203,7 +227,7 @@ lhs                 : ID
 		}
 	}
 	else {
-		var = hashmap_get(vars, $1);
+		var = hashmap_get(*env, $1);
 		if (var == NULL) {
 			printf("Error: %s is undefined.\n", $1);
 			exit(EXIT_FAILURE);
@@ -604,6 +628,9 @@ int main() {
 	tmp_class = class_new();
 	tmp_func = function_new();
 
+    tmp_func_env = hashmap_new();
+    env = &vars;
+
 	yyparse(); 
 
 	class_free(tmp_class);
@@ -627,6 +654,7 @@ int main() {
 	//hashmap_free(&vars, var_free);
 	//hashmap_free(&classes, class_free);
 	hashmap_free(&functions, function_free);
+    hashmap_free(&tmp_func_env, NULL);
 
 	return 0;
 }
