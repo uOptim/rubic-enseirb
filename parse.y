@@ -85,7 +85,8 @@ stmts               : /* none */
                     | stmts terms stmt
 ;
 
-stmt                : IF expr THEN stmts terms END
+stmt                : COMMENT
+                    | IF expr THEN stmts terms END
                     | IF expr THEN stmts terms ELSE stmts terms END 
                     | FOR ID IN expr TO expr term stmts terms END
 {
@@ -94,17 +95,43 @@ stmt                : IF expr THEN stmts terms END
                     | WHILE expr DO term stmts terms END 
                     | lhs '=' expr
 {
-	if ($1->tt != UND_T && $1->tc) {
+	// Useless for the momemt
+	// $1 = $3;
+
+	// Update var value
+	switch ($3->tt) {
+		case INT_T:
+			$1->in = $3->in;
+			break;
+		case BOO_T:
+			$1->bo = $3->bo;
+			break;
+		case FLO_T:
+			$1->fl = $3->fl;
+			break;
+		case STR_T:
+			$1->st = strdup($3->st);
+			break;
+		case OBJ_T:
+			$1->ob.cn = strdup($3->ob.cn);
+			break;
+		default:
+			printf("Right expression is of invalid type.");
+			break;
+	}
+
+	if ($1->tt == UND_T) {
+		// New variable is added to the symtable
+		hashmap_set(vars, $1->vn, $1);
+	}
+	else if ($1->tc) {
+		// Existing constant should not be modified
 		printf("warning: already initialized constant %s.", $1->vn);
 	}
-	$1 = $3;
-	// Uh???
-	// Give a name to the expr value
-	//if ($3->vn != NULL) free($3->vn);
-	//$3->vn = strdup($1->vn);
-	//$3->tc = $1->tc;
-	//hashmap_set(vars, $1->vn, $3);
-	//var_free($1);
+
+	// Update var type
+	$1->tt = $3->tt;
+	var_free($3);
 }
                     | RETURN expr
 {
@@ -158,29 +185,34 @@ lhs                 : ID
 }
                     | ID '.' primary
 {
-/* This segfaults
+/* Never put exit in comment here, this may cause a segfault */
+
 	struct class *cla = hashmap_get(classes, $1);
 	struct var *var = NULL;
 
-    if (cla != NULL && $3->tt == FUN_T) {
-        if (strcmp($3->vn, "new") == 0) {
+	if (cla != NULL && $3->tt == FUN_T) {
+		if (strcmp($3->vn, "new") == 0) {
 			var = var_new("object");
 			var->tt = OBJ_T;
 			var->ob.cn = strdup($1);
-        }
-    }
+		}
+		else {
+			printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+			exit(EXIT_FAILURE);
+		}
+	}
 	else {
 		var = hashmap_get(vars, $1);
 		if (var == NULL) {
-			printf("Error: %s is undefined.\n", $1, $3->vn);
-			//exit(EXIT_FAILURE);
+			printf("Error: %s is undefined.\n", $1);
+			exit(EXIT_FAILURE);
 		}
 		else if (var->tt == OBJ_T && $3->tt == FUN_T) {
 			// Verify that the method exists for this object
 			struct function *fun = hashmap_get(functions, $3->vn);
 			if (fun == NULL) {
 				printf("Error: %s.%s is undefined.\n", $1, $3->vn);
-				//exit(EXIT_FAILURE);
+				exit(EXIT_FAILURE);
 			}
 			var = var_new($3->vn);
 			var->tt = fun->ret->tt;
@@ -188,7 +220,7 @@ lhs                 : ID
 	}
 
 	$$ = var;
-*/
+
 	free($3);
 	free($1);
 }
@@ -420,10 +452,130 @@ additive_expr       : multiplicative_expr
 	$$ = $1;
 }
                     | additive_expr '+' multiplicative_expr
+{
+	$$ = var_new("");
+	if ($1->tt == FLO_T) {
+		if ($3->tt == FLO_T) {
+			$$->tt = FLO_T;
+			$$->fl = ($1->fl + $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->tt = FLO_T;
+			$$->fl = ($1->fl + $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else if ($1->t == INT_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->in + $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = INT_T;
+			$$->in = ($1->in + $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else {
+		$$->tt = UND_T;
+	}
+}
                     | additive_expr '-' multiplicative_expr
+{
+	$$ = var_new("");
+	if ($1->t == FLO_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->fl - $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->fl - $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else if ($1->t == INT_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->in - $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = INT_T;
+			$$->in = ($1->in - $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else {
+		$$->tt = UND_T;
+	}
+}
 ;
 multiplicative_expr : multiplicative_expr '*' primary
+{
+	$$ = var_new("");
+	if ($1->t == FLO_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->fl * $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->fl * $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else if ($1->t == INT_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->in * $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = INT_T;
+			$$->in = ($1->in * $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else {
+		$$->tt = UND_T;
+	}
+}
                     | multiplicative_expr '/' primary
+{
+	$$ = var_new("");
+	if ($1->t == FLO_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->fl / $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->fl / $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else if ($1->t == INT_T) {
+		if ($3->t == FLO_T) {
+			$$->t = FLO_T;
+			$$->fl = ($1->in / $3->fl);
+		} else if ($3->t == INT_T) {
+			$$->t = INT_T;
+			$$->in = ($1->in / $3->in);
+		}
+		else {
+			$$->tt = UND_T;
+		}
+	}
+	else {
+		$$->tt = UND_T;
+	}
+}
                     | primary
 {
 	$$ = $1;

@@ -104,10 +104,16 @@ void var_free(void *var)
 		case FLO_T:
 			break;
 		case STR_T:
-			free(v->st);
+			if (v->st != NULL) {
+				free(v->st);
+				v->st = NULL;
+			}
 			break;
 		case OBJ_T:
-			free(v->ob.cn);
+			if (v->ob.cn != NULL) {
+				free(v->ob.cn);
+				v->ob.cn = NULL;
+			}
 			break;
 		default:
 			break;
