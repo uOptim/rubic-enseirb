@@ -4,10 +4,6 @@
 #include <string.h>
 #include <assert.h>
 
-#define NB_T 6
-
-static const char tt[NB_T][4] = {"FUN", "CLA", "OBJ", "INT", "FLO", "STR"};
-
 void var_dump(void * var)
 {
 	struct var * t = (struct var *)var;
@@ -18,7 +14,10 @@ void var_dump(void * var)
 
 	switch (t->tt) {
 		case INT_T:
-			puts("intger");
+			puts("integer");
+			break;
+		case BOO_T:
+			puts("boolean");
 			break;
 		case FLO_T:
 			puts("floating point number");
@@ -49,8 +48,15 @@ struct var * var_new(const char *name)
 
 	if (v == NULL) return NULL;
 
-	v->t = 255; // undef?
+	v->tt = UND_T;
 	v->vn = strdup(name);
+	/* Constants start with a capital letter */
+	if (name[0] > 'A' && name[0] < 'Z') {
+		v->tc = 1;
+	}
+	else {
+		v->tc = 0;
+	}
 
 	return v;
 }
@@ -58,11 +64,14 @@ struct var * var_new(const char *name)
 
 void var_set(struct var *v, int type, void *value)
 {
-	v->t = type;
+	v->tt = type;
 
 	switch (type) {
 		case INT_T:
 			v->in = *((int *) value);
+			break;
+		case BOO_T:
+			v->bo = *((char *) value);
 			break;
 		case FLO_T:
 			v->fl = *((float *) value);
@@ -89,6 +98,8 @@ void var_free(void *var)
 
 	switch (v->tt) {
 		case INT_T:
+			break;
+		case BOO_T:
 			break;
 		case FLO_T:
 			break;

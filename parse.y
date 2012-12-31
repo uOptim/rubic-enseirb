@@ -58,7 +58,7 @@ topstmt             : CLASS ID term stmts terms END
 {
 	struct class *super = hashmap_get(classes, $4);
 	if (NULL == super) {
-		yyerror("super class not defined");
+		printf("Error: super class %s not defined", $4);
 		exit(EXIT_FAILURE);
 	} else {
 		hashmap_set(classes, $2, class_new($2, super));
@@ -84,7 +84,15 @@ stmt                : IF expr THEN stmts terms END
                     | WHILE expr DO term stmts terms END 
                     | lhs '=' expr
 {
-	$1 = $3;
+	if ($1->tt != UND_T && $1->tc) {
+		printf("warning: already initialized constant %s.", $1->vn);
+	}
+	// Give a name to the expr value
+	if ($3->vn != NULL) free($3->vn);
+	$3->vn = strdup($1->vn);
+	$3->tc = $1->tc;
+	hashmap_set(vars, $1->vn, $3);
+	var_free($1);
 }
                     | RETURN expr
 {
@@ -131,7 +139,6 @@ lhs                 : ID
 	if (var == NULL) {
 		printf("New var: %s\n", $1);
 		var = var_new($1);
-		hashmap_set(vars, $1, var);
 	}
 
 	$$ = var;
@@ -139,17 +146,64 @@ lhs                 : ID
 }
                     | ID '.' primary
 {
+	struct class *cla = hashmap_get(classes, $1);
+	struct var *var = NULL;
+
+    if (cla != NULL && $3->tt == FUN_T) {
+        if (strcmp($3->vn, "new") == 0) {
+			var = var_new("object");
+			var->tt = OBJ_T;
+			var->ob.cn = strdup($1);
+        }
+    }
+	else {
+		var = hashmap_get(vars, $1);
+		if (var->tt == OBJ_T && $3->tt == FUN_T) {
+			// Verify that the method exists for this object
+			struct function *fun = hashmap_get(functions, $3->vn);
+			var = var_new($3->vn);
+			var->tt = fun->ret->tt;
+		}
+	}
+
+	if (var == NULL) {
+		printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+		exit(EXIT_FAILURE);
+	}
+
+	$$ = var;
 	free($1);
 }
                     | ID '(' exprs ')'
 {
-	if (NULL == hashmap_get(functions, $1)) {
+	struct function *fun = hashmap_get(functions, $1);
+	$$ = var_new($1);
+
+	// If the function is unknown, it's name is transmitted
+	if (fun == NULL) {
 		printf("Function not defined: %s\n", $1);
+		$$->tt = FUN_T;
 	}
+	else {
+		$$->tt = fun->ret->tt;
+	}
+
 	free($1);
 }
                     | ID '(' ')'
 {
+	struct function *fun = hashmap_get(functions, $1);
+	$$ = var_new($1);
+
+	// If the function is unknown, it's name is transmitted
+	if (fun == NULL) {
+		printf("Function not defined: %s\n", $1);
+		$$->tt = FUN_T;
+	}
+	else {
+		$$->tt = fun->ret->tt;
+	}
+
 	free($1);
 }
 ;
@@ -157,43 +211,63 @@ exprs               : exprs ',' expr
                     | expr
 ;
 primary             : lhs
+{
+	if ($1->tt == UND_T) {
+		printf("Error: %s is undefined\n", $1->vn);
+		/* exit(EXIT_FAILURE); */
+	}
+	else {
+		$$ = $1;
+	}
+}
                     | STRING
 {
 	$$ = var_new("string");
-	$$->t = STR_T;
+	$$->tt = STR_T;
 	$$->st = $1;
 }
                     | FLOAT
 {
 	$$ = var_new("float");
-	$$->t = FLO_T;
+	$$->tt = FLO_T;
 	$$->fl = $1;
 }
                     | INT
 {
 	$$ = var_new("int");
-	$$->t = INT_T;
+	$$->tt = INT_T;
 	$$->in = $1;
 }
                     | BOOL
 {
 	$$ = var_new("bool");
-	$$->t = BOO_T;
+	$$->tt = BOO_T;
 	$$->bo = $1;
 }
                     | '(' expr ')'
+{
+    $$ = $2;
+}
 ;
 expr                : expr AND comp_expr
 {
 	$$ = var_new("bool");
 	$$->t = BOO_T;
-	$$->bo = $1 && $3;
+	if ($1->t != BOO_T || $3->t != BOO_T) {
+		yyerror("Error: AND operation with non-boolean member.");
+		exit(EXIT_FAILURE);
+	}
+	$$->bo = $1->bo && $3->bo;
 }
                     | expr OR comp_expr
 {
 	$$ = var_new("bool");
 	$$->t = BOO_T;
-	$$->bo = $1 || $3;
+	if ($1->t != BOO_T || $3->t != BOO_T) {
+		yyerror("Error: OR operation with non-boolean member.");
+		exit(EXIT_FAILURE);
+	}
+	$$->bo = $1->bo || $3->bo;
 }
                     | comp_expr
 {
@@ -358,7 +432,7 @@ int main() {
 	tmp_params = stack_new();
 	tmp_func = function_new();
 
-  	yyparse(); 
+	yyparse(); 
 
 	function_free(tmp_func);
 	stack_free(&tmp_params, var_free);
@@ -377,9 +451,9 @@ int main() {
 
 	// disabled because these hashes may share variables and they might get
 	// free()'d multiple times
-  	//hashmap_free(&vars, var_free);
-  	//hashmap_free(&classes, class_free);
-  	hashmap_free(&functions, function_free);
+	//hashmap_free(&vars, var_free);
+	//hashmap_free(&classes, class_free);
+	hashmap_free(&functions, function_free);
 
 	return 0;
 }

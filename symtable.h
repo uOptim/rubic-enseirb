@@ -1,3 +1,6 @@
+#ifndef SYMTABLE_H
+#define SYMTABLE_H
+
 #include "stack.h"
 
 /* Type */
@@ -9,6 +12,8 @@
 #define FLO_T   4
 #define STR_T   5
 #define BOO_T   6
+
+#define UND_T   127 // Undef variable
 
 
 struct var {
@@ -64,3 +69,5 @@ void           class_dump(void *);
 struct function * function_new();
 void              function_free(void *);
 void              function_dump(void *);
+
+#endif /* SYMTABLE_H */
