@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include "symtable.h"
 #include "hashmap.h"
@@ -16,6 +17,7 @@ struct hashmap *classes;
 struct hashmap *functions;
 
 struct stack * tmp_params;
+struct class * tmp_class;
 struct function *tmp_func;
 
 %}
@@ -51,20 +53,28 @@ topstmts            :
 ;
 topstmt             : CLASS ID term stmts terms END 
 {
-	hashmap_set(classes, $2, class_new($2, NULL));
-	free($2);
+	tmp_class->cn = $2;
+	
+	hashmap_set(classes, $2, tmp_class);
+
+	tmp_class = class_new();
 }
                     | CLASS ID '<' ID term stmts terms END
 {
 	struct class *super = hashmap_get(classes, $4);
+
 	if (NULL == super) {
 		printf("Error: super class %s not defined", $4);
 		exit(EXIT_FAILURE);
-	} else {
-		hashmap_set(classes, $2, class_new($2, super));
 	}
 
-	free($2);
+	tmp_class->cn = $2;
+	tmp_class->super = super;
+	
+	hashmap_set(classes, $2, tmp_class);
+
+	tmp_class = class_new();
+
 	free($4);
 }
                     | stmt
@@ -87,12 +97,14 @@ stmt                : IF expr THEN stmts terms END
 	if ($1->tt != UND_T && $1->tc) {
 		printf("warning: already initialized constant %s.", $1->vn);
 	}
+	$1 = $3;
+	// Uh???
 	// Give a name to the expr value
-	if ($3->vn != NULL) free($3->vn);
-	$3->vn = strdup($1->vn);
-	$3->tc = $1->tc;
-	hashmap_set(vars, $1->vn, $3);
-	var_free($1);
+	//if ($3->vn != NULL) free($3->vn);
+	//$3->vn = strdup($1->vn);
+	//$3->tc = $1->tc;
+	//hashmap_set(vars, $1->vn, $3);
+	//var_free($1);
 }
                     | RETURN expr
 {
@@ -146,6 +158,7 @@ lhs                 : ID
 }
                     | ID '.' primary
 {
+/* This segfaults
 	struct class *cla = hashmap_get(classes, $1);
 	struct var *var = NULL;
 
@@ -158,20 +171,25 @@ lhs                 : ID
     }
 	else {
 		var = hashmap_get(vars, $1);
-		if (var->tt == OBJ_T && $3->tt == FUN_T) {
+		if (var == NULL) {
+			printf("Error: %s is undefined.\n", $1, $3->vn);
+			//exit(EXIT_FAILURE);
+		}
+		else if (var->tt == OBJ_T && $3->tt == FUN_T) {
 			// Verify that the method exists for this object
 			struct function *fun = hashmap_get(functions, $3->vn);
+			if (fun == NULL) {
+				printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+				//exit(EXIT_FAILURE);
+			}
 			var = var_new($3->vn);
 			var->tt = fun->ret->tt;
 		}
 	}
 
-	if (var == NULL) {
-		printf("Error: %s.%s is undefined.\n", $1, $3->vn);
-		exit(EXIT_FAILURE);
-	}
-
 	$$ = var;
+*/
+	free($3);
 	free($1);
 }
                     | ID '(' exprs ')'
@@ -430,10 +448,12 @@ int main() {
 	functions = hashmap_new();
 
 	tmp_params = stack_new();
+	tmp_class = class_new();
 	tmp_func = function_new();
 
 	yyparse(); 
 
+	class_free(tmp_class);
 	function_free(tmp_func);
 	stack_free(&tmp_params, var_free);
 

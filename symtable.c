@@ -117,16 +117,17 @@ void var_free(void *var)
 }
 
 
-struct class * class_new(const char *name, struct class *super)
+struct class * class_new()
 {
 	struct class *c = malloc(sizeof *c);
 
 	if (c == NULL)
 		return NULL;
 
-	c->cn = strdup(name);
-	c->super = super;
-	c->methods = stack_new();
+	c->cn = NULL;
+	c->super = NULL;
+	c->attrs = hashmap_new();
+	c->methods = hashmap_new();
 
 	return c;
 }
@@ -136,8 +137,22 @@ void class_free(void *class)
 {
 	struct class *c = (struct class *) class;
 
-	free(c->cn);
-	stack_free(&c->methods, function_free);
+	if (c->cn != NULL) {
+		free(c->cn);
+		c->cn = NULL;
+	}
+
+	if (c->methods != NULL) {
+		hashmap_free(&c->methods, function_free);
+		c->methods = NULL;
+	}
+
+	if (c->attrs != NULL) {
+		hashmap_free(&c->attrs, var_free);
+		c->attrs = NULL;
+	}
+
+	c->super = NULL;
 
 	free(class);
 }

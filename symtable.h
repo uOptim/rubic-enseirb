@@ -2,6 +2,7 @@
 #define SYMTABLE_H
 
 #include "stack.h"
+#include "hashmap.h"
 
 /* Type */
 #define FUN_T   0
@@ -53,7 +54,8 @@ struct function {
 struct class {
 	char *cn;
 	struct class *super;
-	struct stack *methods;
+	struct hashmap *attrs;
+	struct hashmap *methods;
 };
 
 
@@ -62,7 +64,7 @@ void         var_set(struct var *, int, void *);
 void         var_free(void *);
 void         var_dump(void *);
 
-struct class * class_new(const char *, struct class *);
+struct class * class_new();
 void           class_free(void *);
 void           class_dump(void *);
 
