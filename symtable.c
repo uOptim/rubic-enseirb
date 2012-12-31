@@ -14,16 +14,16 @@ void var_dump(void * var)
 
 	switch (t->tt) {
 		case INT_T:
-			puts("integer");
+			printf("integer");
 			break;
 		case BOO_T:
-			puts("boolean");
+			printf("boolean");
 			break;
 		case FLO_T:
-			puts("floating point number");
+			printf("floating point number");
 			break;
 		case STR_T:
-			puts("string");
+			printf("string");
 			break;
 		case OBJ_T:
 			printf("object, instance of %s", t->ob.cn);
