@@ -33,6 +33,7 @@ struct function *tmp_func;
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
 %token FOR TO RETURN IN NEQ
+%token COMMENT
 %token <s> STRING ID 
 %token <n> INT BOOL 
 %token <f> FLOAT 
