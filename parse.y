@@ -63,13 +63,13 @@ topstmt             : CLASS ID term stmts terms END
 {
 	tmp_class->cn = $2;
 	
-	hashmap_set(symtable, $2, tmp_class);
+	hashmap_set(classes, $2, tmp_class);
 
 	tmp_class = class_new();
 }
                     | CLASS ID '<' ID term stmts terms END
 {
-	struct class *super = hashmap_get(symtable, $4);
+	struct class *super = hashmap_get(classes, $4);
 
 	if (NULL == super) {
 		printf("Error: super class %s not defined", $4);
@@ -79,7 +79,7 @@ topstmt             : CLASS ID term stmts terms END
 	tmp_class->cn = $2;
 	tmp_class->super = super;
 	
-	hashmap_set(symtable, $2, tmp_class);
+	hashmap_set(classes, $2, tmp_class);
 
 	tmp_class = class_new();
 
@@ -107,39 +107,39 @@ stmt                : COMMENT
 	// $1 = $3;
 
 	// Update var value
-	switch ($3->tt) {
-		case INT_T:
-			$1->in = $3->in;
-			break;
-		case BOO_T:
-			$1->bo = $3->bo;
-			break;
-		case FLO_T:
-			$1->fl = $3->fl;
-			break;
-		case STR_T:
-			$1->st = strdup($3->st);
-			break;
-		case OBJ_T:
-			$1->ob.cn = strdup($3->ob.cn);
-			break;
-		default:
-			printf("Right expression is of invalid type.");
-			break;
-	}
+	//switch ($3->tt) {
+	//	case INT_T:
+	//		$1->in = $3->in;
+	//		break;
+	//	case BOO_T:
+	//		$1->bo = $3->bo;
+	//		break;
+	//	case FLO_T:
+	//		$1->fl = $3->fl;
+	//		break;
+	//	case STR_T:
+	//		$1->st = strdup($3->st);
+	//		break;
+	//	case OBJ_T:
+	//		$1->ob.cn = strdup($3->ob.cn);
+	//		break;
+	//	default:
+	//		printf("Right expression is of invalid type.");
+	//		break;
+	//}
 
-	if ($1->tt == UND_T) {
-		// New variable is added to the symtable
-		hashmap_set(*env, $1->vn, $1);
-	}
-	else if ($1->tc) {
-		// Existing constant should not be modified
-		printf("warning: already initialized constant %s.", $1->vn);
-	}
+	//if ($1->tt == UND_T) {
+	//	// New variable is added to the symtable
+	//	hashmap_set(*env, $1->vn, $1);
+	//}
+	//else if ($1->tc) {
+	//	// Existing constant should not be modified
+	//	printf("warning: already initialized constant %s.", $1->vn);
+	//}
 
-	// Update var type
-	$1->tt = $3->tt;
-	var_free($3);
+	//// Update var type
+	//$1->tt = $3->tt;
+	//var_free($3);
 }
                     | RETURN expr
 {
@@ -149,7 +149,7 @@ stmt                : COMMENT
 {
 	tmp_func->fn = $2;
 	tmp_func->params = tmp_params;
-	hashmap_set(symtable, $2, tmp_func);
+	hashmap_set(functions, $2, tmp_func);
 
 	// create new blank function
 	tmp_func = function_new();
@@ -182,7 +182,7 @@ opt_params          : /* none */
 ;
 params              : ID ',' params
 {
-    struct var *param = var_new($1);
+    struct var *param = var_new($1, new_reg());
 	printf("param: %s\n", $1);
 	stack_push(tmp_params, var_new($1, new_reg()));
     hashmap_set(tmp_func_env, $1, param);
@@ -190,7 +190,7 @@ params              : ID ',' params
 }
                     | ID
 {
-    struct var *param = var_new($1);
+    struct var *param = var_new($1, new_reg());
 	printf("param: %s\n", $1);
 	stack_push(tmp_params, var_new($1, new_reg()));
     hashmap_set(tmp_func_env, $1, param);
@@ -203,10 +203,10 @@ lhs                 : ID
 
 	if (var == NULL) {
 		printf("New var: %s\n", $1);
-		var = var_new($1);
+		var = var_new($1, new_reg());
 	}
 
-	$$ = var;
+	$$ = var->vn;
 	free($1);
 }
                     | ID '.' primary
@@ -218,7 +218,7 @@ lhs                 : ID
 
 	if (cla != NULL && $3->tt == FUN_T) {
 		if (strcmp($3->vn, "new") == 0) {
-			var = var_new("object");
+			var = var_new("object", new_reg());
 			var->tt = OBJ_T;
 			var->ob.cn = strdup($1);
 		}
@@ -240,47 +240,47 @@ lhs                 : ID
 				printf("Error: %s.%s is undefined.\n", $1, $3->vn);
 				exit(EXIT_FAILURE);
 			}
-			var = var_new($3->vn);
+			var = var_new($3->vn, new_reg());
 			var->tt = fun->ret->tt;
 		}
 	}
 
-	$$ = var;
+	$$ = var->vn;
 
 	free($3);
 	free($1);
 }
                     | ID '(' exprs ')'
 {
-	struct function *fun = hashmap_get(symtable, $1);
-	$$ = var_new($1, new_reg());
+	struct function *fun = hashmap_get(functions, $1);
+	struct var *var = var_new($1, new_reg());
 
 	// If the function is unknown, it's name is transmitted
 	if (fun == NULL) {
 		printf("Function not defined: %s\n", $1);
-		$$->tt = FUN_T;
+		var->tt = FUN_T;
 	}
 	else {
-		$$->tt = fun->ret->tt;
+		var->tt = fun->ret->tt;
 	}
 
-	free($1);
+	$$ = $1;
 }
                     | ID '(' ')'
 {
-	struct function *fun = hashmap_get(symtable, $1);
-	$$ = var_new($1, new_reg());
+	struct function *fun = hashmap_get(functions, $1);
+	struct var *var = var_new($1, new_reg());
 
 	// If the function is unknown, it's name is transmitted
 	if (fun == NULL) {
 		printf("Function not defined: %s\n", $1);
-		$$->tt = FUN_T;
+		var->tt = FUN_T;
 	}
 	else {
-		$$->tt = fun->ret->tt;
+		var->tt = fun->ret->tt;
 	}
 
-	free($1);
+	$$ = $1;
 }
 ;
 exprs               : exprs ',' expr
@@ -288,13 +288,13 @@ exprs               : exprs ',' expr
 ;
 primary             : lhs
 {
-	if ($1->tt == UND_T) {
-		printf("Error: %s is undefined\n", $1->vn);
-		/* exit(EXIT_FAILURE); */
-	}
-	else {
-		$$ = $1;
-	}
+	//if ($1->tt == UND_T) {
+	//	printf("Error: %s is undefined\n", $1->vn);
+	//	/* exit(EXIT_FAILURE); */
+	//}
+	//else {
+	//	$$ = $1;
+	//}
 }
                     | STRING
 {
@@ -625,7 +625,9 @@ term                : ';'
 ;
 %%
 int main() {
-	symtable = hashmap_new();
+	vars = hashmap_new();
+	functions = hashmap_new();
+	classes = hashmap_new();
 
 	tmp_class = class_new();
 	tmp_params = stack_new();
