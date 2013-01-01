@@ -29,7 +29,9 @@ struct var {
 		};
 	};
 
+	unsigned int reg;
 	// value
+	// this should disapear, replaced by llvm registers!
 	union {
 		int    in;
 		char   bo;
@@ -59,7 +61,7 @@ struct class {
 };
 
 
-struct var * var_new(const char *);
+struct var * var_new(const char *, unsigned int);
 void         var_set(struct var *, int, void *);
 void         var_free(void *);
 void         var_dump(void *);

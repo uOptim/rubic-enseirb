@@ -42,12 +42,13 @@ void var_dump(void * var)
  * For a FUN_T, name is the name of the returned object class when the
  * function returns an object.
  */
-struct var * var_new(const char *name)
+struct var * var_new(const char *name, unsigned int reg)
 {
 	struct var * v = malloc(sizeof *v);
 
 	if (v == NULL) return NULL;
 
+	v->reg = reg;
 	v->tt = UND_T;
 	v->vn = strdup(name);
 	/* Constants start with a capital letter */

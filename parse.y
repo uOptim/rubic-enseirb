@@ -11,6 +11,8 @@
 
 void yyerror(char *);
 
+unsigned int new_reg();
+
 // 3 namespaces
 struct hashmap *vars;
 struct hashmap *classes;
@@ -27,7 +29,6 @@ struct function *tmp_func;
 	char c;
 	char *s;
 	double f;
-
 	struct var *v;
 }
 
@@ -38,7 +39,7 @@ struct function *tmp_func;
 %token <n> INT BOOL 
 %token <f> FLOAT 
 
-%type <v> primary lhs expr comp_expr additive_expr multiplicative_expr
+%type <v> lhs primary expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -162,13 +163,13 @@ opt_params          : /* none */
 params              : ID ',' params
 {
 	printf("param: %s\n", $1);
-	stack_push(tmp_params, var_new($1));
+	stack_push(tmp_params, var_new($1, new_reg()));
 	free($1);
 }
                     | ID
 {
 	printf("param: %s\n", $1);
-	stack_push(tmp_params, var_new($1));
+	stack_push(tmp_params, var_new($1, new_reg()));
 	free($1);
 }
 ; 
@@ -178,7 +179,7 @@ lhs                 : ID
 
 	if (var == NULL) {
 		printf("New var: %s\n", $1);
-		var = var_new($1);
+		var = var_new($1, new_reg());
 	}
 
 	$$ = var;
@@ -193,7 +194,7 @@ lhs                 : ID
 
 	if (cla != NULL && $3->tt == FUN_T) {
 		if (strcmp($3->vn, "new") == 0) {
-			var = var_new("object");
+			var = var_new("object", new_reg());
 			var->tt = OBJ_T;
 			var->ob.cn = strdup($1);
 		}
@@ -215,7 +216,7 @@ lhs                 : ID
 				printf("Error: %s.%s is undefined.\n", $1, $3->vn);
 				exit(EXIT_FAILURE);
 			}
-			var = var_new($3->vn);
+			var = var_new($3->vn, new_reg());
 			var->tt = fun->ret->tt;
 		}
 	}
@@ -228,7 +229,7 @@ lhs                 : ID
                     | ID '(' exprs ')'
 {
 	struct function *fun = hashmap_get(functions, $1);
-	$$ = var_new($1);
+	$$ = var_new($1, new_reg());
 
 	// If the function is unknown, it's name is transmitted
 	if (fun == NULL) {
@@ -244,7 +245,7 @@ lhs                 : ID
                     | ID '(' ')'
 {
 	struct function *fun = hashmap_get(functions, $1);
-	$$ = var_new($1);
+	$$ = var_new($1, new_reg());
 
 	// If the function is unknown, it's name is transmitted
 	if (fun == NULL) {
@@ -273,25 +274,29 @@ primary             : lhs
 }
                     | STRING
 {
-	$$ = var_new("string");
+	$$ = var_new("string", new_reg());
 	$$->tt = STR_T;
 	$$->st = $1;
 }
                     | FLOAT
 {
-	$$ = var_new("float");
+	$$ = var_new("float", new_reg());
 	$$->tt = FLO_T;
 	$$->fl = $1;
+
+	printf("%%%d = add f64 %g, 0\n", $$->reg, $1);
 }
                     | INT
 {
-	$$ = var_new("int");
+	$$ = var_new("int", new_reg());
 	$$->tt = INT_T;
 	$$->in = $1;
+
+	printf("%%%d = add i32 %d, 0\n", $$->reg, $1);
 }
                     | BOOL
 {
-	$$ = var_new("bool");
+	$$ = var_new("bool", new_reg());
 	$$->tt = BOO_T;
 	$$->bo = $1;
 }
@@ -302,7 +307,7 @@ primary             : lhs
 ;
 expr                : expr AND comp_expr
 {
-	$$ = var_new("bool");
+	$$ = var_new("bool", new_reg());
 	$$->t = BOO_T;
 	if ($1->t != BOO_T || $3->t != BOO_T) {
 		yyerror("Error: AND operation with non-boolean member.");
@@ -312,7 +317,7 @@ expr                : expr AND comp_expr
 }
                     | expr OR comp_expr
 {
-	$$ = var_new("bool");
+	$$ = var_new("bool", new_reg());
 	$$->t = BOO_T;
 	if ($1->t != BOO_T || $3->t != BOO_T) {
 		yyerror("Error: OR operation with non-boolean member.");
@@ -327,7 +332,7 @@ expr                : expr AND comp_expr
 ;
 comp_expr           : additive_expr '<' additive_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
@@ -345,7 +350,7 @@ comp_expr           : additive_expr '<' additive_expr
 }
                     | additive_expr '>' additive_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
@@ -365,7 +370,7 @@ comp_expr           : additive_expr '<' additive_expr
 }
                     | additive_expr LEQ additive_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
@@ -385,7 +390,7 @@ comp_expr           : additive_expr '<' additive_expr
 }
                     | additive_expr GEQ additive_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
@@ -405,7 +410,7 @@ comp_expr           : additive_expr '<' additive_expr
 }
                     | additive_expr EQ additive_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
@@ -425,7 +430,7 @@ comp_expr           : additive_expr '<' additive_expr
 }
                     | additive_expr NEQ additive_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	$$->t = BOO_T;
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
@@ -454,7 +459,7 @@ additive_expr       : multiplicative_expr
 }
                     | additive_expr '+' multiplicative_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	if ($1->tt == FLO_T) {
 		if ($3->tt == FLO_T) {
 			$$->tt = FLO_T;
@@ -485,7 +490,7 @@ additive_expr       : multiplicative_expr
 }
                     | additive_expr '-' multiplicative_expr
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
 			$$->t = FLO_T;
@@ -517,7 +522,7 @@ additive_expr       : multiplicative_expr
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
 			$$->t = FLO_T;
@@ -548,7 +553,7 @@ multiplicative_expr : multiplicative_expr '*' primary
 }
                     | multiplicative_expr '/' primary
 {
-	$$ = var_new("");
+	$$ = var_new("", new_reg());
 	if ($1->t == FLO_T) {
 		if ($3->t == FLO_T) {
 			$$->t = FLO_T;
@@ -629,4 +634,10 @@ int main() {
 	hashmap_free(&functions, function_free);
 
 	return 0;
+}
+
+
+unsigned int new_reg() {
+	static unsigned int reg = 0;
+	return reg++;
 }
