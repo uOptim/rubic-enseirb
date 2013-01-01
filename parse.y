@@ -14,11 +14,18 @@ void yyerror(char *);
 unsigned int new_reg();
 
 // 3 namespaces
-struct hashmap *symtable;
+struct hashmap *vars;       // variables may not be global
+struct hashmap *classes;    // classes are global
+struct hashmap *functions;  // functions are global
 
 struct stack * tmp_params;
 struct class * tmp_class;
 struct function *tmp_func;
+
+struct hashmap *tmp_func_env;
+// Pointer on the current environment.
+// (either a function environment or the "normal" environment)
+struct hashmap **env;
 
 %}
 
@@ -123,7 +130,7 @@ stmt                : COMMENT
 
 	if ($1->tt == UND_T) {
 		// New variable is added to the symtable
-		hashmap_set(symtable, $1->vn, $1);
+		hashmap_set(*env, $1->vn, $1);
 	}
 	else if ($1->tc) {
 		// Existing constant should not be modified
@@ -148,6 +155,12 @@ stmt                : COMMENT
 	tmp_func = function_new();
 	// new param stack
 	tmp_params = stack_new();
+    // free the stacks but not its data, they are in the function params stack
+    hashmap_free(&tmp_func_env, NULL);
+    tmp_func_env = hashmap_new();
+
+    // Reset the "normal environmenent"
+    env = &vars;
 
 	// DO NOT FREE $2! It is used for the function's name ATM.
 	//free($2);
@@ -155,96 +168,117 @@ stmt                : COMMENT
 ; 
 
 opt_params          : /* none */
+{
+    env = &tmp_func_env;
+}
                     | '(' ')'
+{
+    env = &tmp_func_env;
+}
                     | '(' params ')'
+{
+    env = &tmp_func_env;
+}
 ;
 params              : ID ',' params
 {
+    struct var *param = var_new($1);
 	printf("param: %s\n", $1);
 	stack_push(tmp_params, var_new($1, new_reg()));
+    hashmap_set(tmp_func_env, $1, param);
 	free($1);
 }
                     | ID
 {
+    struct var *param = var_new($1);
 	printf("param: %s\n", $1);
 	stack_push(tmp_params, var_new($1, new_reg()));
+    hashmap_set(tmp_func_env, $1, param);
 	free($1);
 }
 ; 
 lhs                 : ID
 {
-	$$ = $1;
+	struct var *var = hashmap_get(*env, $1);
+
+	if (var == NULL) {
+		printf("New var: %s\n", $1);
+		var = var_new($1);
+	}
+
+	$$ = var;
+	free($1);
 }
                     | ID '.' primary
 {
-	/** CALCULER UN NOM ICI EN FONCTION DE LA CLASSE ET DE L'ATTRIBUT **/
+/* Never put exit in comment here, this may cause a segfault */
 
-	//struct class *cla = hashmap_get(symtable, $1);
-	//struct var *var = NULL;
+	struct class *cla = hashmap_get(classes, $1);
+	struct var *var = NULL;
 
-	//if (cla != NULL && $3->tt == FUN_T) {
-	//	if (strcmp($3->vn, "new") == 0) {
-	//		var = var_new("object", new_reg());
-	//		var->tt = OBJ_T;
-	//		var->ob.cn = strdup($1);
-	//	}
-	//	else {
-	//		printf("Error: %s.%s is undefined.\n", $1, $3->vn);
-	//		exit(EXIT_FAILURE);
-	//	}
-	//}
-	//else {
-	//	var = hashmap_get(symtable, $1);
-	//	if (var == NULL) {
-	//		printf("Error: %s is undefined.\n", $1);
-	//		exit(EXIT_FAILURE);
-	//	}
-	//	else if (var->tt == OBJ_T && $3->tt == FUN_T) {
-	//		// Verify that the method exists for this object
-	//		struct function *fun = hashmap_get(symtable, $3->vn);
-	//		if (fun == NULL) {
-	//			printf("Error: %s.%s is undefined.\n", $1, $3->vn);
-	//			exit(EXIT_FAILURE);
-	//		}
-	//		var = var_new($3->vn, new_reg());
-	//		var->tt = fun->ret->tt;
-	//	}
-	//}
+	if (cla != NULL && $3->tt == FUN_T) {
+		if (strcmp($3->vn, "new") == 0) {
+			var = var_new("object");
+			var->tt = OBJ_T;
+			var->ob.cn = strdup($1);
+		}
+		else {
+			printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else {
+		var = hashmap_get(*env, $1);
+		if (var == NULL) {
+			printf("Error: %s is undefined.\n", $1);
+			exit(EXIT_FAILURE);
+		}
+		else if (var->tt == OBJ_T && $3->tt == FUN_T) {
+			// Verify that the method exists for this object
+			struct function *fun = hashmap_get(functions, $3->vn);
+			if (fun == NULL) {
+				printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+				exit(EXIT_FAILURE);
+			}
+			var = var_new($3->vn);
+			var->tt = fun->ret->tt;
+		}
+	}
 
-	//$$ = var;
+	$$ = var;
 
 	free($3);
 	free($1);
 }
                     | ID '(' exprs ')'
 {
-	//struct function *fun = hashmap_get(symtable, $1);
-	//$$ = var_new($1, new_reg());
+	struct function *fun = hashmap_get(symtable, $1);
+	$$ = var_new($1, new_reg());
 
-	//// If the function is unknown, it's name is transmitted
-	//if (fun == NULL) {
-	//	printf("Function not defined: %s\n", $1);
-	//	$$->tt = FUN_T;
-	//}
-	//else {
-	//	$$->tt = fun->ret->tt;
-	//}
+	// If the function is unknown, it's name is transmitted
+	if (fun == NULL) {
+		printf("Function not defined: %s\n", $1);
+		$$->tt = FUN_T;
+	}
+	else {
+		$$->tt = fun->ret->tt;
+	}
 
 	free($1);
 }
                     | ID '(' ')'
 {
-	//struct function *fun = hashmap_get(symtable, $1);
-	//$$ = var_new($1, new_reg());
+	struct function *fun = hashmap_get(symtable, $1);
+	$$ = var_new($1, new_reg());
 
-	//// If the function is unknown, it's name is transmitted
-	//if (fun == NULL) {
-	//	printf("Function not defined: %s\n", $1);
-	//	$$->tt = FUN_T;
-	//}
-	//else {
-	//	$$->tt = fun->ret->tt;
-	//}
+	// If the function is unknown, it's name is transmitted
+	if (fun == NULL) {
+		printf("Function not defined: %s\n", $1);
+		$$->tt = FUN_T;
+	}
+	else {
+		$$->tt = fun->ret->tt;
+	}
 
 	free($1);
 }
@@ -597,13 +631,21 @@ int main() {
 	tmp_params = stack_new();
 	tmp_func = function_new();
 
+    tmp_func_env = hashmap_new();
+    env = &vars;
+
 	yyparse(); 
 
 	class_free(tmp_class);
 	function_free(tmp_func);
 	stack_free(&tmp_params, var_free);
 
-	hashmap_free(&symtable, NULL);
+	// disabled because these hashes may share variables and they might get
+	// free()'d multiple times
+	//hashmap_free(&vars, var_free);
+	//hashmap_free(&classes, class_free);
+	hashmap_free(&functions, function_free);
+    hashmap_free(&tmp_func_env, NULL);
 
 	return 0;
 }
