@@ -14,9 +14,7 @@ void yyerror(char *);
 unsigned int new_reg();
 
 // 3 namespaces
-struct hashmap *vars;
-struct hashmap *classes;
-struct hashmap *functions;
+struct hashmap *symtable;
 
 struct stack * tmp_params;
 struct class * tmp_class;
@@ -39,7 +37,8 @@ struct function *tmp_func;
 %token <n> INT BOOL 
 %token <f> FLOAT 
 
-%type <v> lhs primary expr comp_expr additive_expr multiplicative_expr
+%type <s> lhs
+%type <v> primary expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -57,13 +56,13 @@ topstmt             : CLASS ID term stmts terms END
 {
 	tmp_class->cn = $2;
 	
-	hashmap_set(classes, $2, tmp_class);
+	hashmap_set(symtable, $2, tmp_class);
 
 	tmp_class = class_new();
 }
                     | CLASS ID '<' ID term stmts terms END
 {
-	struct class *super = hashmap_get(classes, $4);
+	struct class *super = hashmap_get(symtable, $4);
 
 	if (NULL == super) {
 		printf("Error: super class %s not defined", $4);
@@ -73,7 +72,7 @@ topstmt             : CLASS ID term stmts terms END
 	tmp_class->cn = $2;
 	tmp_class->super = super;
 	
-	hashmap_set(classes, $2, tmp_class);
+	hashmap_set(symtable, $2, tmp_class);
 
 	tmp_class = class_new();
 
@@ -124,7 +123,7 @@ stmt                : COMMENT
 
 	if ($1->tt == UND_T) {
 		// New variable is added to the symtable
-		hashmap_set(vars, $1->vn, $1);
+		hashmap_set(symtable, $1->vn, $1);
 	}
 	else if ($1->tc) {
 		// Existing constant should not be modified
@@ -141,10 +140,9 @@ stmt                : COMMENT
 }
                     | DEF ID opt_params term stmts terms END
 {
-
 	tmp_func->fn = $2;
 	tmp_func->params = tmp_params;
-	hashmap_set(functions, $2, tmp_func);
+	hashmap_set(symtable, $2, tmp_func);
 
 	// create new blank function
 	tmp_func = function_new();
@@ -175,86 +173,78 @@ params              : ID ',' params
 ; 
 lhs                 : ID
 {
-	struct var *var = hashmap_get(vars, $1);
-
-	if (var == NULL) {
-		printf("New var: %s\n", $1);
-		var = var_new($1, new_reg());
-	}
-
-	$$ = var;
-	free($1);
+	$$ = $1;
 }
                     | ID '.' primary
 {
-/* Never put exit in comment here, this may cause a segfault */
+	/** CALCULER UN NOM ICI EN FONCTION DE LA CLASSE ET DE L'ATTRIBUT **/
 
-	struct class *cla = hashmap_get(classes, $1);
-	struct var *var = NULL;
+	//struct class *cla = hashmap_get(symtable, $1);
+	//struct var *var = NULL;
 
-	if (cla != NULL && $3->tt == FUN_T) {
-		if (strcmp($3->vn, "new") == 0) {
-			var = var_new("object", new_reg());
-			var->tt = OBJ_T;
-			var->ob.cn = strdup($1);
-		}
-		else {
-			printf("Error: %s.%s is undefined.\n", $1, $3->vn);
-			exit(EXIT_FAILURE);
-		}
-	}
-	else {
-		var = hashmap_get(vars, $1);
-		if (var == NULL) {
-			printf("Error: %s is undefined.\n", $1);
-			exit(EXIT_FAILURE);
-		}
-		else if (var->tt == OBJ_T && $3->tt == FUN_T) {
-			// Verify that the method exists for this object
-			struct function *fun = hashmap_get(functions, $3->vn);
-			if (fun == NULL) {
-				printf("Error: %s.%s is undefined.\n", $1, $3->vn);
-				exit(EXIT_FAILURE);
-			}
-			var = var_new($3->vn, new_reg());
-			var->tt = fun->ret->tt;
-		}
-	}
+	//if (cla != NULL && $3->tt == FUN_T) {
+	//	if (strcmp($3->vn, "new") == 0) {
+	//		var = var_new("object", new_reg());
+	//		var->tt = OBJ_T;
+	//		var->ob.cn = strdup($1);
+	//	}
+	//	else {
+	//		printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+	//		exit(EXIT_FAILURE);
+	//	}
+	//}
+	//else {
+	//	var = hashmap_get(symtable, $1);
+	//	if (var == NULL) {
+	//		printf("Error: %s is undefined.\n", $1);
+	//		exit(EXIT_FAILURE);
+	//	}
+	//	else if (var->tt == OBJ_T && $3->tt == FUN_T) {
+	//		// Verify that the method exists for this object
+	//		struct function *fun = hashmap_get(symtable, $3->vn);
+	//		if (fun == NULL) {
+	//			printf("Error: %s.%s is undefined.\n", $1, $3->vn);
+	//			exit(EXIT_FAILURE);
+	//		}
+	//		var = var_new($3->vn, new_reg());
+	//		var->tt = fun->ret->tt;
+	//	}
+	//}
 
-	$$ = var;
+	//$$ = var;
 
 	free($3);
 	free($1);
 }
                     | ID '(' exprs ')'
 {
-	struct function *fun = hashmap_get(functions, $1);
-	$$ = var_new($1, new_reg());
+	//struct function *fun = hashmap_get(symtable, $1);
+	//$$ = var_new($1, new_reg());
 
-	// If the function is unknown, it's name is transmitted
-	if (fun == NULL) {
-		printf("Function not defined: %s\n", $1);
-		$$->tt = FUN_T;
-	}
-	else {
-		$$->tt = fun->ret->tt;
-	}
+	//// If the function is unknown, it's name is transmitted
+	//if (fun == NULL) {
+	//	printf("Function not defined: %s\n", $1);
+	//	$$->tt = FUN_T;
+	//}
+	//else {
+	//	$$->tt = fun->ret->tt;
+	//}
 
 	free($1);
 }
                     | ID '(' ')'
 {
-	struct function *fun = hashmap_get(functions, $1);
-	$$ = var_new($1, new_reg());
+	//struct function *fun = hashmap_get(symtable, $1);
+	//$$ = var_new($1, new_reg());
 
-	// If the function is unknown, it's name is transmitted
-	if (fun == NULL) {
-		printf("Function not defined: %s\n", $1);
-		$$->tt = FUN_T;
-	}
-	else {
-		$$->tt = fun->ret->tt;
-	}
+	//// If the function is unknown, it's name is transmitted
+	//if (fun == NULL) {
+	//	printf("Function not defined: %s\n", $1);
+	//	$$->tt = FUN_T;
+	//}
+	//else {
+	//	$$->tt = fun->ret->tt;
+	//}
 
 	free($1);
 }
@@ -601,12 +591,10 @@ term                : ';'
 ;
 %%
 int main() {
-	vars = hashmap_new();
-	classes = hashmap_new();
-	functions = hashmap_new();
+	symtable = hashmap_new();
 
-	tmp_params = stack_new();
 	tmp_class = class_new();
+	tmp_params = stack_new();
 	tmp_func = function_new();
 
 	yyparse(); 
@@ -615,23 +603,7 @@ int main() {
 	function_free(tmp_func);
 	stack_free(&tmp_params, var_free);
 
-	puts("");
-	puts("Dumping vars:");
-	hashmap_dump(vars, var_dump);
-
-	puts("");
-	puts("Dumping classes:");
-	hashmap_dump(classes, class_dump);
-
-	puts("");
-	puts("Dumping functions:");
-	hashmap_dump(functions, function_dump);
-
-	// disabled because these hashes may share variables and they might get
-	// free()'d multiple times
-	//hashmap_free(&vars, var_free);
-	//hashmap_free(&classes, class_free);
-	hashmap_free(&functions, function_free);
+	hashmap_free(&symtable, NULL);
 
 	return 0;
 }
