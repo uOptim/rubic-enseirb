@@ -14,18 +14,13 @@ void yyerror(char *);
 unsigned int new_reg();
 
 // 3 namespaces
-struct hashmap *vars;       // variables may not be global
-struct hashmap *classes;    // classes are global
-struct hashmap *functions;  // functions are global
+struct hashmap *vars;
+struct hashmap *classes;
+struct hashmap *functions;
 
 struct stack * tmp_params;
 struct class * tmp_class;
 struct function *tmp_func;
-
-struct hashmap *tmp_func_env;
-// Pointer on the current environment.
-// (either a function environment or the "normal" environment)
-struct hashmap **env;
 
 %}
 
@@ -44,8 +39,7 @@ struct hashmap **env;
 %token <n> INT BOOL 
 %token <f> FLOAT 
 
-%type <s> lhs
-%type <v> primary expr comp_expr additive_expr multiplicative_expr
+%type <v> lhs primary expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -107,39 +101,39 @@ stmt                : COMMENT
 	// $1 = $3;
 
 	// Update var value
-	//switch ($3->tt) {
-	//	case INT_T:
-	//		$1->in = $3->in;
-	//		break;
-	//	case BOO_T:
-	//		$1->bo = $3->bo;
-	//		break;
-	//	case FLO_T:
-	//		$1->fl = $3->fl;
-	//		break;
-	//	case STR_T:
-	//		$1->st = strdup($3->st);
-	//		break;
-	//	case OBJ_T:
-	//		$1->ob.cn = strdup($3->ob.cn);
-	//		break;
-	//	default:
-	//		printf("Right expression is of invalid type.");
-	//		break;
-	//}
+	switch ($3->tt) {
+		case INT_T:
+			$1->in = $3->in;
+			break;
+		case BOO_T:
+			$1->bo = $3->bo;
+			break;
+		case FLO_T:
+			$1->fl = $3->fl;
+			break;
+		case STR_T:
+			$1->st = strdup($3->st);
+			break;
+		case OBJ_T:
+			$1->ob.cn = strdup($3->ob.cn);
+			break;
+		default:
+			printf("Right expression is of invalid type.");
+			break;
+	}
 
-	//if ($1->tt == UND_T) {
-	//	// New variable is added to the symtable
-	//	hashmap_set(*env, $1->vn, $1);
-	//}
-	//else if ($1->tc) {
-	//	// Existing constant should not be modified
-	//	printf("warning: already initialized constant %s.", $1->vn);
-	//}
+	if ($1->tt == UND_T) {
+		// New variable is added to the symtable
+		hashmap_set(vars, $1->vn, $1);
+	}
+	else if ($1->tc) {
+		// Existing constant should not be modified
+		printf("warning: already initialized constant %s.", $1->vn);
+	}
 
-	//// Update var type
-	//$1->tt = $3->tt;
-	//var_free($3);
+	// Update var type
+	$1->tt = $3->tt;
+	var_free($3);
 }
                     | RETURN expr
 {
@@ -147,6 +141,7 @@ stmt                : COMMENT
 }
                     | DEF ID opt_params term stmts terms END
 {
+
 	tmp_func->fn = $2;
 	tmp_func->params = tmp_params;
 	hashmap_set(functions, $2, tmp_func);
@@ -155,12 +150,6 @@ stmt                : COMMENT
 	tmp_func = function_new();
 	// new param stack
 	tmp_params = stack_new();
-    // free the stacks but not its data, they are in the function params stack
-    hashmap_free(&tmp_func_env, NULL);
-    tmp_func_env = hashmap_new();
-
-    // Reset the "normal environmenent"
-    env = &vars;
 
 	// DO NOT FREE $2! It is used for the function's name ATM.
 	//free($2);
@@ -168,45 +157,32 @@ stmt                : COMMENT
 ; 
 
 opt_params          : /* none */
-{
-    env = &tmp_func_env;
-}
                     | '(' ')'
-{
-    env = &tmp_func_env;
-}
                     | '(' params ')'
-{
-    env = &tmp_func_env;
-}
 ;
 params              : ID ',' params
 {
-    struct var *param = var_new($1, new_reg());
 	printf("param: %s\n", $1);
 	stack_push(tmp_params, var_new($1, new_reg()));
-    hashmap_set(tmp_func_env, $1, param);
 	free($1);
 }
                     | ID
 {
-    struct var *param = var_new($1, new_reg());
 	printf("param: %s\n", $1);
 	stack_push(tmp_params, var_new($1, new_reg()));
-    hashmap_set(tmp_func_env, $1, param);
 	free($1);
 }
 ; 
 lhs                 : ID
 {
-	struct var *var = hashmap_get(*env, $1);
+	struct var *var = hashmap_get(vars, $1);
 
 	if (var == NULL) {
 		printf("New var: %s\n", $1);
 		var = var_new($1, new_reg());
 	}
 
-	$$ = var->vn;
+	$$ = var;
 	free($1);
 }
                     | ID '.' primary
@@ -228,7 +204,7 @@ lhs                 : ID
 		}
 	}
 	else {
-		var = hashmap_get(*env, $1);
+		var = hashmap_get(vars, $1);
 		if (var == NULL) {
 			printf("Error: %s is undefined.\n", $1);
 			exit(EXIT_FAILURE);
@@ -245,7 +221,7 @@ lhs                 : ID
 		}
 	}
 
-	$$ = var->vn;
+	$$ = var;
 
 	free($3);
 	free($1);
@@ -253,34 +229,34 @@ lhs                 : ID
                     | ID '(' exprs ')'
 {
 	struct function *fun = hashmap_get(functions, $1);
-	struct var *var = var_new($1, new_reg());
+	$$ = var_new($1, new_reg());
 
 	// If the function is unknown, it's name is transmitted
 	if (fun == NULL) {
 		printf("Function not defined: %s\n", $1);
-		var->tt = FUN_T;
+		$$->tt = FUN_T;
 	}
 	else {
-		var->tt = fun->ret->tt;
+		$$->tt = fun->ret->tt;
 	}
 
-	$$ = $1;
+	free($1);
 }
                     | ID '(' ')'
 {
 	struct function *fun = hashmap_get(functions, $1);
-	struct var *var = var_new($1, new_reg());
+	$$ = var_new($1, new_reg());
 
 	// If the function is unknown, it's name is transmitted
 	if (fun == NULL) {
 		printf("Function not defined: %s\n", $1);
-		var->tt = FUN_T;
+		$$->tt = FUN_T;
 	}
 	else {
-		var->tt = fun->ret->tt;
+		$$->tt = fun->ret->tt;
 	}
 
-	$$ = $1;
+	free($1);
 }
 ;
 exprs               : exprs ',' expr
@@ -288,13 +264,13 @@ exprs               : exprs ',' expr
 ;
 primary             : lhs
 {
-	//if ($1->tt == UND_T) {
-	//	printf("Error: %s is undefined\n", $1->vn);
-	//	/* exit(EXIT_FAILURE); */
-	//}
-	//else {
-	//	$$ = $1;
-	//}
+	if ($1->tt == UND_T) {
+		printf("Error: %s is undefined\n", $1->vn);
+		/* exit(EXIT_FAILURE); */
+	}
+	else {
+		$$ = $1;
+	}
 }
                     | STRING
 {
@@ -626,15 +602,12 @@ term                : ';'
 %%
 int main() {
 	vars = hashmap_new();
-	functions = hashmap_new();
 	classes = hashmap_new();
+	functions = hashmap_new();
 
-	tmp_class = class_new();
 	tmp_params = stack_new();
+	tmp_class = class_new();
 	tmp_func = function_new();
-
-    tmp_func_env = hashmap_new();
-    env = &vars;
 
 	yyparse(); 
 
@@ -642,12 +615,23 @@ int main() {
 	function_free(tmp_func);
 	stack_free(&tmp_params, var_free);
 
+	puts("");
+	puts("Dumping vars:");
+	hashmap_dump(vars, var_dump);
+
+	puts("");
+	puts("Dumping classes:");
+	hashmap_dump(classes, class_dump);
+
+	puts("");
+	puts("Dumping functions:");
+	hashmap_dump(functions, function_dump);
+
 	// disabled because these hashes may share variables and they might get
 	// free()'d multiple times
 	//hashmap_free(&vars, var_free);
 	//hashmap_free(&classes, class_free);
 	hashmap_free(&functions, function_free);
-    hashmap_free(&tmp_func_env, NULL);
 
 	return 0;
 }
