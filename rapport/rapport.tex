@@ -46,10 +46,96 @@
 
 \section{Introduction}
 
-\section{Les types}
+Ce projet a pour but de créer un compilateur pour le langage Rubic, un dérivé
+simplifié du langage Ruby. Le code généré n'est pas de l'assembleur mais un
+langage intermédiaire le LLVM, assez proche du langage machine mais ayant ses
+spécificités et étant notamment indépendant de tout système. Le code généré
+est ainsi portable et peut ensuite être traité par le compilateur LLVM qui
+pourra faire des optimisations lors de la compilation vers un langage machine.
+
+L'accomplissement du projet a nécessité plusieurs étapes : la détermination de
+la grammaire du langage Rubic, le typage des données et la génération du code
+LLVM.
+Afin de faciliter la réalisation de ce compilateur, les outils d'analyse
+lexicale et syntaxique Flex (version libre de Lex) et Yacc ont été utilisés.
+
+\section{Langage Rubic}
+
+\subsection{Les variables}
+
+En Ruby les noms de variables sont des étiquettes sans type et ce sont les
+objets qu'elles contiennent qui sont fortement et dynamiquement typé. Il n'y a
+donc pas de vérification de typage statique et c'est à l'exécution qu'il est
+vérifié si l'appel de méthode fonctionne pour l'objet traité. Une même
+variable peut donc contenir des objets de types différents au cours de sa vie.
+
+En Rubic, le typage est également dynamique et une même variable peut
+contenir différents types d'objets au cours de sa vie, cependant les
+vérifications sont effectuées à la compilation et non à l'exécution.
+
+\paragraph{}
+En Rubic il existe différents types de variables :
+\begin{itemize}
+    \item les nombres entiers ;
+    \item les nombres flottants ;
+    \item les booléens ;
+    \item les chaînes de caractères ;
+    \item les objets\footnote{En Ruby tout est un objet, même les classes et
+        les entiers.}.
+\end{itemize}
+
+\paragraph{}
+Ces variables peuvent avoir différentes portées :
+\begin{itemize}
+    \item Les variables qui commencent par un '\$' sont des variables
+        globales, elles sont accessibles partout une fois qu'elles ont été
+        définies.
+    \item Les variables qui commencent par un '@' sont des variables
+        d'instances, leur portée est limitée à l'objet et elles ne peuvent
+        être accédées à l'extérieur que via des méthodes.
+    \item Les autres variables sont locales aux environnements auxquelles
+        elles appartiennent. Par exemple elles peuvent être locale à la
+        fonction dans laquelle elles ont été définies ou si elles ont été
+        définies à l'extérieur de toute fonction ou classe, elles ne peuvent
+        être accédées à l'intérieur de ces dernière.
+\end{itemize}
+
+\paragraph{}
+Enfin, par convention, les variables dont le nom commence par une majuscule
+sont des constantes. En Ruby, leur modification entraine seulement l'affichage
+d'un avertissement et est effective. \textbf{[En Rubic, nous avons décidé de
+déclencher une erreur de compilation lorsqu'une constante est modifiée, ce qui
+signifie que le processus de compilation ne s'achèvera pas.{\Large/}En
+Rubic nous avons pris la même décision, seul une message d'avertissement est
+affiché lorsque des constantes sont modifiées et la compilation s'achèvera
+normalement.}]\emph{(rayer la mention inutile)}
+
+\subsection{Les fonctions}
+
+\subsection{Les classes}
+
+\section{Typage}
 
 \section{Génération de code}
 
 \section{Conclusion}
+
+Les exigences du projet ont été remplies et des améliorations ont effectués.
+Le langage Rubic de base a été augmenté de fonctionnalités inspirées du
+langage Ruby telles que la possibilité de commenter du code, \textbf{[à compléter au
+fur et à mesure que l'on rajoute des fonctionnalités]}.
+
+Ce projet a permis le développement et la mise en œuvre de nombreuses
+compétences intéressantes telles que l'utilisation des outils Flex et Yacc, la
+découverte du langage Ruby, l'initiation au langage LLVM et l'utilisation de
+structures de données adaptées au typage des données, à la gestion des tables
+de symboles et de la mémoire.
+
+Sur les bases de ce qui a été accompli il serait possible de réaliser un
+interpréteur pour le langage Rubic. Cela nécessiterai une modification des
+structures employées afin de pouvoir, par exemple, associer des valeurs aux
+variables. Les actions de génération de code effectuées lors du parsage
+seraient alors remplacées par des calculs de valeur des expressions par
+exemple. D'autres actions plus complexes devraient alors être développées.
 
 \end{document}
