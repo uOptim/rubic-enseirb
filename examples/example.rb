@@ -3,9 +3,11 @@ class A
     return a + 1.2
   end
 end
+
 object = A.new()
 n = 1 + 1
 fl = 1 + (n - 1.2) * 3
+
 #b = object.f(3)
 #
 #class B < A

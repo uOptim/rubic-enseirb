@@ -6,19 +6,20 @@ int column=0; int lineno=1;
 
 /* Function that counts the current column */
 void count() {
-  int i;
-  for (i = 0; yytext[i] != '\0'; i++) {
-    if (yytext[i] == '\n')
-      column = 0;
-    else if (yytext[i] == '\t')
-      column += 8 - (column % 8);
-    else
-      column++;
-  }
+	int i;
+	for (i = 0; yytext[i] != '\0'; i++) {
+		if (yytext[i] == '\n')
+			column = 0;
+		else if (yytext[i] == '\t')
+			column += 8 - (column % 8);
+		else
+			column++;
+	}
 }
+
 /* Function called in case of error during parsing */
 void yyerror(char *s) {
-  fprintf(stderr,"%s line %d col %d : %s\n",s,lineno,column, yytext);
+	fprintf(stderr,"%s line %d col %d : %s\n",s,lineno,column, yytext);
 }
 
 %}

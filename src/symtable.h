@@ -29,6 +29,7 @@ struct var {
 		};
 	};
 
+	// LLVM register
 	unsigned int reg;
 };
 

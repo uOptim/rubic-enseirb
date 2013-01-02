@@ -19,8 +19,8 @@ lex.yy.o: lex.yy.c
 rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-symtable.o: symtable.c
-	$(CC) $(CFLAGS) -c $^ -o $@
+symtable.o: symtable.c symtable.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 hashmap.o: hashmap.c hashmap.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -32,4 +32,4 @@ tests: tests.c stack.o hashmap.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h lex.yy.c
+	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h
