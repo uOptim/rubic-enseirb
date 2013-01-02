@@ -26,7 +26,7 @@ void var_dump(void * var)
 			printf("string");
 			break;
 		case OBJ_T:
-			printf("object, instance of %s", t->ob.cn);
+			printf("object");
 			break;
 		default:
 			printf("unknown or invalid type.");
@@ -63,31 +63,6 @@ struct var * var_new(const char *name, unsigned int reg)
 }
 
 
-void var_set(struct var *v, int type, void *value)
-{
-	v->tt = type;
-
-	switch (type) {
-		case INT_T:
-			v->in = *((int *) value);
-			break;
-		case BOO_T:
-			v->bo = *((char *) value);
-			break;
-		case FLO_T:
-			v->fl = *((float *) value);
-			break;
-		case STR_T:
-			v->st = strdup((char *) value);
-			break;
-		case OBJ_T:
-			v->ob.cn = strdup((char *) value);
-			break;
-		default:
-			break;
-	}
-}
-
 void var_free(void *var)
 {
 	struct var *v = (struct var *) var;
@@ -95,29 +70,6 @@ void var_free(void *var)
 	if (v->vn != NULL) {
 		free(v->vn);
 		v->vn = NULL;
-	}
-
-	switch (v->tt) {
-		case INT_T:
-			break;
-		case BOO_T:
-			break;
-		case FLO_T:
-			break;
-		case STR_T:
-			if (v->st != NULL) {
-				free(v->st);
-				v->st = NULL;
-			}
-			break;
-		case OBJ_T:
-			if (v->ob.cn != NULL) {
-				free(v->ob.cn);
-				v->ob.cn = NULL;
-			}
-			break;
-		default:
-			break;
 	}
 
 	free(v);
