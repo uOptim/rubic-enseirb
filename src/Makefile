@@ -16,7 +16,7 @@ y.tab.o: y.tab.c y.tab.h
 lex.yy.o: lex.yy.c
 	$(CC) $(CFLAGS) -c $<
 
-rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o
+rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o #totrash.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 symtable.o: symtable.c symtable.h
@@ -26,6 +26,9 @@ hashmap.o: hashmap.c hashmap.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 stack.o: stack.c stack.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+totrash.o: totrash.c totrash.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 tests: tests.c stack.o hashmap.o

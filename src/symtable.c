@@ -29,7 +29,7 @@ void var_dump(void * var)
 			printf("object");
 			break;
 		default:
-			printf("unknown or invalid type.");
+			printf("unknown type.");
 			break;
 	}
 

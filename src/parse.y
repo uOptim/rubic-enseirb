@@ -4,6 +4,7 @@
 	#include <stdlib.h>
 
 	#include "stack.h"
+	#include "totrash.h"
 	#include "hashmap.h"
 	#include "symtable.h"
 
@@ -12,6 +13,14 @@
 	struct class    *tmp_class;
 	struct function *tmp_function;
 
+	// scope blocks
+	struct block {
+		struct stack *classes;
+		struct stack *variables;
+		struct stack *functions;
+	};
+
+	// symbol table
 	struct hashmap *classes;
 	struct hashmap *variables;
 	struct hashmap *functions;
@@ -19,6 +28,7 @@
 	void yyerror(char *);
 
 	unsigned int new_reg();
+
 %}
 
 %union {
@@ -26,6 +36,7 @@
 	char c;
 	char *s;
 	double f;
+
 	struct var *v;
 };
 
@@ -37,6 +48,8 @@
 %token <f> FLOAT
 %token <n> INT
 %token <s> ID 
+
+%type <v> expr
 
 %left '*' 
 %left '/'
@@ -62,7 +75,6 @@ topstmt	        : CLASS ID term stmts terms END
 
 	hashmap_set(classes, $2, tmp_class);
 	tmp_class = class_new();
-
 	//free($2);
 }
                 | CLASS ID '<' ID term stmts terms END
@@ -88,13 +100,19 @@ topstmt	        : CLASS ID term stmts terms END
 	//free($2);
 	free($4);
 }
-
                 | stmt
+{
+	// here: top statements
+}
 ;
 
 stmts	        : /* none */
                 | stmt
+{
+}
                 | stmts terms stmt
+{
+}
                 ;
 
 stmt		: IF expr THEN stmts terms END
@@ -103,6 +121,10 @@ stmt		: IF expr THEN stmts terms END
                 | WHILE expr DO term stmts terms END 
                 | lhs '=' expr
                 | RETURN expr
+{
+	// uncomment when expr is defined
+	//tmp_function->ret = $2;
+}
                 | DEF ID opt_params term stmts terms END
 {
 	if (hashmap_get(functions, $2) != NULL) {
@@ -147,8 +169,17 @@ exprs           : exprs ',' expr
 ;
 primary         : lhs
                 | STRING 
+{
+	struct var *v = var_new("string", new_reg());
+}
                 | FLOAT
+{
+	struct var *v = var_new("float", new_reg());
+}
                 | INT
+{
+	struct var *v = var_new("integer", new_reg());
+}
                 | '(' expr ')'
 ;
 expr            : expr AND comp_expr
