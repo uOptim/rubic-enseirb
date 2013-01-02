@@ -17,6 +17,8 @@
 	struct hashmap *functions;
 
 	void yyerror(char *);
+
+	unsigned int new_reg();
 %}
 
 %union {
@@ -24,6 +26,7 @@
 	char c;
 	char *s;
 	double f;
+	struct var *v;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -121,7 +124,19 @@ opt_params      : /* none */
                 | '(' params ')'
 ;
 params          : ID ',' params
+{
+	struct var *v = var_new($1, new_reg());
+	v->tt = UND_T;
+
+	stack_push(tmp_function->params, v);
+}
                 | ID
+{
+	struct var *v = var_new($1, new_reg());
+	v->tt = UND_T;
+
+	stack_push(tmp_function->params, v);
+}
 ; 
 lhs             : ID
                 | ID '.' primary
@@ -183,4 +198,10 @@ int main() {
 	hashmap_dump(functions, function_dump);
 
 	return 0;
+}
+
+
+unsigned int new_reg() {
+	static unsigned int reg = 0;
+	return reg++;
 }

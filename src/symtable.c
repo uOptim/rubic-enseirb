@@ -138,7 +138,7 @@ struct function * function_new()
 
 	f->fn = NULL;
 	f->ret = NULL;
-	f->params = NULL;
+	f->params = stack_new();
 
 	return f;
 }
