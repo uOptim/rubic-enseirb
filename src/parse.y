@@ -56,8 +56,37 @@
 program		:  topstmts opt_terms
 ;
 topstmts        :      
-| topstmt
-| topstmts terms topstmt
+				| topstmt
+{
+	if ($1 != NULL) {
+		//struct block *s = scope; // tmp save
+
+		//scope = stack_pop(scopes);
+		scope_add_symbol(scope, $1);
+		//stack_push(scopes, scope);
+
+		//scope = s; // restore scope
+	}
+	
+	else {
+		puts("ARGH!");
+	}
+}
+				| topstmts terms topstmt
+{
+	if ($3 != NULL) {
+		//struct block *s = scope; // tmp save
+
+		//scope = stack_pop(scopes);
+		scope_add_symbol(scope, $3);
+		//stack_push(scopes, scope);
+
+		//scope = s; // restore scope
+	}
+	else {
+		puts("ARGH!");
+	}
+}
 ;
 topstmt	        : CLASS ID term stmts terms END 
 {
@@ -69,7 +98,7 @@ topstmt	        : CLASS ID term stmts terms END
 
 	tmp_class->cn = $2;
 
-	hashmap_set(scope->classes, $2, tmp_class);
+	$$ = sym_new($2, CLA_T, tmp_class);
 	tmp_class = class_new();
 	//free($2);
 }
@@ -91,7 +120,7 @@ topstmt	        : CLASS ID term stmts terms END
 	tmp_class->cn = $2;
 	tmp_class->super = super;
 
-	hashmap_set(scope->classes, $2, tmp_class);
+	$$ = sym_new($2, CLA_T, tmp_class);
 	tmp_class = class_new();
 
 	//free($2);
@@ -99,14 +128,7 @@ topstmt	        : CLASS ID term stmts terms END
 }
                 | stmt
 {
-	struct block *s = scope; // tmp save
-
-	scope = stack_pop(scopes);
-	// uncomment when stmt is defined
-	//scope_add_symbol(scope, $1);
-	stack_push(scopes, scope);
-
-	scope = s; // restore scope
+	$$ = $1;
 }
 ;
 
@@ -136,7 +158,7 @@ stmt			: IF expr THEN stmts terms END
 
 	tmp_function->fn = $2;
 
-	hashmap_set(scope->functions, $2, tmp_function);
+	$$ = sym_new($2, FUN_T, tmp_function);
 	tmp_function = function_new();
 
 	//free($2);
@@ -309,18 +331,16 @@ int main() {
 	tmp_class    = class_new();
 	tmp_function = function_new();
 
-	scopes = stack_new();
-	stack_push(scopes, block_new()); // top level scope
-
-	scope = block_new(); // 2nd level scope
+	scope = block_new();
 
 	yyparse(); 
 
+	puts("Dumping classes");
 	hashmap_dump(scope->classes, class_dump);
+	puts("Dumping functions");
 	hashmap_dump(scope->functions, function_dump);
 
 	block_free(scope);
-	stack_free(&scopes, block_free);
 
 	return 0;
 }
@@ -334,6 +354,7 @@ unsigned int new_reg() {
 
 void scope_add_symbol(struct block *s, struct symbol *sym)
 {
+	printf("Adding symbol %s\n", sym->name);
 	switch(sym->type) {
 		case VAR_T:
 			hashmap_set(s->variables, sym->name, sym->ptr);
