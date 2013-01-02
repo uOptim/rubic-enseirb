@@ -4,44 +4,58 @@
 #include <string.h>
 #include <assert.h>
 
-void var_dump(void * var)
+
+struct symbol * sym_new(const char *name, char t, void *d)
 {
-	struct var * t = (struct var *)var;
+	struct symbol *s = malloc(sizeof *s);
 
-	printf("var name: %s", t->vn);
+	s->type = t;
+	s->name = strdup(name);
+	s->ptr = d;
 
-	printf(" - ");
-
-	switch (t->tt) {
-		case INT_T:
-			printf("integer");
-			break;
-		case BOO_T:
-			printf("boolean");
-			break;
-		case FLO_T:
-			printf("floating point number");
-			break;
-		case STR_T:
-			printf("string");
-			break;
-		case OBJ_T:
-			printf("object");
-			break;
-		default:
-			printf("unknown type.");
-			break;
-	}
-
-	puts("");
+	return s;
 }
 
-/* name is used when var is OBJ_T, CLA_T or FUN_T.
- * For a OBJ_T, name is the name of the object class.
- * For a CLA_T, name is the name of the class.
- * For a FUN_T, name is the name of the returned object class when the
- * function returns an object.
- */
+void sym_free(struct symbol *s)
+{
+	free(s->name);
+
+	switch (s->type) {
+		case VAR_T:
+			var_free((struct var *) s->ptr);
+			break;
+		case FUN_T:
+			function_free((struct function *) s->ptr);
+			break;
+		case CLA_T:
+			class_free((struct class *) s->ptr);
+			break;
+		default:
+			break;
+	}
+}
+
+
+void sym_dump(struct symbol *s)
+{
+	printf("Symbol name: %s\n", s->name);
+
+	switch (s->type) {
+		case VAR_T:
+			var_dump((struct var *) s->ptr);
+			break;
+		case FUN_T:
+			function_dump((struct function *) s->ptr);
+			break;
+		case CLA_T:
+			class_dump((struct class *) s->ptr);
+			break;
+		default:
+			break;
+	}
+}
+
+
 struct var * var_new(const char *name, unsigned int reg)
 {
 	struct var * v = malloc(sizeof *v);
@@ -75,6 +89,38 @@ void var_free(void *var)
 	free(v);
 }
 
+
+void var_dump(void * var)
+{
+	struct var * t = (struct var *)var;
+
+	printf("var name: %s", t->vn);
+
+	printf(" - ");
+
+	switch (t->tt) {
+		case INT_T:
+			printf("integer");
+			break;
+		case BOO_T:
+			printf("boolean");
+			break;
+		case FLO_T:
+			printf("floating point number");
+			break;
+		case STR_T:
+			printf("string");
+			break;
+		case OBJ_T:
+			printf("object");
+			break;
+		default:
+			printf("unknown type.");
+			break;
+	}
+
+	puts("");
+}
 
 struct class * class_new()
 {

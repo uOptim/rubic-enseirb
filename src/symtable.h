@@ -7,14 +7,23 @@
 /* Type */
 #define FUN_T   0
 #define CLA_T   1
-#define OBJ_T   2
+#define VAR_T   2
 
 #define INT_T   3
 #define FLO_T   4
 #define STR_T   5
 #define BOO_T   6
+#define OBJ_T	7
 
-#define UND_T   127 // Undef variable
+#define UND_T   127 // Undef
+
+
+// symbols
+struct symbol {
+	char type;
+	char *name;
+	void *ptr;
+};
 
 
 struct var {
@@ -35,7 +44,7 @@ struct var {
 
 
 struct function {
-	char *fn; 
+	char *fn;
 	struct var *ret;
 	struct stack *params;
 };
@@ -48,6 +57,10 @@ struct class {
 	struct hashmap *methods;
 };
 
+
+struct symbol * sym_new(const char *, char, void *);
+void            sym_dump(struct symbol *);
+void            sym_free(struct symbol *);
 
 struct var * var_new(const char *, unsigned int);
 void         var_free(void *);
