@@ -3,14 +3,24 @@
   #include "y.tab.h"
 
 %}
+
+%union {
+	int n;
+	char c;
+	char *s;
+	double f;
+};
+
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
-%token STRING FLOAT INT ID FOR TO RETURN IN NEQ
+%token BOOL STRING FLOAT INT ID FOR TO RETURN IN NEQ
+%token COMMENT
 %left '*' 
 %left '/'
 %left '+' '-'
 %left '<' '>' LEQ GEQ EQ
 %left AND OR
 %%
+
 program		:  topstmts opt_terms
 ;
 topstmts        :      
