@@ -1,0 +1,13 @@
+PRISE DE NOTES SUR LE PROJET:
+
+* Grammaire mal foutue: 'expr' regroupe à la fois les expressions booléennes
+et les expressions 'normales'. Ca nous aurait arrangé d'avoir les deux
+séparées.
+
+* Delimitation des portées:
+	- les stmt, stmts, topstmt, topstmts sont du type entier et comptent le
+	  nombre de symboles déclarées dans une succéssion de statements. Cela
+	  permet de savoir combien de symboles dépiler lorsqu'on reconnaît un
+	  motif composé de ces tokens. Par exemple:
+	  	DEF ... stmts ... END -> nous sortons de la def d'une fonction,
+		dépiler un nombre $stmts de symboles sur la pile.
