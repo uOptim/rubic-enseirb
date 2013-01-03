@@ -20,8 +20,8 @@
 
 	unsigned int new_reg();
 
-	void   add_symbol(struct symbol *);
-	void * symbol_lookup(char, const char *);
+	void            add_symbol(struct symbol *);
+	struct symbol * symbol_lookup(char, const char *);
 
 	void yyerror(char *);
 %}
@@ -108,17 +108,19 @@ topstmt	        : CLASS ID term stmts terms END
                 | CLASS ID '<' ID term stmts terms END
 {
 	// error checking
-	struct class *super = (struct class *) symbol_lookup(CLA_T, $4);
+	struct symbol *s = symbol_lookup(CLA_T, $4);
 
-	if (super == NULL) {
+	if (s == NULL) {
 		fprintf(stderr, "Super class %s of %s not defined\n", $4, $2);
 		exit(EXIT_FAILURE);
 	}
 
-	if (hashmap_get(scope->classes, $2) != NULL) {
+	if (symbol_lookup(CLA_T, $2) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
 		exit(EXIT_FAILURE);
 	}
+
+	struct class *super = (struct class *) s->ptr;
 
 	tmp_class->cn = $2;
 	tmp_class->super = super;
@@ -161,6 +163,7 @@ stmt			: IF expr THEN stmts terms END
                 | FOR ID IN expr TO expr term stmts terms END
 {
 	$$ = NULL;
+	free($2);
 }
                 | WHILE expr DO term stmts terms END 
 {
@@ -200,6 +203,7 @@ params          : ID ',' params
 	v->tt = UND_T;
 
 	stack_push(tmp_function->params, v);
+	free($1);
 }
                 | ID
 {
@@ -207,11 +211,21 @@ params          : ID ',' params
 	v->tt = UND_T;
 
 	stack_push(tmp_function->params, v);
+	free($1);
 }
 ; 
 lhs             : ID
+{
+	free($1);
+}
                 | ID '.' primary
+{
+	free($1);
+}
                 | ID '(' exprs ')'
+{
+	free($1);
+}
 ;
 exprs           : exprs ',' expr
                 | expr
@@ -363,13 +377,14 @@ int main() {
 
 	yyparse(); 
 
-
 	do {
 		puts("===================");
 		puts("Dumping classes for current scope");
-		hashmap_dump(scope->classes, class_dump);
+		hashmap_dump(scope->classes, sym_dump);
 		puts("Dumping functions for current scope");
-		hashmap_dump(scope->functions, function_dump);
+		hashmap_dump(scope->functions, sym_dump);
+		puts("Dumping variables for current scope");
+		hashmap_dump(scope->variables, sym_dump);
 
 		block_free(scope);
 
@@ -392,42 +407,42 @@ void add_symbol(struct symbol *sym)
 	printf("Adding symbol %s\n", sym->name);
 	switch(sym->type) {
 		case VAR_T:
-			hashmap_set(scope->variables, sym->name, sym->ptr);
+			hashmap_set(scope->variables, sym->name, sym);
 			break;
 		case FUN_T:
-			hashmap_set(scope->functions, sym->name, sym->ptr);
+			hashmap_set(scope->functions, sym->name, sym);
 			break;
 		case CLA_T:
-			hashmap_set(scope->classes, sym->name, sym->ptr);
+			hashmap_set(scope->classes, sym->name, sym);
 			break;
 	}
 }
 
 
-void * symbol_lookup(char type, const char *name)
+struct symbol * symbol_lookup(char type, const char *name)
 {
-	void *ptr;
 	unsigned int i;
 	struct block *b;
+	struct symbol *sym;
 
 	// stack peak highly ineffective!
 	// improve perfs later
 	for (i = 0; (b = stack_peak(scopes, i)) != NULL; ++i) {
 		switch (type) {
 			case VAR_T:
-				ptr = hashmap_get(b->variables, name);
+				sym = hashmap_get(b->variables, name);
 				break;
 			case FUN_T:
-				ptr = hashmap_get(b->functions, name);
+				sym = hashmap_get(b->functions, name);
 				break;
 			case CLA_T:
-				ptr = hashmap_get(b->classes, name);
+				sym = hashmap_get(b->classes, name);
 				break;
 			default:
 				break;
 		}
 
-		if (ptr != NULL) return ptr;
+		if (sym != NULL) return sym;
 	}
 
 	return NULL;

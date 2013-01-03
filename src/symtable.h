@@ -59,8 +59,8 @@ struct class {
 
 
 struct symbol * sym_new(const char *, char, void *);
-void            sym_dump(struct symbol *);
-void            sym_free(struct symbol *);
+void            sym_dump(void *);
+void            sym_free(void *);
 
 struct var * var_new(const char *, unsigned int);
 void         var_free(void *);

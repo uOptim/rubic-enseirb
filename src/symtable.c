@@ -16,28 +16,32 @@ struct symbol * sym_new(const char *name, char t, void *d)
 	return s;
 }
 
-void sym_free(struct symbol *s)
+void sym_free(void *sym)
 {
+	struct symbol *s = (struct symbol *) sym;
 	free(s->name);
 
 	switch (s->type) {
 		case VAR_T:
-			var_free((struct var *) s->ptr);
+			var_free(s->ptr);
 			break;
 		case FUN_T:
-			function_free((struct function *) s->ptr);
+			function_free(s->ptr);
 			break;
 		case CLA_T:
-			class_free((struct class *) s->ptr);
+			class_free(s->ptr);
 			break;
 		default:
 			break;
 	}
+
+	free(s);
 }
 
 
-void sym_dump(struct symbol *s)
+void sym_dump(void *sym)
 {
+	struct symbol *s = (struct symbol *) sym;
 	printf("Symbol name: %s\n", s->name);
 
 	switch (s->type) {

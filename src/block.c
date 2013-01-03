@@ -20,9 +20,9 @@ void block_free(void *block)
 {
 	struct block *b = (struct block *) block;
 
-	hashmap_free(&b->classes, class_free);
-	hashmap_free(&b->functions, function_free);
-	hashmap_free(&b->variables, var_free);
+	hashmap_free(&b->classes, sym_free);
+	hashmap_free(&b->functions, sym_free);
+	hashmap_free(&b->variables, sym_free);
 
 	free(b);
 }
