@@ -44,7 +44,8 @@
 %token <n> INT
 %token <s> ID 
 
-%type <reg> lhs primary expr comp_expr additive_expr multiplicative_expr
+%type <s> lhs
+%type <reg> primary expr comp_expr additive_expr multiplicative_expr
 %type <cnt> topstmts topstmt stmts stmt params opt_params
 
 %left '*' 
@@ -80,7 +81,8 @@ topstmt	        : CLASS ID term stmts terms END
 	printf("%s declared %d symbols:\n", $2, n);
 	while (n--) {
 		s = stack_pop(scope);
-		printf("Symbol: %s\n", s->name);
+		printf("\tSymbol: %s\n", s->name);
+		sym_free(s);
 	}
 
 	// error checking
@@ -106,7 +108,8 @@ topstmt	        : CLASS ID term stmts terms END
 	printf("%s declared %d symbols\n", $2, n);
 	while (n--) {
 		s = stack_pop(scope);
-		printf("Symbol: %s\n", s->name);
+		printf("\tSymbol: %s\n", s->name);
+		sym_free(s);
 	}
 
 	// error checking
@@ -176,7 +179,25 @@ stmt			: IF expr THEN stmts terms END
 }
                 | lhs '=' expr
 {
-	$$ = 1;
+	$$ = 0;
+
+	struct var *v;
+	struct symbol *s;
+
+	// TODO affectation
+	if ((s = symbol_lookup($1)) == NULL) {
+		$$ = 1;
+
+		v = var_new($1, new_reg());
+		v->tt = UND_T;
+
+		s = sym_new($1, VAR_T, v);
+		stack_push(scope, s);
+	} else {
+		;
+	}
+
+	free($1);
 }
                 | RETURN expr
 {
@@ -184,7 +205,24 @@ stmt			: IF expr THEN stmts terms END
 }
                 | DEF ID opt_params term stmts terms END
 {
+	struct var *v;
+	unsigned int n;
+	struct symbol *s;
+
+	// pop symbols from stmts
 	printf("%s declared %d symbols\n", $2, $3+$5);
+	n = $3;
+	while (n--) {
+		v = stack_pop(tmp_function->params);
+		printf("\tParam: %s\n", v->vn);
+		var_free(v);
+	}
+	n = $5;
+	while (n--) {
+		s = stack_pop(scope);
+		printf("\tSymbol: %s\n", s->name);
+		sym_free(s);
+	}
 
 	if (symbol_lookup($2) != NULL) {
 		fprintf(stderr, "Function %s already defined\n", $2);
@@ -236,14 +274,18 @@ params          : ID ',' params
 ; 
 lhs             : ID
 {
-	free($1);
+	$$ = $1;
 }
                 | ID '.' primary
 {
+	$$ = NULL;
+	fprintf(stderr, "WARNING: SEGFAULT HAZARD!\n");
 	free($1);
 }
                 | ID '(' exprs ')'
 {
+	$$ = NULL;
+	fprintf(stderr, "WARNING: SEGFAULT HAZARD!\n");
 	free($1);
 }
 ;
@@ -397,7 +439,7 @@ int main() {
 	struct symbol *s;
 	printf("Top level symbols:\n");
 	while ((s = stack_pop(scope)) != NULL) {
-		printf("Symbol: %s\n", s->name);
+		printf("\tSymbol: %s\n", s->name);
 		sym_free(s);
 	};
 
