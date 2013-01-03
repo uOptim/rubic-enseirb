@@ -4,7 +4,6 @@
 #include "hashmap.h"
 
 
-// scope blocks
 struct block {
 	struct hashmap *classes;
 	struct hashmap *variables;

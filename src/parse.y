@@ -19,7 +19,9 @@
 	struct stack *scopes;
 
 	unsigned int new_reg();
-	void scope_add_symbol(struct block *, struct symbol *);
+
+	void   add_symbol(struct symbol *);
+	void * symbol_lookup(char, const char *);
 
 	void yyerror(char *);
 %}
@@ -44,7 +46,7 @@
 %token <s> ID 
 
 %type <reg> lhs primary expr comp_expr additive_expr multiplicative_expr
-%type <symbol> topstmts topstmt stmts stmt
+%type <symbol> topstmt stmt
 
 %left '*' 
 %left '/'
@@ -59,13 +61,13 @@ topstmts        :
 				| topstmt
 {
 	if ($1 != NULL) {
-		//struct block *s = scope; // tmp save
+		struct block *s = scope; // tmp save
 
-		//scope = stack_pop(scopes);
-		scope_add_symbol(scope, $1);
-		//stack_push(scopes, scope);
+		scope = stack_pop(scopes);
+		add_symbol($1);
+		stack_push(scopes, scope);
 
-		//scope = s; // restore scope
+		scope = s; // restore scope
 	}
 	
 	else {
@@ -75,13 +77,13 @@ topstmts        :
 				| topstmts terms topstmt
 {
 	if ($3 != NULL) {
-		//struct block *s = scope; // tmp save
+		struct block *s = scope; // tmp save
 
-		//scope = stack_pop(scopes);
-		scope_add_symbol(scope, $3);
-		//stack_push(scopes, scope);
+		scope = stack_pop(scopes);
+		add_symbol($3);
+		stack_push(scopes, scope);
 
-		//scope = s; // restore scope
+		scope = s; // restore scope
 	}
 	else {
 		puts("ARGH!");
@@ -100,12 +102,13 @@ topstmt	        : CLASS ID term stmts terms END
 
 	$$ = sym_new($2, CLA_T, tmp_class);
 	tmp_class = class_new();
+
 	//free($2);
 }
                 | CLASS ID '<' ID term stmts terms END
 {
 	// error checking
-	struct class *super = hashmap_get(scope->classes, $4);
+	struct class *super = (struct class *) symbol_lookup(CLA_T, $4);
 
 	if (super == NULL) {
 		fprintf(stderr, "Super class %s of %s not defined\n", $4, $2);
@@ -135,19 +138,41 @@ topstmt	        : CLASS ID term stmts terms END
 stmts	        : /* none */
                 | stmt
 {
+	if ($1 != NULL) {
+		add_symbol($1);
+	}
 }
                 | stmts terms stmt
 {
+	if ($3 != NULL) {
+		add_symbol($3);
+	}
 }
                 ;
 
 stmt			: IF expr THEN stmts terms END
+{
+	$$ = NULL;
+}
                 | IF expr THEN stmts terms ELSE stmts terms END 
+{
+	$$ = NULL;
+}
                 | FOR ID IN expr TO expr term stmts terms END
+{
+	$$ = NULL;
+}
                 | WHILE expr DO term stmts terms END 
+{
+	$$ = NULL;
+}
                 | lhs '=' expr
+{
+	$$ = NULL;
+}
                 | RETURN expr
 {
+	$$ = NULL;
 }
                 | DEF ID opt_params term stmts terms END
 {
@@ -333,14 +358,24 @@ int main() {
 
 	scope = block_new();
 
+	scopes = stack_new();
+	stack_push(scopes, block_new());
+
 	yyparse(); 
 
-	puts("Dumping classes");
-	hashmap_dump(scope->classes, class_dump);
-	puts("Dumping functions");
-	hashmap_dump(scope->functions, function_dump);
 
-	block_free(scope);
+	do {
+		puts("===================");
+		puts("Dumping classes for current scope");
+		hashmap_dump(scope->classes, class_dump);
+		puts("Dumping functions for current scope");
+		hashmap_dump(scope->functions, function_dump);
+
+		block_free(scope);
+
+	} while ((scope = stack_pop(scopes)) != NULL);
+
+	stack_free(&scopes, block_free);
 
 	return 0;
 }
@@ -352,19 +387,48 @@ unsigned int new_reg() {
 }
 
 
-void scope_add_symbol(struct block *s, struct symbol *sym)
+void add_symbol(struct symbol *sym)
 {
 	printf("Adding symbol %s\n", sym->name);
 	switch(sym->type) {
 		case VAR_T:
-			hashmap_set(s->variables, sym->name, sym->ptr);
+			hashmap_set(scope->variables, sym->name, sym->ptr);
 			break;
 		case FUN_T:
-			hashmap_set(s->functions, sym->name, sym->ptr);
+			hashmap_set(scope->functions, sym->name, sym->ptr);
 			break;
 		case CLA_T:
-			hashmap_set(s->classes, sym->name, sym->ptr);
+			hashmap_set(scope->classes, sym->name, sym->ptr);
 			break;
 	}
 }
 
+
+void * symbol_lookup(char type, const char *name)
+{
+	void *ptr;
+	unsigned int i;
+	struct block *b;
+
+	// stack peak highly ineffective!
+	// improve perfs later
+	for (i = 0; (b = stack_peak(scopes, i)) != NULL; ++i) {
+		switch (type) {
+			case VAR_T:
+				ptr = hashmap_get(b->variables, name);
+				break;
+			case FUN_T:
+				ptr = hashmap_get(b->functions, name);
+				break;
+			case CLA_T:
+				ptr = hashmap_get(b->classes, name);
+				break;
+			default:
+				break;
+		}
+
+		if (ptr != NULL) return ptr;
+	}
+
+	return NULL;
+}
