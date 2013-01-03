@@ -19,7 +19,7 @@
 
 	unsigned int new_reg();
 
-	struct symbol * symbol_lookup(const char *);
+	struct symbol * symbol_lookup(const char *, char);
 
 	void yyerror(char *);
 %}
@@ -32,6 +32,8 @@
 	
 	unsigned int cnt;
 	unsigned int reg;
+
+	struct var    *var;
 	struct symbol *symbol;
 };
 
@@ -45,7 +47,7 @@
 %token <s> ID 
 
 %type <s> lhs
-%type <reg> primary expr comp_expr additive_expr multiplicative_expr
+%type <var> primary expr exprs comp_expr additive_expr multiplicative_expr
 %type <cnt> topstmts topstmt stmts stmt params opt_params
 
 %left '*' 
@@ -86,7 +88,7 @@ topstmt	        : CLASS ID term stmts terms END
 	}
 
 	// error checking
-	if (symbol_lookup($2) != NULL) {
+	if (symbol_lookup($2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
 		exit(EXIT_FAILURE);
 	}
@@ -113,14 +115,14 @@ topstmt	        : CLASS ID term stmts terms END
 	}
 
 	// error checking
-	s = symbol_lookup($4);
+	s = symbol_lookup($4, CLA_T);
 
 	if (s == NULL) {
 		fprintf(stderr, "Super class %s of %s not defined\n", $4, $2);
 		exit(EXIT_FAILURE);
 	}
 
-	if (symbol_lookup($2) != NULL) {
+	if (symbol_lookup($2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
 		exit(EXIT_FAILURE);
 	}
@@ -185,7 +187,7 @@ stmt			: IF expr THEN stmts terms END
 	struct symbol *s;
 
 	// TODO affectation
-	if ((s = symbol_lookup($1)) == NULL) {
+	if ((s = symbol_lookup($1, VAR_T)) == NULL) {
 		$$ = 1;
 
 		v = var_new($1, new_reg());
@@ -224,7 +226,7 @@ stmt			: IF expr THEN stmts terms END
 		sym_free(s);
 	}
 
-	if (symbol_lookup($2) != NULL) {
+	if (symbol_lookup($2, FUN_T) != NULL) {
 		fprintf(stderr, "Function %s already defined\n", $2);
 		exit(EXIT_FAILURE);
 	}
@@ -280,12 +282,14 @@ lhs             : ID
 {
 	$$ = NULL;
 	fprintf(stderr, "WARNING: SEGFAULT HAZARD!\n");
+
 	free($1);
 }
                 | ID '(' exprs ')'
 {
 	$$ = NULL;
 	fprintf(stderr, "WARNING: SEGFAULT HAZARD!\n");
+
 	free($1);
 }
 ;
@@ -293,34 +297,42 @@ exprs           : exprs ',' expr
                 | expr
 ;
 primary         : lhs
+{
+
+}
                 | STRING 
 {
-	struct var *v = var_new("string", new_reg());
-	$$ = v->reg;
+	$$ = var_new("string", new_reg());
+	$$->tt = STR_T;
+
+	free($1);
 }
                 | FLOAT
 {
-	struct var *v = var_new("float", new_reg());
-	$$ = v->reg;
+	$$ = var_new("float", new_reg());
+	$$->tt = FLO_T;
 }
                 | INT
 {
-	struct var *v = var_new("integer", new_reg());
-	$$ = v->reg;
+	$$ = var_new("integer", new_reg());
+	$$->tt = INT_T;
 }
                 | '(' expr ')'
+{
+	$$ = $2;
+}
 ;
 expr            : expr AND comp_expr
 {
-	struct var *v = var_new("AND result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("AND result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | expr OR comp_expr
 {
-	struct var *v = var_new("OR result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("OR result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
@@ -331,43 +343,43 @@ expr            : expr AND comp_expr
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	struct var *v = var_new("LT result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("LT result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr '>' additive_expr
 {
-	struct var *v = var_new("GT result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("GT result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr LEQ additive_expr
 {
-	struct var *v = var_new("LEQ result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("LEQ result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr GEQ additive_expr
 {
-	struct var *v = var_new("GEQ result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("GEQ result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr EQ additive_expr
 {
-	struct var *v = var_new("EQ result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("EQ result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr NEQ additive_expr
 {
-	struct var *v = var_new("NEQ result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("NEQ result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
@@ -382,30 +394,30 @@ additive_expr   : multiplicative_expr
 }
                 | additive_expr '+' multiplicative_expr
 {
-	struct var *v = var_new("'+' result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("'+' result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr '-' multiplicative_expr
 {
-	struct var *v = var_new("'-' result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("'-' result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	struct var *v = var_new("'*' result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("'*' result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
                     | multiplicative_expr '/' primary
 {
-	struct var *v = var_new("'/' result", new_reg());
-	$$ = v->reg;
+	$$ = var_new("'/' result", new_reg());
+	$$->tt = BOO_T;
 
 	// GEN CODE, $$ MUST STORE THE RESULT
 }
@@ -443,6 +455,10 @@ int main() {
 		sym_free(s);
 	};
 
+	stack_free(&scope, sym_free);
+	function_free(tmp_function);
+	class_free(tmp_class);
+
 	return 0;
 }
 
@@ -453,7 +469,7 @@ unsigned int new_reg() {
 }
 
 
-struct symbol * symbol_lookup(const char *name)
+struct symbol * symbol_lookup(const char *name, char type)
 {
 	unsigned int i;
 	struct symbol *sym;
@@ -461,7 +477,8 @@ struct symbol * symbol_lookup(const char *name)
 	// stack peak highly ineffective!
 	// improve perfs later
 	for (i = 0; (sym = stack_peak(scope, i)) != NULL; ++i) {
-		if (strcmp(sym->name, name) == 0) return sym;
+		if (sym->type == type && strcmp(sym->name, name) == 0)
+			return sym;
 	}
 
 	return NULL;
