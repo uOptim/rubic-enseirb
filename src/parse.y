@@ -20,7 +20,8 @@
 
 	unsigned int new_reg();
 
-	void * symbol_lookup(struct stack *, const char *, char);
+	struct var * param_lookup(struct function *, const char *);
+	void       * symbol_lookup(struct stack *, const char *, char);
 
 	void yyerror(char *);
 %}
@@ -31,7 +32,7 @@
 	char *s;
 	double f;
 	
-	struct var    *var;
+	struct var *var;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -89,6 +90,8 @@ topstmt
 	block_dump(b);
 	block_free(b);
 
+	tmp_class = NULL;
+
 	free($2);
 }
 
@@ -129,6 +132,8 @@ topstmt
 	block_dump(b);
 	block_free(b);
 
+	tmp_class = NULL;
+
 	free($2);
 	free($4);
 }
@@ -140,7 +145,7 @@ stmts	        : /* none */
                 | stmts terms stmt
                 ;
 
-stmt			: IF expr THEN stmts terms END
+stmt 			: IF expr THEN stmts terms END
                 | IF expr THEN stmts terms ELSE stmts terms END 
                 | FOR ID IN expr TO expr term stmts terms END
 {
@@ -151,6 +156,15 @@ stmt			: IF expr THEN stmts terms END
 {
 }
                 | RETURN expr
+{
+	if (tmp_function != NULL) {
+		tmp_function->ret = $2;
+	}
+
+	else {
+		fprintf(stderr, "Unexpected 'return' token\n");
+	}
+}
 
 /* DEF ID opt_params term stmts terms END */
                 | DEF ID
@@ -176,12 +190,14 @@ stmt			: IF expr THEN stmts terms END
 }
 				opt_params term stmts terms END
 {
+	// GENERATE CODE FOR FUNCTION HERE
+
 	// delete scope block
 	struct block *b = stack_pop(scopes);
 	block_dump(b);
 	block_free(b);
 
-	// GENERATE CODE FOR FUNCTION HERE
+	tmp_function = NULL;
 
 	free($2);
 }
@@ -409,6 +425,27 @@ void * symbol_lookup(
 	}
 
 	stack_free(&tmp, block_free);
+
+	return sym;
+}
+
+
+struct var * param_lookup(struct function *f, const char *name)
+{
+	struct var *v, *sym = NULL;
+	struct stack *tmp = stack_new();
+
+	while ((v = stack_pop(f->params)) != NULL) {
+		stack_push(tmp, v);
+		if (strcmp(v->vn, name) == 0) {
+			sym = v;
+			break;
+		}
+	}
+
+	while ((v = stack_pop(tmp)) != NULL) {
+		stack_push(f->params, v);
+	}
 
 	return sym;
 }
