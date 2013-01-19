@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "block.h"
@@ -25,4 +26,15 @@ void block_free(void *block)
 	hashmap_free(&b->variables, sym_free);
 
 	free(b);
+}
+
+void block_dump(struct block *b)
+{
+	puts("Dumping block:");
+	puts("* variables:");
+	hashmap_dump(b->variables, sym_dump);
+	puts("* functions:");
+	hashmap_dump(b->functions, sym_dump);
+	puts("* classes:");
+	hashmap_dump(b->classes, sym_dump);
 }

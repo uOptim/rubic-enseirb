@@ -14,12 +14,12 @@
 	struct class    *tmp_class;
 	struct function *tmp_function;
 
-	// symbols stack
-	struct stack *scope;
+	// context and scopes stack
+	struct stack *scopes;
 
 	unsigned int new_reg();
 
-	struct symbol * symbol_lookup(const char *, char);
+	struct symbol * symbol_lookup(struct stack *, const char *, char);
 
 	void yyerror(char *);
 %}
@@ -30,11 +30,7 @@
 	char *s;
 	double f;
 	
-	unsigned int cnt;
-	unsigned int reg;
-
 	struct var    *var;
-	struct symbol *symbol;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -48,7 +44,6 @@
 
 %type <s> lhs
 %type <var> primary expr exprs comp_expr additive_expr multiplicative_expr
-%type <cnt> topstmts topstmt stmts stmt params opt_params
 
 %left '*' 
 %left '/'
@@ -60,203 +55,146 @@
 program		:  topstmts opt_terms
 ;
 topstmts        :      
-{
-	$$ = 0;
-}
 				| topstmt
-{
-	$$ = 0;
-	if ($1 != 0) $$ = 1;
-}
 				| topstmts terms topstmt
-{
-	$$ = $1;
-	if ($1 != 0) ++$$;
-}
 ;
-topstmt	        : CLASS ID term stmts terms END 
+topstmt	        
+/* CLASS ID term stmts terms END */
+				: CLASS ID
 {
-	struct symbol *s;
-	unsigned int n = $4;
+	tmp_class = class_new();
 
-	// pop symbols from stmts
-	printf("%s declared %d symbols:\n", $2, n);
-	while (n--) {
-		s = stack_pop(scope);
-		printf("\tSymbol: %s\n", s->name);
-		sym_free(s);
-	}
-
-	// error checking
-	if (symbol_lookup($2, CLA_T) != NULL) {
+	if (symbol_lookup(scopes, $2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
 		exit(EXIT_FAILURE);
 	}
 
-	tmp_class->cn = $2;
-	stack_push(scope, sym_new($2, CLA_T, tmp_class));
+	tmp_class->cn = strdup($2);
+
+	puts("WAAAAZAAAA");
+	hashmap_set(
+		((struct block *) stack_peak(scopes, 0))->functions,
+		$2,
+		sym_new($2, FUN_T, tmp_function)
+	);
+
+	// create new scope block
+	stack_push(scopes, block_new());
+}
+				term stmts terms END
+{
+	printf("End of class def %s\n", $2);
+	// delete scope block
+	struct block *b = stack_pop(scopes);
+	block_dump(b);
+	block_free(b);
+
+	free($2);
+}
+
+/* CLASS ID '<' ID term stmts terms END */
+                | CLASS ID '<' ID 
+{
+	struct symbol *super;
 	tmp_class = class_new();
 
-	$$ = 1;
-
-	//free($2);
-}
-                | CLASS ID '<' ID term stmts terms END
-{
-	struct symbol *s;
-	unsigned int n = $6;
-
-	// pop symbols from stmts
-	printf("%s declared %d symbols\n", $2, n);
-	while (n--) {
-		s = stack_pop(scope);
-		printf("\tSymbol: %s\n", s->name);
-		sym_free(s);
-	}
-
 	// error checking
-	s = symbol_lookup($4, CLA_T);
-
-	if (s == NULL) {
+	if ((super = symbol_lookup(scopes, $4, CLA_T)) == NULL) {
 		fprintf(stderr, "Super class %s of %s not defined\n", $4, $2);
 		exit(EXIT_FAILURE);
 	}
 
-	if (symbol_lookup($2, CLA_T) != NULL) {
+	if (symbol_lookup(scopes, $2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
 		exit(EXIT_FAILURE);
 	}
 
-	struct class *super = (struct class *) s->ptr;
+	tmp_class->cn = strdup($2);
+	tmp_class->super = (struct class *) super->ptr;
 
-	tmp_class->cn = $2;
-	tmp_class->super = super;
-	stack_push(scope, sym_new($2, CLA_T, tmp_class));
-	tmp_class = class_new();
+	hashmap_set(
+		((struct block *) stack_peak(scopes, 0))->classes,
+		$2,
+		sym_new($2, FUN_T, tmp_class)
+	);
 
-	$$ = 1;
+	// create new scope block
+	stack_push(scopes, block_new());
 
-	//free($2);
+}
+				term stmts terms END
+{
+	printf("End of class def %s\n", $2);
+	// delete scope block
+	struct block *b = stack_pop(scopes);
+	block_dump(b);
+	block_free(b);
+
+	free($2);
 	free($4);
 }
                 | stmt
-{
-	$$ = 0;
-	if ($1 != 0) $$ = 1;
-}
 ;
 
 stmts	        : /* none */
-{
-	$$ = 0;
-}
                 | stmt
-{
-	$$ = 0;
-	if ($1 != 0) $$ = 1;
-}
                 | stmts terms stmt
-{
-	$$ = $1;
-	if ($3 != 0) ++$$;
-}
                 ;
 
 stmt			: IF expr THEN stmts terms END
-{
-	$$ = 0;
-}
                 | IF expr THEN stmts terms ELSE stmts terms END 
-{
-	$$ = 0;
-}
                 | FOR ID IN expr TO expr term stmts terms END
 {
-	$$ = 0;
 	free($2);
 }
                 | WHILE expr DO term stmts terms END 
-{
-	$$ = 0;
-}
                 | lhs '=' expr
 {
-	$$ = 0;
-
-	struct var *v;
-	struct symbol *s;
-
-	// TODO affectation
-	if ((s = symbol_lookup($1, VAR_T)) == NULL) {
-		$$ = 1;
-
-		v = var_new($1, new_reg());
-		v->tt = UND_T;
-
-		s = sym_new($1, VAR_T, v);
-		stack_push(scope, s);
-	} else {
-		;
-	}
-
-	free($1);
 }
                 | RETURN expr
-{
-	$$ = 0;
-}
-                | DEF ID opt_params term stmts terms END
-{
-	struct var *v;
-	unsigned int n;
-	struct symbol *s;
 
-	// pop symbols from stmts
-	printf("%s declared %d symbols\n", $2, $3+$5);
-	n = $3;
-	while (n--) {
-		v = stack_pop(tmp_function->params);
-		printf("\tParam: %s\n", v->vn);
-		var_free(v);
-	}
-	n = $5;
-	while (n--) {
-		s = stack_pop(scope);
-		printf("\tSymbol: %s\n", s->name);
-		sym_free(s);
-	}
+/* DEF ID opt_params term stmts terms END */
+                | DEF ID
+{
+	tmp_function = function_new();
 
-	if (symbol_lookup($2, FUN_T) != NULL) {
+	if (symbol_lookup(scopes, $2, FUN_T) != NULL) {
 		fprintf(stderr, "Function %s already defined\n", $2);
 		exit(EXIT_FAILURE);
 	}
 
-	tmp_function->fn = $2;
-	stack_push(scope, sym_new($2, FUN_T, tmp_function));
-	tmp_function = function_new();
+	tmp_function->fn = strdup($2);
 
-	$$ = 1;
-	//free($2);
+	hashmap_set(
+		((struct block *) stack_peak(scopes, 0))->functions,
+		$2,
+		sym_new($2, FUN_T, tmp_function)
+	);
+
+	// create new scope block
+	stack_push(scopes, block_new());
+
+}
+				opt_params term stmts terms END
+{
+	printf("End of function def %s\n", $2);
+	// delete scope block
+	struct block *b = stack_pop(scopes);
+	block_dump(b);
+	block_free(b);
+
+	// GENERATE CODE FOR FUNCTION HERE
+
+	free($2);
 }
 ; 
 
 opt_params      : /* none */
-{
-	$$ = 0;
-}
                 | '(' ')'
-{
-	$$ = 0;
-}
                 | '(' params ')'
-{
-	$$ = $2;
-}
 ;
 params          : ID ',' params
 {
-	$$ = 1 + $3;
-
 	struct var *v = var_new($1, new_reg());
 	v->tt = UND_T;
 
@@ -265,8 +203,6 @@ params          : ID ',' params
 }
                 | ID
 {
-	$$ = 1;
-
 	struct var *v = var_new($1, new_reg());
 	v->tt = UND_T;
 
@@ -275,9 +211,6 @@ params          : ID ',' params
 }
 ; 
 lhs             : ID
-{
-	$$ = $1;
-}
                 | ID '.' primary
 {
 	$$ = NULL;
@@ -326,15 +259,11 @@ expr            : expr AND comp_expr
 {
 	$$ = var_new("AND result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | expr OR comp_expr
 {
 	$$ = var_new("OR result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | comp_expr
 {
@@ -345,43 +274,31 @@ comp_expr       : additive_expr '<' additive_expr
 {
 	$$ = var_new("LT result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr '>' additive_expr
 {
 	$$ = var_new("GT result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr LEQ additive_expr
 {
 	$$ = var_new("LEQ result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr GEQ additive_expr
 {
 	$$ = var_new("GEQ result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr EQ additive_expr
 {
 	$$ = var_new("EQ result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr NEQ additive_expr
 {
 	$$ = var_new("NEQ result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr
 {
@@ -396,30 +313,22 @@ additive_expr   : multiplicative_expr
 {
 	$$ = var_new("'+' result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                 | additive_expr '-' multiplicative_expr
 {
 	$$ = var_new("'-' result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
 	$$ = var_new("'*' result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                     | multiplicative_expr '/' primary
 {
 	$$ = var_new("'/' result", new_reg());
 	$$->tt = BOO_T;
-
-	// GEN CODE, $$ MUST STORE THE RESULT
 }
                     | primary
 {
@@ -441,23 +350,17 @@ term		: ';'
 %%
 
 int main() {
-	tmp_class    = class_new();
-	tmp_function = function_new();
 
-	scope = stack_new();
+	scopes = stack_new();
+	stack_push(scopes, block_new());
 
 	yyparse(); 
 
-	struct symbol *s;
-	printf("Top level symbols:\n");
-	while ((s = stack_pop(scope)) != NULL) {
-		printf("\tSymbol: %s\n", s->name);
-		sym_free(s);
-	};
-
-	stack_free(&scope, sym_free);
-	function_free(tmp_function);
-	class_free(tmp_class);
+	struct block *b;
+	while ((b = stack_pop(scopes)) != NULL) {
+		block_dump(b);
+		block_free(b);
+	}
 
 	return 0;
 }
@@ -469,17 +372,44 @@ unsigned int new_reg() {
 }
 
 
-struct symbol * symbol_lookup(const char *name, char type)
+struct symbol * symbol_lookup(
+	struct stack *scopes,
+	const char *name,
+	char type
+)
 {
-	unsigned int i;
-	struct symbol *sym;
+	struct block *b;
+	struct hashmap *h = NULL;
+	struct symbol *sym = NULL;
+	struct stack *tmp = stack_new();
 
-	// stack peak highly ineffective!
-	// improve perfs later
-	for (i = 0; (sym = stack_peak(scope, i)) != NULL; ++i) {
-		if (sym->type == type && strcmp(sym->name, name) == 0)
-			return sym;
+	while ((b = stack_pop(scopes)) != NULL) {
+		stack_push(tmp, b);
+
+		switch (type) {
+			case CLA_T:
+				h = b->classes;
+				break;
+			case FUN_T:
+				h = b->functions;
+				break;
+			case VAR_T:
+				h = b->variables;
+				break;
+			default:
+				return NULL;
+		}
+
+		if ((sym = hashmap_get(h, name)) != NULL) {
+			break;
+		}
 	}
+
+	while ((b = stack_pop(tmp)) != NULL) {
+		stack_push(scopes, b);
+	}
+
+	stack_free(&tmp, sym_free);
 
 	return NULL;
 }
