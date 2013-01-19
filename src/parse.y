@@ -22,6 +22,12 @@
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
 
+	struct var * craft_operation(
+		const struct var *,
+		const struct var *,
+		const char *,
+		const char *);
+
 	void yyerror(char *);
 %}
 
@@ -325,54 +331,20 @@ additive_expr   : multiplicative_expr
 }
                 | additive_expr '+' multiplicative_expr
 {
-	$$ = var_new("'+' result", new_reg());
-
-	if ($1->t == INT_T) {
-		if ($3->t == INT_T) {
-			$$->tt = INT_T;
-			printf("%%r%d = add i32 %%r%d, %%r%d\n", $$->reg, $1->reg, $3->reg);
-		}
-		else if ($3->tt == FLO_T) {
-			$$->tt = FLO_T;
-			// conversion
-			unsigned int r = new_reg();
-			printf("%%r%d = sitofp i32 %%r%d to double\n", r, $1->reg);
-			printf("%%r%d = fadd double %%r%d, %%r%d\n", $$->reg, r, $3->reg);
-		}
-	}
-
-	else if ($1->t == FLO_T) {
-		$$->tt = FLO_T;
-		if ($3->t == INT_T) {
-			// conversion
-			unsigned int r = new_reg();
-			printf("%%r%d = sitofp i32 %%r%d to double\n", r, $3->reg);
-			printf("%%r%d = fadd double %%r%d, %%r%d\n", $$->reg, $1->reg, r);
-		}
-		else if ($3->tt == FLO_T) {
-			printf("%%r%d = fadd double %%r%d, %%r%d\n", $$->reg, $1->reg, $3->reg);
-		}
-	}
-
-	else {
-		fprintf(stderr, "Incompatible types for operator +\n");
-	}
+	$$ = craft_operation($1, $3, "add", "fadd");
 }
                 | additive_expr '-' multiplicative_expr
 {
-	$$ = var_new("'-' result", new_reg());
-	$$->tt = BOO_T;
+	$$ = craft_operation($1, $3, "sub", "fsub");
 }
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	$$ = var_new("'*' result", new_reg());
-	$$->tt = BOO_T;
+	$$ = craft_operation($1, $3, "mul", "fmul");
 }
                     | multiplicative_expr '/' primary
 {
-	$$ = var_new("'/' result", new_reg());
-	$$->tt = BOO_T;
+	$$ = craft_operation($1, $3, "sdiv", "fdiv");
 }
                     | primary
 {
@@ -481,4 +453,51 @@ struct var * param_lookup(struct function *f, const char *name)
 	}
 
 	return sym;
+}
+
+
+struct var * craft_operation(
+	const struct var *v1,
+	const struct var *v2,
+	const char *op,
+	const char *fop)
+{
+	struct var *result = var_new(op, new_reg());
+
+	if (v1->tt == INT_T && v2->tt == INT_T) {
+		result->tt = INT_T;
+		printf("%%r%d = %s i32 %%r%d, %%r%d\n",
+			result->reg, op, v1->reg, v2->reg);
+	}
+
+	else if (v1->tt == FLO_T && v2->tt == FLO_T) {
+		printf("%%r%d = %s double %%r%d, %%r%d\n",
+			result->reg, fop, v1->reg, v2->reg);
+	}
+
+	else if (v1->tt == INT_T && v2->tt == FLO_T) {
+		result->tt = FLO_T;
+		// conversion
+		unsigned int r = new_reg();
+		printf("%%r%d = sitofp i32 %%r%d to double\n", r, v1->reg);
+		printf("%%r%d = %s double %%r%d, %%r%d\n",
+			result->reg, fop, r, v2->reg);
+	}
+
+	else if (v1->tt == FLO_T && v2->tt == INT_T) {
+		result->tt = FLO_T;
+		// conversion
+		unsigned int r = new_reg();
+		printf("%%r%d = sitofp i32 %%r%d to double\n", r, v2->reg);
+		printf("%%r%d = %s double %%r%d, %%r%d\n",
+			result->reg, fop, v1->reg, r);
+	}
+
+	else {
+		fprintf(stderr, "Incompatible types for operator -\n");
+		var_free(result);
+		return NULL;
+	}
+
+	return result;
 }
