@@ -141,56 +141,10 @@ stmts	        : /* none */
                 | stmts terms stmt
                 ;
 
-/* CONDEND rajouté pour lever une ambiguité entre
- * 'if then' et 'if then else' (trop de look ahead)
- */
-condend			: END
-{
-	fprintf(stderr, "CONDEND WTF?!");
-	// delete IF block
-	struct block *b = stack_pop(scopes);
-	//block_dump(b);
-	block_free(b);
-}
-		  		| ELSE
-{
-	// create new scope block
-	stack_push(scopes, block_new());
-}
-				stmts terms END
-{
-	// delete THEN block
-	struct block *b = stack_pop(scopes);
-	//block_dump(b);
-	block_free(b);
-
-	// delete IF block
-	b = stack_pop(scopes);
-	//block_dump(b);
-	block_free(b);
-}
-				;
-
 stmt
 /* if then */
-				: IF
-{
-	// create new scope block
-	stack_push(scopes, block_new());
-}
-				expr THEN
-{
-	// create new scope block
-	stack_push(scopes, block_new());
-}
-				stmts terms condend
-{
-	// delete THEN block
-	struct block *b = stack_pop(scopes);
-	//block_dump(b);
-	block_free(b);
-}
-
+				: IF expr THEN stmts terms END
+				| IF expr THEN stmts terms ELSE stmts terms END
                 | FOR ID IN expr TO expr term stmts terms END
 {
 	free($2);
