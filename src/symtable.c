@@ -9,9 +9,9 @@ struct symbol * sym_new(const char *name, char t, void *d)
 {
 	struct symbol *s = malloc(sizeof *s);
 
+	s->ptr = d;
 	s->type = t;
 	s->name = strdup(name);
-	s->ptr = d;
 
 	return s;
 }

@@ -2,6 +2,7 @@
 	#include <stdio.h>
 	#include <string.h>
 	#include <stdlib.h>
+	#include <assert.h>
 
 	#include "stack.h"
 	#include "block.h"
@@ -19,7 +20,7 @@
 
 	unsigned int new_reg();
 
-	struct symbol * symbol_lookup(struct stack *, const char *, char);
+	void * symbol_lookup(struct stack *, const char *, char);
 
 	void yyerror(char *);
 %}
@@ -71,19 +72,18 @@ topstmt
 
 	tmp_class->cn = strdup($2);
 
-	puts("WAAAAZAAAA");
 	hashmap_set(
-		((struct block *) stack_peak(scopes, 0))->functions,
+		((struct block *) stack_peak(scopes, 0))->classes,
 		$2,
-		sym_new($2, FUN_T, tmp_function)
+		tmp_class
 	);
 
 	// create new scope block
 	stack_push(scopes, block_new());
+	printf("New block for class %s\n", $2);
 }
 				term stmts terms END
 {
-	printf("End of class def %s\n", $2);
 	// delete scope block
 	struct block *b = stack_pop(scopes);
 	block_dump(b);
@@ -95,7 +95,7 @@ topstmt
 /* CLASS ID '<' ID term stmts terms END */
                 | CLASS ID '<' ID 
 {
-	struct symbol *super;
+	struct class *super;
 	tmp_class = class_new();
 
 	// error checking
@@ -110,12 +110,12 @@ topstmt
 	}
 
 	tmp_class->cn = strdup($2);
-	tmp_class->super = (struct class *) super->ptr;
+	tmp_class->super = super;
 
 	hashmap_set(
 		((struct block *) stack_peak(scopes, 0))->classes,
 		$2,
-		sym_new($2, FUN_T, tmp_class)
+		tmp_class
 	);
 
 	// create new scope block
@@ -124,7 +124,6 @@ topstmt
 }
 				term stmts terms END
 {
-	printf("End of class def %s\n", $2);
 	// delete scope block
 	struct block *b = stack_pop(scopes);
 	block_dump(b);
@@ -168,7 +167,7 @@ stmt			: IF expr THEN stmts terms END
 	hashmap_set(
 		((struct block *) stack_peak(scopes, 0))->functions,
 		$2,
-		sym_new($2, FUN_T, tmp_function)
+		tmp_function
 	);
 
 	// create new scope block
@@ -177,7 +176,6 @@ stmt			: IF expr THEN stmts terms END
 }
 				opt_params term stmts terms END
 {
-	printf("End of function def %s\n", $2);
 	// delete scope block
 	struct block *b = stack_pop(scopes);
 	block_dump(b);
@@ -372,15 +370,16 @@ unsigned int new_reg() {
 }
 
 
-struct symbol * symbol_lookup(
+void * symbol_lookup(
 	struct stack *scopes,
 	const char *name,
 	char type
 )
 {
+	void *sym = NULL;
+
 	struct block *b;
 	struct hashmap *h = NULL;
-	struct symbol *sym = NULL;
 	struct stack *tmp = stack_new();
 
 	while ((b = stack_pop(scopes)) != NULL) {
@@ -409,7 +408,7 @@ struct symbol * symbol_lookup(
 		stack_push(scopes, b);
 	}
 
-	stack_free(&tmp, sym_free);
+	stack_free(&tmp, block_free);
 
-	return NULL;
+	return sym;
 }
