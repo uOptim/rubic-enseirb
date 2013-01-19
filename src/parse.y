@@ -2,7 +2,6 @@
 	#include <stdio.h>
 	#include <string.h>
 	#include <stdlib.h>
-	#include <assert.h>
 
 	#include "stack.h"
 	#include "block.h"
@@ -44,8 +43,7 @@
 %token <n> INT
 %token <s> ID 
 
-%type <s> lhs
-%type <var> primary expr exprs comp_expr additive_expr multiplicative_expr
+%type <var> lhs primary expr exprs comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -81,13 +79,12 @@ topstmt
 
 	// create new scope block
 	stack_push(scopes, block_new());
-	printf("New block for class %s\n", $2);
 }
 				term stmts terms END
 {
 	// delete scope block
 	struct block *b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 
 	tmp_class = NULL;
@@ -123,13 +120,12 @@ topstmt
 
 	// create new scope block
 	stack_push(scopes, block_new());
-
 }
 				term stmts terms END
 {
 	// delete scope block
 	struct block *b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 
 	tmp_class = NULL;
@@ -146,13 +142,14 @@ stmts	        : /* none */
                 ;
 
 /* CONDEND rajouté pour lever une ambiguité entre
- * 'if then' et 'if then else'
+ * 'if then' et 'if then else' (trop de look ahead)
  */
-CONDEND			: END
+condend			: END
 {
+	fprintf(stderr, "CONDEND WTF?!");
 	// delete IF block
 	struct block *b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 }
 		  		| ELSE
@@ -164,12 +161,12 @@ CONDEND			: END
 {
 	// delete THEN block
 	struct block *b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 
 	// delete IF block
 	b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 }
 				;
@@ -186,11 +183,11 @@ stmt
 	// create new scope block
 	stack_push(scopes, block_new());
 }
-				stmts terms CONDEND
+				stmts terms condend
 {
 	// delete THEN block
 	struct block *b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 }
 
@@ -241,7 +238,7 @@ stmt
 
 	// delete scope block
 	struct block *b = stack_pop(scopes);
-	block_dump(b);
+	//block_dump(b);
 	block_free(b);
 
 	tmp_function = NULL;
@@ -272,19 +269,19 @@ params          : ID ',' params
 }
 ; 
 lhs             : ID
+{
+	// TMP STUFF TO AVOID SEGFAULT
+	$$ = var_new("tmp", new_reg());
+}
                 | ID '.' primary
 {
-	$$ = NULL;
-	fprintf(stderr, "WARNING: SEGFAULT HAZARD!\n");
-
-	free($1);
+	// TMP STUFF TO AVOID SEGFAULT
+	$$ = var_new("tmp", new_reg());
 }
                 | ID '(' exprs ')'
 {
-	$$ = NULL;
-	fprintf(stderr, "WARNING: SEGFAULT HAZARD!\n");
-
-	free($1);
+	// TMP STUFF TO AVOID SEGFAULT
+	$$ = var_new("tmp", new_reg());
 }
 ;
 exprs           : exprs ',' expr
@@ -292,7 +289,7 @@ exprs           : exprs ',' expr
 ;
 primary         : lhs
 {
-
+	$$ = $1;
 }
                 | STRING 
 {
@@ -305,11 +302,13 @@ primary         : lhs
 {
 	$$ = var_new("float", new_reg());
 	$$->tt = FLO_T;
+	printf("%%r%d = fadd double %f, 0.0\n", $$->reg, $1);
 }
                 | INT
 {
 	$$ = var_new("integer", new_reg());
 	$$->tt = INT_T;
+	printf("%%r%d = add i32 %d, 0\n", $$->reg, $1);
 }
                 | '(' expr ')'
 {
@@ -373,7 +372,37 @@ additive_expr   : multiplicative_expr
                 | additive_expr '+' multiplicative_expr
 {
 	$$ = var_new("'+' result", new_reg());
-	$$->tt = BOO_T;
+
+	if ($1->t == INT_T) {
+		if ($3->t == INT_T) {
+			$$->tt = INT_T;
+			printf("%%r%d = add i32 %%r%d, %%r%d\n", $$->reg, $1->reg, $3->reg);
+		}
+		else if ($3->tt == FLO_T) {
+			$$->tt = FLO_T;
+			// conversion
+			unsigned int r = new_reg();
+			printf("%%r%d = sitofp i32 %%r%d to double\n", r, $1->reg);
+			printf("%%r%d = fadd double %%r%d, %%r%d\n", $$->reg, r, $3->reg);
+		}
+	}
+
+	else if ($1->t == FLO_T) {
+		$$->tt = FLO_T;
+		if ($3->t == INT_T) {
+			// conversion
+			unsigned int r = new_reg();
+			printf("%%r%d = sitofp i32 %%r%d to double\n", r, $3->reg);
+			printf("%%r%d = fadd double %%r%d, %%r%d\n", $$->reg, $1->reg, r);
+		}
+		else if ($3->tt == FLO_T) {
+			printf("%%r%d = fadd double %%r%d, %%r%d\n", $$->reg, $1->reg, $3->reg);
+		}
+	}
+
+	else {
+		fprintf(stderr, "Incompatible types for operator +\n");
+	}
 }
                 | additive_expr '-' multiplicative_expr
 {
@@ -415,11 +444,14 @@ int main() {
 	scopes = stack_new();
 	stack_push(scopes, block_new());
 
+	puts("define i32 @main () {");
 	yyparse(); 
+	puts("ret i32 1");
+	puts("}");
 
 	struct block *b;
 	while ((b = stack_pop(scopes)) != NULL) {
-		block_dump(b);
+		//block_dump(b);
 		block_free(b);
 	}
 
