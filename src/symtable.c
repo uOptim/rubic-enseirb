@@ -209,7 +209,9 @@ void function_free(void *function)
 	}
 
 	if (f->params != NULL) {
-		stack_free(&f->params, var_free);
+		// give NULL otherwise we get double frees (since params are put in
+		// the scope block too
+		stack_free(&f->params, NULL);
 		f->params = NULL;
 	}
 

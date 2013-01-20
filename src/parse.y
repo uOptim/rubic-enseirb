@@ -19,6 +19,7 @@
 
 	unsigned int new_reg();
 
+	const char * local2llvm_type(char);
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
 
@@ -49,7 +50,8 @@
 %token <n> INT
 %token <s> ID 
 
-%type <var> lhs primary expr exprs comp_expr additive_expr multiplicative_expr
+%type <s> lhs
+%type <var> primary expr exprs comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -158,6 +160,31 @@ stmt
                 | WHILE expr DO term stmts terms END 
                 | lhs '=' expr
 {
+	struct var *var = symbol_lookup(scopes, $1, VAR_T);
+
+	if ((var = symbol_lookup(scopes, $1, VAR_T)) == NULL) {
+		var = var_new($1, new_reg());
+		var->tt = $3->tt;
+
+		hashmap_set(
+			((struct block *) stack_peak(scopes, 0))->variables,
+			$1,
+			var
+		);
+
+		printf("%%var%d = alloca %s", var->reg, local2llvm_type(var->tt));
+		printf("\t\t\t; alloca %s\n", var->vn);
+	}
+	
+	if (var->tt != UND_T && var->tt != $3->tt) {
+		fprintf(stderr, "Incompatible types in assignment\n");
+	} else {
+		var->tt = $3->tt;
+		printf("store %s %%r%d, %s* %%var%d",
+			local2llvm_type(var->tt), $3->reg,
+			local2llvm_type(var->tt), var->reg);
+		printf("\t\t\t; store %s into %s\n", $3->vn, var->vn);
+	}
 }
                 | RETURN expr
 {
@@ -213,35 +240,46 @@ opt_params      : /* none */
 ;
 params          : ID ',' params
 {
-	struct var *v = var_new($1, new_reg());
-	v->tt = UND_T;
+	struct var *var = var_new($1, new_reg());
+	var->tt = UND_T;
 
-	stack_push(tmp_function->params, v);
+	// masks poossible variables with the same name in the parrent block
+	hashmap_set(
+		((struct block *) stack_peak(scopes, 0))->variables,
+		$1,
+		var
+	);
+
+	stack_push(tmp_function->params, var);
 	free($1);
 }
                 | ID
 {
-	struct var *v = var_new($1, new_reg());
-	v->tt = UND_T;
+	struct var *var = var_new($1, new_reg());
+	var->tt = UND_T;
 
-	stack_push(tmp_function->params, v);
+	// masks poossible variables with the same name in the parrent block
+	hashmap_set(
+		((struct block *) stack_peak(scopes, 0))->variables,
+		$1,
+		var
+	);
+
+	stack_push(tmp_function->params, var);
 	free($1);
 }
 ; 
 lhs             : ID
 {
-	// TMP STUFF TO AVOID SEGFAULT
-	$$ = var_new("tmp", new_reg());
+	$$ = $1;
 }
                 | ID '.' primary
 {
-	// TMP STUFF TO AVOID SEGFAULT
-	$$ = var_new("tmp", new_reg());
+	$$ = $1;
 }
                 | ID '(' exprs ')'
 {
-	// TMP STUFF TO AVOID SEGFAULT
-	$$ = var_new("tmp", new_reg());
+	$$ = $1;
 }
 ;
 exprs           : exprs ',' expr
@@ -249,7 +287,12 @@ exprs           : exprs ',' expr
 ;
 primary         : lhs
 {
-	$$ = $1;
+	$$ = symbol_lookup(scopes, $1, VAR_T);
+	if ($$ == NULL) {
+		fprintf(stderr, "Error: undefined variable %s\n", $1);
+	}
+	
+	free($1);
 }
                 | STRING 
 {
@@ -394,8 +437,7 @@ unsigned int new_reg() {
 void * symbol_lookup(
 	struct stack *scopes,
 	const char *name,
-	char type
-)
+	char type)
 {
 	void *sym = NULL;
 
@@ -471,6 +513,7 @@ struct var * craft_operation(
 	}
 
 	else if (v1->tt == FLO_T && v2->tt == FLO_T) {
+		result->tt = FLO_T;
 		printf("%%r%d = %s double %%r%d, %%r%d\n",
 			result->reg, fop, v1->reg, v2->reg);
 	}
@@ -494,10 +537,30 @@ struct var * craft_operation(
 	}
 
 	else {
-		fprintf(stderr, "Incompatible types for operator -\n");
+		fprintf(stderr, "Incompatible types for operators %s or %s\n", op, fop);
 		var_free(result);
 		return NULL;
 	}
 
 	return result;
+}
+
+
+const char * local2llvm_type(char type)
+{
+	switch(type) {
+		case INT_T:
+			return "i32";
+			break;
+		case FLO_T:
+			return "double";
+			break;
+		case STR_T:
+			// TODO
+			break;
+		default:
+			break;
+	}
+
+	return "UNKNOWN TYPE";
 }
