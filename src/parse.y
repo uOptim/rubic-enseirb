@@ -295,17 +295,17 @@ primary         : lhs
 }
                 | STRING 
 {
-	$$ = cst_new(STR_T);
+	$$ = cst_new(STR_T, CST_PURECST);
 	$$->s = $1;
 }
                 | FLOAT
 {
-	$$ = cst_new(FLO_T);
+	$$ = cst_new(FLO_T, CST_PURECST);
 	$$->f = $1;
 }
                 | INT
 {
-	$$ = cst_new(INT_T);
+	$$ = cst_new(INT_T, CST_PURECST);
 	$$->i = $1;
 }
                 | '(' expr ')'
@@ -315,11 +315,11 @@ primary         : lhs
 ;
 expr            : expr AND comp_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | expr OR comp_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | comp_expr
 {
@@ -328,27 +328,27 @@ expr            : expr AND comp_expr
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | additive_expr '>' additive_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | additive_expr LEQ additive_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | additive_expr GEQ additive_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | additive_expr EQ additive_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | additive_expr NEQ additive_expr
 {
-	$$ = cst_new(BOO_T);
+	$$ = cst_new(BOO_T, CST_OPRESULT);
 }
                 | additive_expr
 {
@@ -488,33 +488,73 @@ struct cst * craft_operation(
 	struct cst *result = NULL;
 
 	if (c1->type == INT_T && c2->type == INT_T) {
-		result = cst_new(INT_T);
-		printf("%%r%d = %s i32 %%r%d, %%r%d\n",
-			result->reg, op, c1->reg, c2->reg);
+		result = cst_new(INT_T, CST_OPRESULT);
+		printf("%%r%d = %s i32 ", result->reg, op);
+		if (c1->reg > 0) {
+			printf("%%r%d ", c1->reg);
+		} else {
+			printf("%d, ", c1->i);
+		}
+		if (c2->reg > 0) {
+			printf("%%r%d ", c2->reg);
+		} else {
+			printf("%d", c2->i);
+		}
+		puts("");
 	}
 
 	else if (c1->type == FLO_T && c2->type == FLO_T) {
-		result = cst_new(FLO_T);
-		printf("%%r%d = %s double %%r%d, %%r%d\n",
-			result->reg, fop, c1->reg, c2->reg);
+		result = cst_new(FLO_T, CST_OPRESULT);
+		printf("%%r%d = %s double ", result->reg, fop);
+		if (c1->reg > 0) {
+			printf("%%r%d ", c1->reg);
+		} else {
+			printf("%g, ", c1->f);
+		}
+		if (c2->reg > 0) {
+			printf("%%r%d ", c2->reg);
+		} else {
+			printf("%g", c2->f);
+		}
+		puts("");
 	}
 
 	else if (c1->type == INT_T && c2->type == FLO_T) {
-		result = cst_new(FLO_T);
-		// conversion
-		unsigned int r = new_reg();
-		printf("%%r%d = sitofp i32 %%r%d to double\n", r, c1->reg);
-		printf("%%r%d = %s double %%r%d, %%r%d\n",
-			result->reg, fop, r, c2->reg);
+		result = cst_new(FLO_T, CST_OPRESULT);
+		if (c1->reg > 0) {
+			// conversion
+			unsigned int r;
+			r = new_reg();
+			printf("%%r%d = sitofp i32 %%r%d to double\n", r, c1->reg);
+			printf("%%r%d = %s double %%r%d, ", result->reg, fop, r);
+		} else {
+			printf("%%r%d = %s double %d.0, ", result->reg, fop, c1->i);
+		}
+		if (c2->reg > 0) {
+			printf("%%r%d ", c2->reg);
+		} else {
+			printf("%g", c2->f);
+		}
+		puts("");
 	}
 
 	else if (c1->type == FLO_T && c2->type == INT_T) {
-		result = cst_new(FLO_T);
-		// conversion
-		unsigned int r = new_reg();
-		printf("%%r%d = sitofp i32 %%r%d to double\n", r, c2->reg);
-		printf("%%r%d = %s double %%r%d, %%r%d\n",
-			result->reg, fop, c1->reg, r);
+		result = cst_new(FLO_T, CST_OPRESULT);
+		if (c2->reg > 0) {
+			// conversion
+			unsigned int r;
+			r = new_reg();
+			printf("%%r%d = sitofp i32 %%r%d to double\n", r, c2->reg);
+			printf("%%r%d = %s double %%r%d, ", result->reg, fop, r);
+		} else {
+			printf("%%r%d = %s double %d.0, ", result->reg, fop, c2->i);
+		}
+		if (c1->reg > 0) {
+			printf("%%r%d ", c1->reg);
+		} else {
+			printf("%g", c1->f);
+		}
+		puts("");
 	}
 
 	else {

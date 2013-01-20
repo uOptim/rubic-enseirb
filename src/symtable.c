@@ -6,7 +6,8 @@
 
 
 unsigned int new_reg() {
-	static unsigned int reg = 0;
+	// register 0 reserved
+	static unsigned int reg = 1;
 	return reg++;
 }
 
@@ -131,12 +132,12 @@ void var_dump(void * var)
 	puts("");
 }
 
-struct cst * cst_new(char type)
+struct cst * cst_new(char type, char cst_type)
 {
 	struct cst *c = malloc(sizeof *c);
 
-	c->reg = new_reg();
 	c->type = type;
+	c->reg  = (cst_type == CST_PURECST) ? 0 : new_reg();
 
 	return c;
 }

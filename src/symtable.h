@@ -18,6 +18,7 @@
 #define UND_T   127 // Undef
 
 
+
 // symbols
 struct symbol {
 	char type;
@@ -39,6 +40,9 @@ struct var {
 	};
 };
 
+
+#define CST_PURECST  0
+#define CST_OPRESULT 1
 
 struct cst {
 	char type;
@@ -75,7 +79,7 @@ struct var * var_new(const char *);
 void         var_free(void *);
 void         var_dump(void *);
 
-struct cst * cst_new(char);
+struct cst * cst_new(char, char);
 void         cst_free(void *);
 void         cst_dump(void *);
 
