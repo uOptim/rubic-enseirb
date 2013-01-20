@@ -216,14 +216,12 @@ stmt
 /* DEF ID opt_params term stmts terms END */
                 | DEF ID
 {
-	tmp_function = function_new();
+	tmp_function = function_new($2);
 
 	if (symbol_lookup(scopes, $2, FUN_T) != NULL) {
 		fprintf(stderr, "Function %s already defined\n", $2);
 		exit(EXIT_FAILURE);
 	}
-
-	tmp_function->fn = strdup($2);
 
 	hashmap_set(
 		((struct block *) stack_peak(scopes, 0))->functions,
@@ -528,11 +526,13 @@ struct var * param_lookup(struct function *f, const char *name)
 
 int craft_store(struct var *var, const struct cst *c)
 {
-	if (var->tt != UND_T && var->tt != c->type) {
+	if (var->tt == UND_T) {
+		var->tt = compatibility_table[(int)var->tt][(int)c->type];
+	}
+	else if (compatibility_table[(int)var->tt][(int)c->type] == -1) {
 		return -1;
 	}
 
-	var->tt = c->type;
 	printf("store %s ", local2llvm_type(var->tt));
 	if (c->reg > 0) {
 		printf("%%r%d, ", c->reg);
@@ -584,13 +584,13 @@ struct cst * craft_operation(
 		if (c1->reg > 0) {
 			printf("%%r%d", c1->reg);
 		} else {
-			printf("%g", c1->f);
+			printf("%#g", c1->f);
 		}
 		printf(", ");
 		if (c2->reg > 0) {
-			printf("%%r%d, ", c2->reg);
+			printf("%%r%d", c2->reg);
 		} else {
-			printf("%g", c2->f);
+			printf("%#g", c2->f);
 		}
 		puts("");
 	}
@@ -616,7 +616,7 @@ struct cst * craft_operation(
 		if (c2->reg > 0) {
 			printf("%%r%d", c2->reg);
 		} else {
-			printf("%g", c2->f);
+			printf("%#g", c2->f);
 		}
 		puts("");
 	}
@@ -635,7 +635,7 @@ struct cst * craft_operation(
 		if (c1->reg > 0) {
 			printf("%%r%d", c1->reg);
 		} else {
-			printf("%g", c1->f);
+			printf("%#g", c1->f);
 		}
 		printf(", ");
 		if (c2->reg > 0) {

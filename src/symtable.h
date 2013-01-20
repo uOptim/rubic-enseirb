@@ -9,15 +9,16 @@
 #define CLA_T   1
 #define VAR_T   2
 
-#define INT_T   3
-#define FLO_T   4
-#define STR_T   5
-#define BOO_T   6
-#define OBJ_T	7
+#define INT_T   0
+#define FLO_T   1
+#define BOO_T   2
+#define STR_T   3
+#define OBJ_T	4
 
 #define UND_T   127 // Undef
 
 
+extern const char compatibility_table[3][3];
 
 // symbols
 struct symbol {
@@ -32,7 +33,7 @@ struct var {
 
 	// type
 	union {
-		unsigned char t;         // general type
+		char t;         // general type
 		struct {
 			unsigned char tt:7;  // specific type
 			unsigned char tc:1;  // is const
@@ -57,7 +58,7 @@ struct cst {
 
 struct function {
 	char *fn;
-	struct var *ret;
+	char ret;
 	struct stack *params;
 };
 
@@ -87,7 +88,7 @@ struct class * class_new();
 void           class_free(void *);
 void           class_dump(void *);
 
-struct function * function_new();
+struct function * function_new(const char *);
 void              function_free(void *);
 void              function_dump(void *);
 
