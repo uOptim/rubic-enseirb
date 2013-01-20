@@ -5,6 +5,12 @@
 #include <assert.h>
 
 
+unsigned int new_reg() {
+	static unsigned int reg = 0;
+	return reg++;
+}
+
+
 struct symbol * sym_new(const char *name, char t, void *d)
 {
 	struct symbol *s = malloc(sizeof *s);
@@ -60,20 +66,19 @@ void sym_dump(void *sym)
 }
 
 
-struct var * var_new(const char *name, unsigned int reg)
+struct var * var_new(const char *name)
 {
 	struct var * v = malloc(sizeof *v);
 
 	if (v == NULL) return NULL;
 
-	v->reg = reg;
 	v->tt = UND_T;
 	v->vn = strdup(name);
+
 	/* Constants start with a capital letter */
 	if (name[0] > 'A' && name[0] < 'Z') {
 		v->tc = 1;
-	}
-	else {
+	} else {
 		v->tc = 0;
 	}
 
@@ -125,6 +130,49 @@ void var_dump(void * var)
 
 	puts("");
 }
+
+struct cst * cst_new(char type)
+{
+	struct cst *c = malloc(sizeof *c);
+
+	c->reg = new_reg();
+	c->type = type;
+
+	return c;
+}
+
+void cst_free(void *cst)
+{
+	struct cst *c = (struct cst *) cst;
+
+	if (c->type == STR_T) {
+		free(c->s);
+		c->s = NULL;
+	}
+
+	free(cst);
+}
+
+void cst_dump(void *cst)
+{
+	struct cst *c = (struct cst *) cst;
+
+	switch (c->type) {
+		case BOO_T:
+			printf("BOOL: %s\n", (c->c == 1) ? "true" : "false");
+			break;
+		case INT_T:
+			printf("INT: %d\n", c->i);
+			break;
+		case FLO_T:
+			printf("INT: %g\n", c->f);
+			break;
+		case STR_T:
+			printf("INT: %s\n", c->s);
+			break;
+	}
+}
+
 
 struct class * class_new()
 {

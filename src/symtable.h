@@ -37,11 +37,19 @@ struct var {
 			unsigned char tc:1;  // is const
 		};
 	};
-
-	// LLVM register
-	unsigned int reg;
 };
 
+
+struct cst {
+	char type;
+	unsigned int reg;
+	union {
+		int i;
+		char c;
+		double f;
+		char *s;
+	};
+};
 
 struct function {
 	char *fn;
@@ -57,14 +65,19 @@ struct class {
 	struct hashmap *methods;
 };
 
+unsigned int new_reg();
 
 struct symbol * sym_new(const char *, char, void *);
 void            sym_dump(void *);
 void            sym_free(void *);
 
-struct var * var_new(const char *, unsigned int);
+struct var * var_new(const char *);
 void         var_free(void *);
 void         var_dump(void *);
+
+struct cst * cst_new(char);
+void         cst_free(void *);
+void         cst_dump(void *);
 
 struct class * class_new();
 void           class_free(void *);

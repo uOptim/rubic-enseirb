@@ -17,15 +17,13 @@
 	// context and scopes stack
 	struct stack *scopes;
 
-	unsigned int new_reg();
-
 	const char * local2llvm_type(char);
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
 
-	struct var * craft_operation(
-		const struct var *,
-		const struct var *,
+	struct cst * craft_operation(
+		const struct cst *,
+		const struct cst *,
 		const char *,
 		const char *);
 
@@ -39,6 +37,7 @@
 	double f;
 	
 	struct var *var;
+	struct cst *cst;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -51,7 +50,7 @@
 %token <s> ID 
 
 %type <s> lhs
-%type <var> primary expr exprs comp_expr additive_expr multiplicative_expr
+%type <cst> primary expr exprs comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -162,9 +161,9 @@ stmt
 {
 	struct var *var = symbol_lookup(scopes, $1, VAR_T);
 
-	if ((var = symbol_lookup(scopes, $1, VAR_T)) == NULL) {
-		var = var_new($1, new_reg());
-		var->tt = $3->tt;
+	if (var == NULL) {
+		var = var_new($1);
+		var->tt = $3->type;
 
 		hashmap_set(
 			((struct block *) stack_peak(scopes, 0))->variables,
@@ -172,24 +171,24 @@ stmt
 			var
 		);
 
-		printf("%%var%d = alloca %s", var->reg, local2llvm_type(var->tt));
-		printf("\t\t\t; alloca %s\n", var->vn);
+		printf("%%%s = alloca %s\n", var->vn, local2llvm_type(var->tt));
 	}
 	
-	if (var->tt != UND_T && var->tt != $3->tt) {
+	if (var->tt != UND_T && var->tt != $3->type) {
 		fprintf(stderr, "Incompatible types in assignment\n");
 	} else {
-		var->tt = $3->tt;
-		printf("store %s %%r%d, %s* %%var%d",
+		var->tt = $3->type;
+		printf("store %s %%r%d, %s* %%%s\n",
 			local2llvm_type(var->tt), $3->reg,
-			local2llvm_type(var->tt), var->reg);
-		printf("\t\t\t; store %s into %s\n", $3->vn, var->vn);
+			local2llvm_type(var->tt), var->vn);
 	}
 }
                 | RETURN expr
 {
 	if (tmp_function != NULL) {
-		tmp_function->ret = $2;
+		;
+		// TODO
+		//tmp_function->ret = $2;
 	}
 
 	else {
@@ -240,7 +239,7 @@ opt_params      : /* none */
 ;
 params          : ID ',' params
 {
-	struct var *var = var_new($1, new_reg());
+	struct var *var = var_new($1);
 	var->tt = UND_T;
 
 	// masks poossible variables with the same name in the parrent block
@@ -255,7 +254,7 @@ params          : ID ',' params
 }
                 | ID
 {
-	struct var *var = var_new($1, new_reg());
+	struct var *var = var_new($1);
 	var->tt = UND_T;
 
 	// masks poossible variables with the same name in the parrent block
@@ -296,22 +295,18 @@ primary         : lhs
 }
                 | STRING 
 {
-	$$ = var_new("string", new_reg());
-	$$->tt = STR_T;
-
-	free($1);
+	$$ = cst_new(STR_T);
+	$$->s = $1;
 }
                 | FLOAT
 {
-	$$ = var_new("float", new_reg());
-	$$->tt = FLO_T;
-	printf("%%r%d = fadd double %f, 0.0\n", $$->reg, $1);
+	$$ = cst_new(FLO_T);
+	$$->f = $1;
 }
                 | INT
 {
-	$$ = var_new("integer", new_reg());
-	$$->tt = INT_T;
-	printf("%%r%d = add i32 %d, 0\n", $$->reg, $1);
+	$$ = cst_new(INT_T);
+	$$->i = $1;
 }
                 | '(' expr ')'
 {
@@ -320,13 +315,11 @@ primary         : lhs
 ;
 expr            : expr AND comp_expr
 {
-	$$ = var_new("AND result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | expr OR comp_expr
 {
-	$$ = var_new("OR result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | comp_expr
 {
@@ -335,33 +328,27 @@ expr            : expr AND comp_expr
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	$$ = var_new("LT result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | additive_expr '>' additive_expr
 {
-	$$ = var_new("GT result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | additive_expr LEQ additive_expr
 {
-	$$ = var_new("LEQ result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | additive_expr GEQ additive_expr
 {
-	$$ = var_new("GEQ result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | additive_expr EQ additive_expr
 {
-	$$ = var_new("EQ result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | additive_expr NEQ additive_expr
 {
-	$$ = var_new("NEQ result", new_reg());
-	$$->tt = BOO_T;
+	$$ = cst_new(BOO_T);
 }
                 | additive_expr
 {
@@ -425,12 +412,6 @@ int main() {
 	}
 
 	return 0;
-}
-
-
-unsigned int new_reg() {
-	static unsigned int reg = 0;
-	return reg++;
 }
 
 
@@ -498,48 +479,46 @@ struct var * param_lookup(struct function *f, const char *name)
 }
 
 
-struct var * craft_operation(
-	const struct var *v1,
-	const struct var *v2,
+struct cst * craft_operation(
+	const struct cst *c1,
+	const struct cst *c2,
 	const char *op,
 	const char *fop)
 {
-	struct var *result = var_new(op, new_reg());
+	struct cst *result = NULL;
 
-	if (v1->tt == INT_T && v2->tt == INT_T) {
-		result->tt = INT_T;
+	if (c1->type == INT_T && c2->type == INT_T) {
+		result = cst_new(INT_T);
 		printf("%%r%d = %s i32 %%r%d, %%r%d\n",
-			result->reg, op, v1->reg, v2->reg);
+			result->reg, op, c1->reg, c2->reg);
 	}
 
-	else if (v1->tt == FLO_T && v2->tt == FLO_T) {
-		result->tt = FLO_T;
+	else if (c1->type == FLO_T && c2->type == FLO_T) {
+		result = cst_new(FLO_T);
 		printf("%%r%d = %s double %%r%d, %%r%d\n",
-			result->reg, fop, v1->reg, v2->reg);
+			result->reg, fop, c1->reg, c2->reg);
 	}
 
-	else if (v1->tt == INT_T && v2->tt == FLO_T) {
-		result->tt = FLO_T;
+	else if (c1->type == INT_T && c2->type == FLO_T) {
+		result = cst_new(FLO_T);
 		// conversion
 		unsigned int r = new_reg();
-		printf("%%r%d = sitofp i32 %%r%d to double\n", r, v1->reg);
+		printf("%%r%d = sitofp i32 %%r%d to double\n", r, c1->reg);
 		printf("%%r%d = %s double %%r%d, %%r%d\n",
-			result->reg, fop, r, v2->reg);
+			result->reg, fop, r, c2->reg);
 	}
 
-	else if (v1->tt == FLO_T && v2->tt == INT_T) {
-		result->tt = FLO_T;
+	else if (c1->type == FLO_T && c2->type == INT_T) {
+		result = cst_new(FLO_T);
 		// conversion
 		unsigned int r = new_reg();
-		printf("%%r%d = sitofp i32 %%r%d to double\n", r, v2->reg);
+		printf("%%r%d = sitofp i32 %%r%d to double\n", r, c2->reg);
 		printf("%%r%d = %s double %%r%d, %%r%d\n",
-			result->reg, fop, v1->reg, r);
+			result->reg, fop, c1->reg, r);
 	}
 
 	else {
 		fprintf(stderr, "Incompatible types for operators %s or %s\n", op, fop);
-		var_free(result);
-		return NULL;
 	}
 
 	return result;
