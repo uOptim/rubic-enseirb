@@ -186,15 +186,31 @@ stmt
 }
                 | RETURN expr
 {
-	if (tmp_function != NULL) {
-		;
-		// TODO
-		//tmp_function->ret = $2;
+	if (tmp_function == NULL) {
+		fprintf(stderr, "Unexpected 'return' token\n");
+		exit(EXIT_FAILURE);
 	}
 
-	else {
-		fprintf(stderr, "Unexpected 'return' token\n");
+	if ($2->reg > 0) {
+		printf("ret %s %%r%d\n", local2llvm_type($2->type), $2->reg);
+	} else {
+		switch ($2->type) {
+			case INT_T:
+				printf("ret i32 %d\n", $2->i);
+				break;
+			case BOO_T:
+				printf("ret i32 %s\n", ($2->c == 1) ? "true" : "false");
+				break;
+			case FLO_T:
+				printf("ret double %g\n", $2->f);
+				break;
+			default:
+				fprintf(stderr, "Invalid return type?\n");
+				exit(EXIT_FAILURE);
+		}
 	}
+
+	cst_free($2);
 }
 
 /* DEF ID opt_params term stmts terms END */
@@ -432,7 +448,6 @@ int main() {
 
 	puts("define i32 @main () {");
 	yyparse(); 
-	puts("ret i32 1");
 	puts("}");
 
 	struct block *b;
@@ -440,6 +455,8 @@ int main() {
 		//block_dump(b);
 		block_free(b);
 	}
+
+	stack_free(&scopes, NULL);
 
 	return 0;
 }
