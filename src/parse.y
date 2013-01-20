@@ -38,7 +38,6 @@
 	char *s;
 	double f;
 	
-	struct var *var;
 	struct cst *cst;
 };
 
@@ -176,7 +175,14 @@ stmt
 		printf("%%%s = alloca %s\n", var->vn, local2llvm_type(var->tt));
 	}
 	
-	craft_store(var, $3);
+	int rv = craft_store(var, $3);
+	if (rv == -1) {
+		fprintf(stderr, "Incompatible types in assignment\n");
+		exit(EXIT_FAILURE);
+	}
+
+	free($1);
+	cst_free($3);
 }
                 | RETURN expr
 {
@@ -281,11 +287,15 @@ exprs           : exprs ',' expr
 ;
 primary         : lhs
 {
-	$$ = symbol_lookup(scopes, $1, VAR_T);
-	if ($$ == NULL) {
+	struct var *v = symbol_lookup(scopes, $1, VAR_T);
+
+	if (v == NULL) {
 		fprintf(stderr, "Error: undefined variable %s\n", $1);
 		exit(EXIT_FAILURE);
 	}
+
+	$$ = cst_new(v->tt, CST_OPRESULT);
+	printf("%%r%d = load %s* %%%s\n", $$->reg, local2llvm_type(v->tt), v->vn);
 	
 	free($1);
 }
@@ -359,35 +369,42 @@ additive_expr   : multiplicative_expr
 {
 	$$ = craft_operation($1, $3, "add", "fadd");
 	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator +");
+		fprintf(stderr, "Incompatible types for operator +\n");
 		exit(EXIT_FAILURE);
 	}
-
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr '-' multiplicative_expr
 {
 	$$ = craft_operation($1, $3, "sub", "fsub");
 	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator -");
+		fprintf(stderr, "Incompatible types for operator -\n");
 		exit(EXIT_FAILURE);
 	}
+	cst_free($1);
+	cst_free($3);
 }
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
 	$$ = craft_operation($1, $3, "mul", "fmul");
 	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator *");
+		fprintf(stderr, "Incompatible types for operator *\n");
 		exit(EXIT_FAILURE);
 	}
+	cst_free($1);
+	cst_free($3);
 }
                     | multiplicative_expr '/' primary
 {
 	$$ = craft_operation($1, $3, "sdiv", "fdiv");
 	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator /");
+		fprintf(stderr, "Incompatible types for operator /\n");
 		exit(EXIT_FAILURE);
 	}
+	cst_free($1);
+	cst_free($3);
 }
                     | primary
 {
@@ -495,7 +512,6 @@ struct var * param_lookup(struct function *f, const char *name)
 int craft_store(struct var *var, const struct cst *c)
 {
 	if (var->tt != UND_T && var->tt != c->type) {
-		fprintf(stderr, "Incompatible types in assignment\n");
 		return -1;
 	}
 
@@ -532,12 +548,13 @@ struct cst * craft_operation(
 		result = cst_new(INT_T, CST_OPRESULT);
 		printf("%%r%d = %s i32 ", result->reg, op);
 		if (c1->reg > 0) {
-			printf("%%r%d ", c1->reg);
+			printf("%%r%d", c1->reg);
 		} else {
-			printf("%d, ", c1->i);
+			printf("%d", c1->i);
 		}
+		printf(", ");
 		if (c2->reg > 0) {
-			printf("%%r%d ", c2->reg);
+			printf("%%r%d", c2->reg);
 		} else {
 			printf("%d", c2->i);
 		}
@@ -548,12 +565,13 @@ struct cst * craft_operation(
 		result = cst_new(FLO_T, CST_OPRESULT);
 		printf("%%r%d = %s double ", result->reg, fop);
 		if (c1->reg > 0) {
-			printf("%%r%d ", c1->reg);
+			printf("%%r%d", c1->reg);
 		} else {
-			printf("%g, ", c1->f);
+			printf("%g", c1->f);
 		}
+		printf(", ");
 		if (c2->reg > 0) {
-			printf("%%r%d ", c2->reg);
+			printf("%%r%d, ", c2->reg);
 		} else {
 			printf("%g", c2->f);
 		}
