@@ -27,6 +27,8 @@
 		const char *,
 		const char *);
 
+	int craft_store(struct var *, const struct cst *);
+
 	void yyerror(char *);
 %}
 
@@ -174,14 +176,7 @@ stmt
 		printf("%%%s = alloca %s\n", var->vn, local2llvm_type(var->tt));
 	}
 	
-	if (var->tt != UND_T && var->tt != $3->type) {
-		fprintf(stderr, "Incompatible types in assignment\n");
-	} else {
-		var->tt = $3->type;
-		printf("store %s %%r%d, %s* %%%s\n",
-			local2llvm_type(var->tt), $3->reg,
-			local2llvm_type(var->tt), var->vn);
-	}
+	craft_store(var, $3);
 }
                 | RETURN expr
 {
@@ -289,6 +284,7 @@ primary         : lhs
 	$$ = symbol_lookup(scopes, $1, VAR_T);
 	if ($$ == NULL) {
 		fprintf(stderr, "Error: undefined variable %s\n", $1);
+		exit(EXIT_FAILURE);
 	}
 	
 	free($1);
@@ -362,19 +358,36 @@ additive_expr   : multiplicative_expr
                 | additive_expr '+' multiplicative_expr
 {
 	$$ = craft_operation($1, $3, "add", "fadd");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible types for operator +");
+		exit(EXIT_FAILURE);
+	}
+
 }
                 | additive_expr '-' multiplicative_expr
 {
 	$$ = craft_operation($1, $3, "sub", "fsub");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible types for operator -");
+		exit(EXIT_FAILURE);
+	}
 }
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
 	$$ = craft_operation($1, $3, "mul", "fmul");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible types for operator *");
+		exit(EXIT_FAILURE);
+	}
 }
                     | multiplicative_expr '/' primary
 {
 	$$ = craft_operation($1, $3, "sdiv", "fdiv");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible types for operator /");
+		exit(EXIT_FAILURE);
+	}
 }
                     | primary
 {
@@ -479,6 +492,34 @@ struct var * param_lookup(struct function *f, const char *name)
 }
 
 
+int craft_store(struct var *var, const struct cst *c)
+{
+	if (var->tt != UND_T && var->tt != c->type) {
+		fprintf(stderr, "Incompatible types in assignment\n");
+		return -1;
+	}
+
+	var->tt = c->type;
+	printf("store %s ", local2llvm_type(var->tt));
+	if (c->reg > 0) {
+		printf("%%r%d, ", c->reg);
+	} else {
+		switch (c->type) {
+			case INT_T:
+				printf("%d, ", c->i);
+				break;
+			case FLO_T:
+				printf("%g, ", c->f);
+				break;
+			case BOO_T:
+				printf("%c, ", c->c);
+				break;
+		}
+	}
+	printf("%s* %%%s\n", local2llvm_type(var->tt), var->vn);
+	return 0;
+}
+
 struct cst * craft_operation(
 	const struct cst *c1,
 	const struct cst *c2,
@@ -520,18 +561,25 @@ struct cst * craft_operation(
 	}
 
 	else if (c1->type == INT_T && c2->type == FLO_T) {
+		unsigned int r;
 		result = cst_new(FLO_T, CST_OPRESULT);
+
 		if (c1->reg > 0) {
-			// conversion
-			unsigned int r;
+			// conversion needed
 			r = new_reg();
 			printf("%%r%d = sitofp i32 %%r%d to double\n", r, c1->reg);
-			printf("%%r%d = %s double %%r%d, ", result->reg, fop, r);
-		} else {
-			printf("%%r%d = %s double %d.0, ", result->reg, fop, c1->i);
 		}
+
+		printf("%%r%d = %s double ", result->reg, fop);
+
+		if (c1->reg > 0) {
+			printf("%%r%d", r);
+		} else {
+			printf("%d.0", c1->i);
+		}
+		printf(", ");
 		if (c2->reg > 0) {
-			printf("%%r%d ", c2->reg);
+			printf("%%r%d", c2->reg);
 		} else {
 			printf("%g", c2->f);
 		}
@@ -539,26 +587,28 @@ struct cst * craft_operation(
 	}
 
 	else if (c1->type == FLO_T && c2->type == INT_T) {
+		unsigned int r;
 		result = cst_new(FLO_T, CST_OPRESULT);
+
 		if (c2->reg > 0) {
 			// conversion
-			unsigned int r;
 			r = new_reg();
 			printf("%%r%d = sitofp i32 %%r%d to double\n", r, c2->reg);
-			printf("%%r%d = %s double %%r%d, ", result->reg, fop, r);
-		} else {
-			printf("%%r%d = %s double %d.0, ", result->reg, fop, c2->i);
 		}
+		printf("%%r%d = %s double ", result->reg, fop);
+		
 		if (c1->reg > 0) {
-			printf("%%r%d ", c1->reg);
+			printf("%%r%d", c1->reg);
 		} else {
 			printf("%g", c1->f);
 		}
+		printf(", ");
+		if (c2->reg > 0) {
+			printf("%%r%d", r);
+		} else {
+			printf("%d.0", c2->i);
+		}
 		puts("");
-	}
-
-	else {
-		fprintf(stderr, "Incompatible types for operators %s or %s\n", op, fop);
 	}
 
 	return result;

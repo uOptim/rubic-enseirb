@@ -1,6 +1,7 @@
 def f(a)
-	z = 1 + 3
-	c = 7.5 + 10.2
-	b = 3 + 5.5
-	d = 5.6 / 7
+	yaya = 4
+	zozo = 1 + 3
+	chouette = 7.5 + 10.2
+	bidule = 3 + 5.5
+	dodo = 5.6 / 7
 end
