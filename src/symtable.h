@@ -42,6 +42,7 @@ struct var {
 	char *vn;
 
 	// type
+	unsigned char tt; // TODO remove when ok
 	struct stack *t;
 };
 
