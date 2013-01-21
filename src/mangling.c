@@ -278,8 +278,7 @@ int var_type_card(struct var *v)
 	return stack_size(v->t);
 }
 
-/* Given a symbol representing a variable, returns the first type possible
- * for this variable
+/* Returns the first possible variable type
  */
 unsigned char var_type(struct var *v)
 {
