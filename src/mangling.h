@@ -19,7 +19,7 @@
 /* Generate the function code for each possible parameters type.
  * The code is printed on stdout.
  */
-void mangle_function(struct function *);
+void func_gen_codes(struct function *);
 
 /* s2 shall be NULL if not required for the operation
  */

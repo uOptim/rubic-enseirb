@@ -91,10 +91,28 @@ struct symbol * func_push_instr(struct function *f, int op_type,
 	return sym_new("OSEF", CST_T, cst_new(UND_T, CST_OPRESULT));
 }
 
+/* Given a fonction with parameters and local variables type determined,
+ * the function code is generated.
+ * The code is printed on stdout.
+ */
+static void func_mangling(struct function *f) {
+
+}
+
+/* Given a fonction with parameters type determined, this function
+ * tries to determine the type for every local variable.
+ * If a type is found for each local variable then the function
+ * code is generated.
+ * Otherwise, no generation is performed.
+ */
+static void func_compute_var_type(struct function *f) {
+
+}
+
 /* Given a fonction with parameters not completly determined, this function
  * generates every possible fonction code to fit with every possible
  * parameters type.
  */
-void mangle_function(struct function * f) {
+void func_gen_codes(struct function *f) {
 
 }
