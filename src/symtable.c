@@ -66,6 +66,18 @@ void sym_dump(void *sym)
 	}
 }
 
+struct type * type_new(unsigned char t) {
+	struct type * ty = malloc(sizeof *t);
+
+	if (ty == NULL) return NULL;
+
+	ty->t = t;
+	return t;
+}
+
+void type_free(void *t) {
+	free(t);
+}
 
 struct var * var_new(const char *name)
 {
@@ -73,15 +85,17 @@ struct var * var_new(const char *name)
 
 	if (v == NULL) return NULL;
 
-	v->tt = UND_T;
+	v->t = stack_new();
 	v->vn = strdup(name);
 
+	struct type *tmp = type_new(UND_T);
 	/* Constants start with a capital letter */
 	if (name[0] > 'A' && name[0] < 'Z') {
-		v->tc = 1;
+		tmp->tc = 1;
 	} else {
-		v->tc = 0;
+		tmp->tc = 0;
 	}
+	stack_push(v->t, tmp);
 
 	return v;
 }
@@ -94,6 +108,10 @@ void var_free(void *var)
 	if (v->vn != NULL) {
 		free(v->vn);
 		v->vn = NULL;
+	}
+	if (v->t != NULL) {
+		stack_free(&v->t, type_free);
+		f->t = NULL;
 	}
 
 	free(v);
@@ -238,6 +256,7 @@ struct function * function_new()
 	f->fn = NULL;
 	f->ret = NULL;
 	f->params = stack_new();
+	f->instr = stack_new();
 
 	return f;
 }
@@ -262,6 +281,12 @@ void function_free(void *function)
 		// the scope block too
 		stack_free(&f->params, NULL);
 		f->params = NULL;
+	}
+
+	if (f->instr != NULL) {
+		// TODO replace NULL by a fonction that free memory correctly
+		stack_free(&f->instr, NULL);
+		f->instr = NULL;
 	}
 
 	free(f);

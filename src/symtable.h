@@ -8,12 +8,13 @@
 #define FUN_T   0
 #define CLA_T   1
 #define VAR_T   2
+#define CST_T   3
 
-#define INT_T   3
-#define FLO_T   4
-#define STR_T   5
-#define BOO_T   6
-#define OBJ_T	7
+#define INT_T   4
+#define FLO_T   5
+#define STR_T   6
+#define BOO_T   7
+#define OBJ_T	8
 
 #define UND_T   127 // Undef
 
@@ -22,15 +23,11 @@
 // symbols
 struct symbol {
 	char type;
-	char *name;
+	//char *name;
 	void *ptr;
 };
 
-
-struct var {
-	char *vn;
-
-	// type
+struct type {
 	union {
 		unsigned char t;         // general type
 		struct {
@@ -38,6 +35,13 @@ struct var {
 			unsigned char tc:1;  // is const
 		};
 	};
+};
+
+struct var {
+	char *vn;
+
+	// type
+	struct stack *t;
 };
 
 
@@ -59,6 +63,7 @@ struct function {
 	char *fn;
 	struct var *ret;
 	struct stack *params;
+	struct stack *instr;
 };
 
 
@@ -74,6 +79,9 @@ unsigned int new_reg();
 struct symbol * sym_new(const char *, char, void *);
 void            sym_dump(void *);
 void            sym_free(void *);
+
+struct type * type_new(unsigned char);
+void          type_free(void *);
 
 struct var * var_new(const char *);
 void         var_free(void *);
