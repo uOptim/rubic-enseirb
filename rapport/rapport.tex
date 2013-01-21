@@ -141,32 +141,37 @@ la liste dans la case de la table de hashage correspondante.
 La visibilité des symboles a été prise en charge à l'aide d'une pile et d'une
 structure appelée "block" comprenant trois tables de hashage (une par espace
 de nom). Un nouveau bloc est empilé à chaque fois qu'un lexème définissant une
-nouvelle visibilité est lu. C'est le cas par exemple de la règle IF/THEN/ELSE
-:
-
-\begin{verbatim}
-IF
-    { nouveau bloc pour IF afin de stocker les éléments de expr
-      qui doit rester visible dans le THEN et dans le ELSE }
-expr
-THEN
-    { nouveau bloc pour stocker les éléments du bloc IF }
-stmts
-terms
-ELSE
-    { dépiler le bloc THEN et créer un nouveau bloc pour le ELSE.
-      ici le bloc du IF contenant les éléments de expr est toujours
-      visible. }
-stmts
-terms
-END
-    { dépiler le bloc ELSE et celui du IF }
-\end{verbatim}
-
+nouvelle visibilité est lu.
 
 La recherche d'un symbole se fait en parcourant la pile pour
 tester sa présence dans la table de hashage du type correspondant dans chaque
 bloc.
+
+En ruby, les structures de controles de definissent pas un bloc séparé de la
+fonction et il est donc nécessaire de repérer les variables introduites dans
+ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace
+necessaire en début de fonction sous peine de créer une erreur de compilation
+de LLVM à cause d'allocations soumises à condition.
+
+%\begin{verbatim}
+%IF
+%    { nouveau bloc pour IF afin de stocker les éléments de expr
+%      qui doit rester visible dans le THEN et dans le ELSE }
+%expr
+%THEN
+%    { nouveau bloc pour stocker les éléments du bloc IF }
+%stmts
+%terms
+%ELSE
+%    { dépiler le bloc THEN et créer un nouveau bloc pour le ELSE.
+%      ici le bloc du IF contenant les éléments de expr est toujours
+%      visible. }
+%stmts
+%terms
+%END
+%    { dépiler le bloc ELSE et celui du IF }
+%\end{verbatim}
+
 
 \section{Typage}
 
