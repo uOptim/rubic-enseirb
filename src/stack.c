@@ -13,6 +13,7 @@ struct elt {
 
 struct stack {
 	struct elt *head;
+	int size;
 };
 	
 
@@ -24,6 +25,7 @@ struct stack * stack_new()
 		perror("malloc");
 	} else {
 		s->head = NULL;
+		s->size = 0;
 	}
 
 	return s;
@@ -53,6 +55,7 @@ void * stack_pop(struct stack *s)
 	if (e != NULL) {
 		data = e->data;
 		s->head = e->next;
+		s->size--;
 		free(e);
 	}
 
@@ -72,6 +75,7 @@ int stack_push(struct stack *s, void *d)
 	e->data = d;
 	e->next = s->head;
 	s->head = e;
+	s->size++;
 
 	return 0;
 }
@@ -84,4 +88,8 @@ void * stack_peak(struct stack *s, unsigned int n)
 
 	for (i = 0, e = s->head; i < n && e != NULL; ++i, e = e->next);
 	return (e == NULL) ? NULL : e->data;
+}
+
+int stack_size(struct stack *s) {
+	return s->size;
 }
