@@ -14,8 +14,8 @@
 	struct class    *tmp_class;
 	struct function *tmp_function;
 
-	// context and scopes stack
 	struct stack *scopes;
+	struct stack *labels;
 
 	const char * local2llvm_type(char);
 	struct var * param_lookup(struct function *, const char *);
@@ -27,7 +27,21 @@
 		const char *,
 		const char *);
 
+	struct cst * craft_boolean_operation(
+		const struct cst *,
+		const struct cst *,
+		const char *);
+
 	int craft_store(struct var *, const struct cst *);
+
+	unsigned int *new_label() {
+		static unsigned int labelnum = 1;
+
+		unsigned int *l = malloc(sizeof *l);
+		*l = labelnum++;
+
+		return l;
+	}
 
 	void yyerror(char *);
 %}
@@ -156,20 +170,47 @@ endif			: ELSE
 
 	// create new scope block
 	stack_push(scopes, block_new());
+
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	printf("br label %%EndIf%d\n", lnum);
+	printf("IfFalse%d:\n", lnum);
 }
 				stmts terms END
+{
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	printf("br label %%EndIf%d\n", lnum);
+	printf("EndIf%d:\n", lnum);
+}
 				| END
+{
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	printf("br label %%EndIf%d\n", lnum);
+	printf("IfFalse%d:\n", lnum);
+	printf("br label %%EndIf%d\n", lnum);
+	printf("EndIf%d:\n", lnum);
+}
 				;
 stmt
 				: IF 
 {
 	// create new scope block
 	stack_push(scopes, block_new());
+	stack_push(labels, new_label());
 }
-				expr THEN
+				expr opt_terms THEN
 {
 	// create new scope block
 	stack_push(scopes, block_new());
+
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	if ($3->reg > 0) {
+		printf("br i1 %%r%d, label %%IfTrue%d, label %%IfFalse%d\n",
+			$3->reg, lnum, lnum);
+	} else {
+		printf("br i1 %s, label %%IfTrue%d, label %%IfFalse%d\n",
+			($3->c > 0) ? "true" : "false", lnum, lnum);
+	}
+	printf("IfTrue%d:\n", lnum);
 }
 				stmts terms endif
 {
@@ -180,6 +221,8 @@ stmt
 	// delete IF scope block
 	b = stack_pop(scopes);
 	block_free(b);
+
+	stack_pop(labels);
 }
 
                 | FOR
@@ -251,7 +294,7 @@ stmt
 				printf("ret i32 %d\n", $2->i);
 				break;
 			case BOO_T:
-				printf("ret i32 %s\n", ($2->c == 1) ? "true" : "false");
+				printf("ret i1 %s\n", ($2->c > 0) ? "true" : "false");
 				break;
 			case FLO_T:
 				printf("ret double %g\n", $2->f);
@@ -390,11 +433,16 @@ primary         : lhs
 ;
 expr            : expr AND comp_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+
+	$$ = craft_boolean_operation($1, $3, "and");
+	cst_free($1);
+	cst_free($3);
 }
                 | expr OR comp_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_boolean_operation($1, $3, "or");
+	cst_free($1);
+	cst_free($3);
 }
                 | comp_expr
 {
@@ -403,27 +451,39 @@ expr            : expr AND comp_expr
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_operation($1, $3, "icmp slt", "fcmp slt");
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr '>' additive_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_operation($1, $3, "icmp sgt", "fcmp sgt");
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr LEQ additive_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_operation($1, $3, "icmp sle", "fcmp sle");
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr GEQ additive_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_operation($1, $3, "icmp sge", "fcmp sge");
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr EQ additive_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_operation($1, $3, "icmp eq", "fcmp eq");
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr NEQ additive_expr
 {
-	$$ = cst_new(BOO_T, CST_OPRESULT);
+	$$ = craft_operation($1, $3, "icmp neq", "fcmp neq");
+	cst_free($1);
+	cst_free($3);
 }
                 | additive_expr
 {
@@ -497,6 +557,8 @@ term		: ';'
 int main() {
 
 	scopes = stack_new();
+	labels = stack_new();
+
 	stack_push(scopes, block_new());
 
 	puts("define i32 @main () {");
@@ -509,6 +571,7 @@ int main() {
 	}
 
 	stack_free(&scopes, NULL);
+	stack_free(&labels, free);
 
 	return 0;
 }
@@ -702,6 +765,70 @@ struct cst * craft_operation(
 	return result;
 }
 
+struct cst * craft_boolean_conversion(const struct cst *c1)
+{
+	struct cst *c = NULL;
+
+	switch (c1->type) {
+		case INT_T:
+			c = cst_new(BOO_T, CST_OPRESULT);
+			printf("%%r%d = icmp sgt i32 ", c->reg);
+			if (c1->reg > 0) {
+				printf("%%r%d ", c1->reg);
+			} else {
+				printf("%d ", c1->i);
+			}
+			printf(", 0\n");
+			break;
+		case FLO_T:
+			c = cst_new(BOO_T, CST_OPRESULT);
+			printf("%%r%d = fcmp sgt double ", c->reg);
+			if (c1->reg > 0) {
+				printf("%%r%d ", c1->reg);
+			} else {
+				printf("%#g ", c1->f);
+			}
+			printf(", 0.0\n");
+			break;
+		default:
+			return NULL;
+	}
+	
+	return c;
+}
+
+struct cst * craft_boolean_operation(
+	const struct cst *c1,
+	const struct cst *c2,
+	const char *op)
+{
+	struct cst *c = cst_new(BOO_T, CST_OPRESULT);
+
+	if (c1->type != BOO_T) {
+		c1 = craft_boolean_conversion(c1);
+		if (c1 == NULL) return NULL;
+	}
+	if (c2->type != BOO_T) {
+		c2 = craft_boolean_conversion(c2);
+		if (c2 == NULL) return NULL;
+	}
+	
+	printf("%%r%d = icmp %s i1 ", c->reg, op);
+	if (c1->reg > 0) {
+		printf("%%r%d", c1->reg);
+	} else {
+		printf("%s", (c1->c > 0) ? "true" : "false");
+	}
+	printf(", ");
+	if (c2->reg > 0) {
+		printf("%%r%d", c2->reg);
+	} else {
+		printf("%s", (c2->c > 0) ? "true" : "false");
+	}
+	puts("");
+
+	return c;
+}
 
 const char * local2llvm_type(char type)
 {
@@ -723,4 +850,23 @@ const char * local2llvm_type(char type)
 	}
 
 	return "UNKNOWN TYPE";
+}
+
+
+char convert2bool(struct cst *c)
+{
+	char v;
+
+	if (c->type == INT_T) {
+		if (c->i > 0) v = 1;
+		else v = 0;
+	} else if (c->type == FLO_T) {
+		if (c->f > 0) v = 1;
+		else v = 0;
+	} else {
+		fprintf(stderr, "Incompatible type for boolean conversion\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return v;
 }

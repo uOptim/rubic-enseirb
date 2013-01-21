@@ -1,6 +1,9 @@
 def f(a)
-	zozo = 1 + 3.4
-	toto = 10.0 + zozo
-	truc = false
-	return 11
+	b = 0
+	if 3 <= 2 then
+		b = 1
+	else
+		b = 2
+	end
+	return b
 end
