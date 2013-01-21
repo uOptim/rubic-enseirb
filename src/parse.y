@@ -92,7 +92,6 @@ topstmt
 {
 	// delete scope block
 	struct block *b = stack_pop(scopes);
-	//block_dump(b);
 	block_free(b);
 
 	tmp_class = NULL;
@@ -133,7 +132,6 @@ topstmt
 {
 	// delete scope block
 	struct block *b = stack_pop(scopes);
-	//block_dump(b);
 	block_free(b);
 
 	tmp_class = NULL;
@@ -149,10 +147,49 @@ stmts	        : /* none */
                 | stmts terms stmt
                 ;
 
+/* Super bidouille! */
+endif			: ELSE
+{
+	// delete IF scope block
+	struct block *b = stack_pop(scopes);
+	block_free(b);
+
+	// create new scope block
+	stack_push(scopes, block_new());
+}
+				stmts terms END
+{
+	struct block *b;
+	// delete ELSE scope block
+	b = stack_pop(scopes);
+	block_free(b);
+	// delete IF scope block
+	b = stack_pop(scopes);
+	block_free(b);
+}
+				| END
+{
+	struct block *b;
+	// delete THEN scope block
+	b = stack_pop(scopes);
+	block_free(b);
+	// delete IF scope block
+	b = stack_pop(scopes);
+	block_free(b);
+}
+				;
 stmt
-/* if then */
-				: IF expr THEN stmts terms END
-				| IF expr THEN stmts terms ELSE stmts terms END
+				: IF 
+{
+	// create new scope block
+	stack_push(scopes, block_new());
+}
+				expr THEN
+{
+	// create new scope block
+	stack_push(scopes, block_new());
+}
+				stmts terms endif
                 | FOR ID IN expr TO expr term stmts terms END
 {
 	free($2);
@@ -190,6 +227,8 @@ stmt
 		fprintf(stderr, "Unexpected 'return' token\n");
 		exit(EXIT_FAILURE);
 	}
+	
+	tmp_function->ret = $2->type;
 
 	if ($2->reg > 0) {
 		printf("ret %s %%r%d\n", local2llvm_type($2->type), $2->reg);
@@ -231,7 +270,6 @@ stmt
 
 	// create new scope block
 	stack_push(scopes, block_new());
-
 }
 				opt_params term stmts terms END
 {
@@ -239,7 +277,6 @@ stmt
 
 	// delete scope block
 	struct block *b = stack_pop(scopes);
-	//block_dump(b);
 	block_free(b);
 
 	tmp_function = NULL;
@@ -322,6 +359,11 @@ primary         : lhs
 {
 	$$ = cst_new(FLO_T, CST_PURECST);
 	$$->f = $1;
+}
+                | BOOL
+{
+	$$ = cst_new(BOO_T, CST_PURECST);
+	$$->c = $1;
 }
                 | INT
 {
@@ -450,7 +492,6 @@ int main() {
 
 	struct block *b;
 	while ((b = stack_pop(scopes)) != NULL) {
-		//block_dump(b);
 		block_free(b);
 	}
 
@@ -527,10 +568,9 @@ struct var * param_lookup(struct function *f, const char *name)
 int craft_store(struct var *var, const struct cst *c)
 {
 	if (var->tt == UND_T) {
+		var->tt = c->type;
+	} else {
 		var->tt = compatibility_table[(int)var->tt][(int)c->type];
-	}
-	else if (compatibility_table[(int)var->tt][(int)c->type] == -1) {
-		return -1;
 	}
 
 	printf("store %s ", local2llvm_type(var->tt));
@@ -545,7 +585,7 @@ int craft_store(struct var *var, const struct cst *c)
 				printf("%g, ", c->f);
 				break;
 			case BOO_T:
-				printf("%c, ", c->c);
+				printf("%s, ", (c->c == 0) ? "false" : "true");
 				break;
 		}
 	}
@@ -658,6 +698,9 @@ const char * local2llvm_type(char type)
 			break;
 		case FLO_T:
 			return "double";
+			break;
+		case BOO_T:
+			return "i1";
 			break;
 		case STR_T:
 			// TODO
