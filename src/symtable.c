@@ -93,6 +93,7 @@ struct var * var_new(const char *name)
 	v->t = stack_new();
 	v->vn = strdup(name);
 
+	v->tt = UND_T;
 	struct type *tmp = type_new(UND_T);
 	/* Constants start with a capital letter */
 	if (name[0] > 'A' && name[0] < 'Z') {
