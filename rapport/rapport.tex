@@ -124,7 +124,7 @@ permet à une variable de coexister avec une classe ou une fonction du même
 nom. Chaque espace de nom est implémenté à l'aide d'une table de hashage dont
 le fonctionnement est le suivant.
 
-Deux éléments sont demandés : un identificateur et un poiteur vers une donnée.
+Deux éléments sont demandés : un identificateur et un pointeur vers une donnée.
 Une clé est obtenue en sommant tous les octets de l'identificateur modulo la
 taille de la table de hashage (constante fixée à la compilation). Pour prendre
 en charge les éventuelles collisions, à chaque case de la table correspond une
@@ -155,7 +155,7 @@ stmts
 terms
 ELSE
     { dépiler le bloc THEN et créer un nouveau bloc pour le ELSE.
-      ici le bloc du IF contenant les éléments de expr est tojours
+      ici le bloc du IF contenant les éléments de expr est toujours
       visible. }
 stmts
 terms

@@ -38,4 +38,4 @@ tests: tests.c stack.o hashmap.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h
+	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h rubic
