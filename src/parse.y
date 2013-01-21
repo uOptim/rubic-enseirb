@@ -435,12 +435,20 @@ expr            : expr AND comp_expr
 {
 
 	$$ = craft_boolean_operation($1, $3, "and");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for boolean operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
                 | expr OR comp_expr
 {
 	$$ = craft_boolean_operation($1, $3, "or");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for boolean operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
@@ -452,36 +460,60 @@ expr            : expr AND comp_expr
 comp_expr       : additive_expr '<' additive_expr
 {
 	$$ = craft_operation($1, $3, "icmp slt", "fcmp slt");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for comparison operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
                 | additive_expr '>' additive_expr
 {
 	$$ = craft_operation($1, $3, "icmp sgt", "fcmp sgt");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for comparison operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
                 | additive_expr LEQ additive_expr
 {
 	$$ = craft_operation($1, $3, "icmp sle", "fcmp sle");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for comparison operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
                 | additive_expr GEQ additive_expr
 {
 	$$ = craft_operation($1, $3, "icmp sge", "fcmp sge");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for comparison operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
                 | additive_expr EQ additive_expr
 {
 	$$ = craft_operation($1, $3, "icmp eq", "fcmp eq");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for comparison operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
                 | additive_expr NEQ additive_expr
 {
 	$$ = craft_operation($1, $3, "icmp neq", "fcmp neq");
+	if ($$ == NULL) {
+		fprintf(stderr, "Incompatible type for comparison operation\n");
+		exit(EXIT_FAILURE);
+	}
 	cst_free($1);
 	cst_free($3);
 }
