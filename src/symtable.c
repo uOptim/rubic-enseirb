@@ -4,6 +4,11 @@
 #include <string.h>
 #include <assert.h>
 
+const char compatibility_table[3][3] = 
+{ { INT_T, FLO_T, -1 },
+  { FLO_T, FLO_T, -1 },
+  { -1   , -1   , -1 } };
+
 
 unsigned int new_reg() {
 	// register 0 reserved
@@ -246,15 +251,15 @@ void class_dump(void *class)
 }
 
 
-struct function * function_new()
+struct function * function_new(const char *name)
 {
 	struct function *f = malloc(sizeof *f);
 
 	if (f == NULL)
 		return NULL;
 
-	f->fn = NULL;
-	f->ret = NULL;
+	f->ret = UND_T;
+	f->fn = strdup(name);
 	f->params = stack_new();
 	f->instr = stack_new();
 
@@ -269,11 +274,6 @@ void function_free(void *function)
 	if (f->fn != NULL) {
 		free(f->fn);
 		f->fn = NULL;
-	}
-
-	if (f->ret != NULL) {
-		var_free(f->ret);
-		f->ret = NULL;
 	}
 
 	if (f->params != NULL) {
@@ -311,12 +311,7 @@ void function_dump(void *function)
 		printf("No params");
 	}
 
-	if (f->ret != NULL) {
-		printf("* Returns:\n");
-		var_dump(f->ret);
-	} else {
-		printf("No return");
-	}
+	printf("* Returns: type %c\n", f->ret);
 
 	puts("");
 }

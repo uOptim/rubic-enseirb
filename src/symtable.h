@@ -10,15 +10,16 @@
 #define VAR_T   2
 #define CST_T   3
 
-#define INT_T   4
-#define FLO_T   5
-#define STR_T   6
-#define BOO_T   7
-#define OBJ_T	8
+#define INT_T   0
+#define FLO_T   1
+#define BOO_T   2
+#define STR_T   3
+#define OBJ_T	4
 
 #define UND_T   127 // Undef
 
 
+extern const char compatibility_table[3][3];
 
 // symbols
 struct symbol {
@@ -61,7 +62,7 @@ struct cst {
 
 struct function {
 	char *fn;
-	struct var *ret;
+	char ret;
 	struct stack *params;
 	struct stack *instr;
 };
@@ -95,7 +96,7 @@ struct class * class_new();
 void           class_free(void *);
 void           class_dump(void *);
 
-struct function * function_new();
+struct function * function_new(const char *);
 void              function_free(void *);
 void              function_dump(void *);
 

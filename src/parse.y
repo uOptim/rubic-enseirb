@@ -186,28 +186,42 @@ stmt
 }
                 | RETURN expr
 {
-	if (tmp_function != NULL) {
-		;
-		// TODO
-		//tmp_function->ret = $2;
+	if (tmp_function == NULL) {
+		fprintf(stderr, "Unexpected 'return' token\n");
+		exit(EXIT_FAILURE);
 	}
 
-	else {
-		fprintf(stderr, "Unexpected 'return' token\n");
+	if ($2->reg > 0) {
+		printf("ret %s %%r%d\n", local2llvm_type($2->type), $2->reg);
+	} else {
+		switch ($2->type) {
+			case INT_T:
+				printf("ret i32 %d\n", $2->i);
+				break;
+			case BOO_T:
+				printf("ret i32 %s\n", ($2->c == 1) ? "true" : "false");
+				break;
+			case FLO_T:
+				printf("ret double %g\n", $2->f);
+				break;
+			default:
+				fprintf(stderr, "Invalid return type?\n");
+				exit(EXIT_FAILURE);
+		}
 	}
+
+	cst_free($2);
 }
 
 /* DEF ID opt_params term stmts terms END */
                 | DEF ID
 {
-	tmp_function = function_new();
+	tmp_function = function_new($2);
 
 	if (symbol_lookup(scopes, $2, FUN_T) != NULL) {
 		fprintf(stderr, "Function %s already defined\n", $2);
 		exit(EXIT_FAILURE);
 	}
-
-	tmp_function->fn = strdup($2);
 
 	hashmap_set(
 		((struct block *) stack_peak(scopes, 0))->functions,
@@ -432,7 +446,6 @@ int main() {
 
 	puts("define i32 @main () {");
 	yyparse(); 
-	puts("ret i32 1");
 	puts("}");
 
 	struct block *b;
@@ -440,6 +453,8 @@ int main() {
 		//block_dump(b);
 		block_free(b);
 	}
+
+	stack_free(&scopes, NULL);
 
 	return 0;
 }
@@ -511,11 +526,13 @@ struct var * param_lookup(struct function *f, const char *name)
 
 int craft_store(struct var *var, const struct cst *c)
 {
-	if (var->tt != UND_T && var->tt != c->type) {
+	if (var->tt == UND_T) {
+		var->tt = compatibility_table[(int)var->tt][(int)c->type];
+	}
+	else if (compatibility_table[(int)var->tt][(int)c->type] == -1) {
 		return -1;
 	}
 
-	var->tt = c->type;
 	printf("store %s ", local2llvm_type(var->tt));
 	if (c->reg > 0) {
 		printf("%%r%d, ", c->reg);
@@ -567,13 +584,13 @@ struct cst * craft_operation(
 		if (c1->reg > 0) {
 			printf("%%r%d", c1->reg);
 		} else {
-			printf("%g", c1->f);
+			printf("%#g", c1->f);
 		}
 		printf(", ");
 		if (c2->reg > 0) {
-			printf("%%r%d, ", c2->reg);
+			printf("%%r%d", c2->reg);
 		} else {
-			printf("%g", c2->f);
+			printf("%#g", c2->f);
 		}
 		puts("");
 	}
@@ -599,7 +616,7 @@ struct cst * craft_operation(
 		if (c2->reg > 0) {
 			printf("%%r%d", c2->reg);
 		} else {
-			printf("%g", c2->f);
+			printf("%#g", c2->f);
 		}
 		puts("");
 	}
@@ -618,7 +635,7 @@ struct cst * craft_operation(
 		if (c1->reg > 0) {
 			printf("%%r%d", c1->reg);
 		} else {
-			printf("%g", c1->f);
+			printf("%#g", c1->f);
 		}
 		printf(", ");
 		if (c2->reg > 0) {

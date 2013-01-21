@@ -3,4 +3,5 @@ def f(a)
 	toto = zozo
 	toto = zozo + 10
 	resultat = toto
+	return 10
 end
