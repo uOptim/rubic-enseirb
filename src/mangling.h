@@ -18,9 +18,15 @@
 
 /* s2 shall be NULL if not required for the operation
  */
-struct symbol * instr_push(struct function *f, int op_type,
-		struct symbol *s1, struct symbol *s2);
+struct symbol * instr_push(
+		struct function *f,
+		int op_type,
+		struct symbol *s1,
+		struct symbol *s2);
 
+/* Print an instruction code on stdout.
+ * Symbol type needs to be determined especially for variables.
+ */
 void instr_print(int op_type, struct symbol *s1, struct symbol *s2);
 
 

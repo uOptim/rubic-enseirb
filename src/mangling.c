@@ -39,8 +39,11 @@ static unsigned char  var_type(struct var *);
 /*                      Instruction operations                      */
 /********************************************************************/
 
-struct instruction *
-instr_new(int op_type, struct symbol *s1, struct symbol *s2) {
+struct instruction * instr_new(
+	int op_type,
+	struct symbol *s1,
+	struct symbol *s2)
+{
 	struct instruction *i = malloc(sizeof *i);
 
 	i->op_type = op_type;
@@ -52,9 +55,12 @@ instr_new(int op_type, struct symbol *s1, struct symbol *s2) {
 	return i;
 }
 
-struct symbol *
-instr_push(struct function *f, int op_type,
-		struct symbol *s1, struct symbol *s2) {
+struct symbol * instr_push(
+	struct function *f,
+	int op_type,
+	struct symbol *s1,
+	struct symbol *s2)
+{
 
 	struct instruction * i = instr_new(op_type, s1, s2);
 	assert(f != NULL);
@@ -63,8 +69,8 @@ instr_push(struct function *f, int op_type,
 	return i->sr;
 }
 
-void
-instr_print(int op_type, struct symbol *s1, struct symbol *s2) {
+void instr_print( int op_type, struct symbol *s1, struct symbol *s2)
+{
 	struct instruction * i = instr_new(op_type, s1, s2);
 
 	// TODO print instruction code
@@ -78,7 +84,8 @@ instr_print(int op_type, struct symbol *s1, struct symbol *s2) {
  * generates every possible fonction code to fit with every possible
  * parameters type.
  */
-void func_gen_codes(struct function *f) {
+void func_gen_codes(struct function *f)
+{
 	struct stack *tmp = stack_new();
 	struct var *cur_param = NULL;
 
@@ -95,7 +102,8 @@ void func_gen_codes(struct function *f) {
 	func_gen_codes_rec(f);
 }
 
-void func_gen_codes_rec(struct function *f) {
+void func_gen_codes_rec(struct function *f)
+{
 	struct var *cur_param = NULL;
 	struct type *cur_type = NULL;
 	int i = 0;
@@ -123,7 +131,8 @@ void func_gen_codes_rec(struct function *f) {
  * code is generated.
  * Otherwise, no generation is performed.
  */
-void func_compute_var_type(struct function *f) {
+void func_compute_var_type(struct function *f)
+{
 	// TODO: use type_constrain
 
 	func_mangling(f);
@@ -144,7 +153,8 @@ void func_mangling(struct function *f) {
 
 /* Set possible symbol types according to the operation they appear in
  */
-void type_constrain(struct instruction *i) {
+void type_constrain(struct instruction *i)
+{
 	unsigned char types[2] = {INT_T, FLO_T};
 
 	if (i->op_type & I_ARI) {
@@ -170,7 +180,8 @@ void type_constrain(struct instruction *i) {
  * type is an array of possibles types for the symbol
  * n	is the size of this array
  */
-void type_inter(struct symbol *s, const unsigned char types[], int n) {
+void type_inter(struct symbol *s, const unsigned char types[], int n)
+{
 	int i = 0;
 
 	if (s->type != VAR_T) {
@@ -227,7 +238,8 @@ void type_inter(struct symbol *s, const unsigned char types[], int n) {
  * A type is determined when there is only one possible type
  * and it is not UND_T.
  */
-int params_type_is_known(struct function *f) {
+int params_type_is_known(struct function *f)
+{
 	struct stack * tmp = stack_new();
 	struct var * cur_var = NULL;
 	int is_known = 1;
@@ -248,7 +260,8 @@ int params_type_is_known(struct function *f) {
  * possible type.
  * Otherwise no change is performed.
  */
-void type_explicit(struct var *v) {
+void type_explicit(struct var *v)
+{
 	int i = 0;
 
 	if (((struct type *)stack_pop(v->t))->tt == UND_T) {
@@ -260,13 +273,15 @@ void type_explicit(struct var *v) {
 
 /* Returns the number of types possible for a variable
  */
-int var_type_card(struct var *v) {
+int var_type_card(struct var *v)
+{
 	return stack_size(v->t);
 }
 
 /* Given a symbole representing a variable, returns the first type possible
  * for this variable
  */
-unsigned char var_type(struct var *v) {
+unsigned char var_type(struct var *v)
+{
 	return ((struct type *)stack_peak(v->t, 0))->tt;
 }
