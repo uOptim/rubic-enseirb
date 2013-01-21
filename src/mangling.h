@@ -4,7 +4,7 @@
 #define I_RET	0x00	// return
 #define I_ASS	0x01	// assignment
 
-/* Arithmetic operation, be carefull if changing this */
+/* Arithmetic operation, be careful if changing this */
 #define I_ARI	0x10
 #define I_ADD	0x11
 #define I_SUB	0x12

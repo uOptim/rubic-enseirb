@@ -69,7 +69,7 @@ struct symbol * instr_push(
 	return i->sr;
 }
 
-void instr_print( int op_type, struct symbol *s1, struct symbol *s2)
+void instr_print(int op_type, struct symbol *s1, struct symbol *s2)
 {
 	struct instruction * i = instr_new(op_type, s1, s2);
 
@@ -80,8 +80,8 @@ void instr_print( int op_type, struct symbol *s1, struct symbol *s2)
 /*                          Code generation                         */
 /********************************************************************/
 
-/* Given a fonction with parameters not completly determined, this function
- * generates every possible fonction code to fit with every possible
+/* Given a function with parameters not completely determined, this function
+ * generates every possible function code to fit with every possible
  * parameters type.
  */
 void func_gen_codes(struct function *f)
@@ -125,7 +125,7 @@ void func_gen_codes_rec(struct function *f)
 	}
 }
 
-/* Given a fonction with parameters type determined, this function
+/* Given a function with parameters type determined, this function
  * tries to determine the type for every local variable.
  * If a type is found for each local variable then the function
  * code is generated.
@@ -138,7 +138,7 @@ void func_compute_var_type(struct function *f)
 	func_mangling(f);
 }
 
-/* Given a fonction with parameters and local variables type determined,
+/* Given a function with parameters and local variables type determined,
  * the function code is generated.
  * The code is printed on stdout.
  */
@@ -278,7 +278,7 @@ int var_type_card(struct var *v)
 	return stack_size(v->t);
 }
 
-/* Given a symbole representing a variable, returns the first type possible
+/* Given a symbol representing a variable, returns the first type possible
  * for this variable
  */
 unsigned char var_type(struct var *v)
