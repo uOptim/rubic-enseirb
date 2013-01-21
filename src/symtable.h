@@ -24,7 +24,7 @@ extern const char compatibility_table[3][3];
 // symbols
 struct symbol {
 	char type;
-	//char *name;
+	char *name;
 	void *ptr;
 };
 

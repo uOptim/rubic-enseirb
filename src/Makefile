@@ -31,6 +31,9 @@ stack.o: stack.c stack.h
 block.o: block.c block.h stack.o
 	$(CC) $(CFLAGS) -c $< -o $@
 
+mangling.o: mangling.c mangling.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
 tests: tests.c stack.o hashmap.o
 	$(CC) $(CFLAGS) $^ -o $@
 

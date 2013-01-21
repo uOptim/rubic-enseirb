@@ -72,12 +72,12 @@ void sym_dump(void *sym)
 }
 
 struct type * type_new(unsigned char t) {
-	struct type * ty = malloc(sizeof *t);
+	struct type * ty = malloc(sizeof *ty);
 
 	if (ty == NULL) return NULL;
 
 	ty->t = t;
-	return t;
+	return ty;
 }
 
 void type_free(void *t) {
@@ -117,7 +117,7 @@ void var_free(void *var)
 	}
 	if (v->t != NULL) {
 		stack_free(&v->t, type_free);
-		f->t = NULL;
+		v->t = NULL;
 	}
 
 	free(v);
