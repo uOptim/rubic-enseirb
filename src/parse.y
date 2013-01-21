@@ -211,6 +211,8 @@ stmt
 			($3->c > 0) ? "true" : "false", lnum, lnum);
 	}
 	printf("IfTrue%d:\n", lnum);
+
+	cst_free($3);
 }
 				stmts terms endif
 {
@@ -222,7 +224,7 @@ stmt
 	b = stack_pop(scopes);
 	block_free(b);
 
-	stack_pop(labels);
+	free(stack_pop(labels));
 }
 
                 | FOR
@@ -238,6 +240,7 @@ stmt
 	block_free(b);
 
 	free($3); // free ID
+	cst_free($5);
 }
                 | WHILE
 {
@@ -250,6 +253,8 @@ stmt
 	// delete scope block
 	b = stack_pop(scopes);
 	block_free(b);
+
+	cst_free($3);
 }
                 | lhs '=' expr
 {
@@ -383,6 +388,7 @@ lhs             : ID
                 | ID '.' primary
 {
 	$$ = $1;
+	cst_free($3);
 }
                 | ID '(' exprs ')'
 {
@@ -390,7 +396,13 @@ lhs             : ID
 }
 ;
 exprs           : exprs ',' expr
+{
+	cst_free($3);
+}
                 | expr
+{
+	cst_free($1);
+}
 ;
 primary         : lhs
 {
