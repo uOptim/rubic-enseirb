@@ -164,13 +164,6 @@ stmts	        : /* none */
 /* Super bidouille! */
 endif			: ELSE
 {
-	// delete IF scope block
-	struct block *b = stack_pop(scopes);
-	block_free(b);
-
-	// create new scope block
-	stack_push(scopes, block_new());
-
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 	printf("br label %%EndIf%d\n", lnum);
 	printf("IfFalse%d:\n", lnum);
@@ -190,72 +183,28 @@ endif			: ELSE
 	printf("EndIf%d:\n", lnum);
 }
 				;
-stmt
-				: IF 
+
+stmt 			: IF expr opt_terms THEN
 {
-	// create new scope block
-	stack_push(scopes, block_new());
 	stack_push(labels, new_label());
-}
-				expr opt_terms THEN
-{
-	// create new scope block
-	stack_push(scopes, block_new());
 
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	if ($3->reg > 0) {
+	if ($2->reg > 0) {
 		printf("br i1 %%r%d, label %%IfTrue%d, label %%IfFalse%d\n",
-			$3->reg, lnum, lnum);
+			$2->reg, lnum, lnum);
 	} else {
 		printf("br i1 %s, label %%IfTrue%d, label %%IfFalse%d\n",
-			($3->c > 0) ? "true" : "false", lnum, lnum);
+			($2->c > 0) ? "true" : "false", lnum, lnum);
 	}
 	printf("IfTrue%d:\n", lnum);
 
-	cst_free($3);
+	cst_free($2);
 }
 				stmts terms endif
 {
-	struct block *b;
-	// delete THEN/ELSE scope block
-	b = stack_pop(scopes);
-	block_free(b);
-	// delete IF scope block
-	b = stack_pop(scopes);
-	block_free(b);
-
 	free(stack_pop(labels));
 }
 
-                | FOR
-{
-	// create new scope block
-	stack_push(scopes, block_new());
-}
-				ID IN expr TO expr term stmts terms END
-{
-	struct block *b;
-	// delete scope block
-	b = stack_pop(scopes);
-	block_free(b);
-
-	free($3); // free ID
-	cst_free($5);
-}
-                | WHILE
-{
-	// create new scope block
-	stack_push(scopes, block_new());
-}
-				expr DO term stmts terms END 
-{
-	struct block *b;
-	// delete scope block
-	b = stack_pop(scopes);
-	block_free(b);
-
-	cst_free($3);
-}
                 | lhs '=' expr
 {
 	struct var *var = symbol_lookup(scopes, $1, VAR_T);
@@ -282,6 +231,12 @@ stmt
 	free($1);
 	cst_free($3);
 }
+                | FOR ID IN expr TO expr term stmts terms END
+{
+	free($2); // free ID
+	cst_free($4);
+}
+                | WHILE expr DO term stmts terms END 
                 | RETURN expr
 {
 	if (tmp_function == NULL) {
