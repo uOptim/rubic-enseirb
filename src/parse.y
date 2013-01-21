@@ -568,10 +568,9 @@ struct var * param_lookup(struct function *f, const char *name)
 int craft_store(struct var *var, const struct cst *c)
 {
 	if (var->tt == UND_T) {
+		var->tt = c->type;
+	} else {
 		var->tt = compatibility_table[(int)var->tt][(int)c->type];
-	}
-	else if (compatibility_table[(int)var->tt][(int)c->type] == -1) {
-		return -1;
 	}
 
 	printf("store %s ", local2llvm_type(var->tt));
@@ -586,7 +585,7 @@ int craft_store(struct var *var, const struct cst *c)
 				printf("%g, ", c->f);
 				break;
 			case BOO_T:
-				printf("%c, ", c->c);
+				printf("%s, ", (c->c == 0) ? "false" : "true");
 				break;
 		}
 	}
@@ -699,6 +698,9 @@ const char * local2llvm_type(char type)
 			break;
 		case FLO_T:
 			return "double";
+			break;
+		case BOO_T:
+			return "i1";
 			break;
 		case STR_T:
 			// TODO

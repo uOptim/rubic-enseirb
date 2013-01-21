@@ -5,9 +5,9 @@
 #include <assert.h>
 
 const char compatibility_table[3][3] = 
-{ { INT_T, FLO_T, -1 },
-  { FLO_T, FLO_T, -1 },
-  { -1   , -1   , -1 } };
+{ { INT_T, FLO_T, BOO_T },
+  { FLO_T, FLO_T, BOO_T },
+  { BOO_T, BOO_T, BOO_T } };
 
 
 unsigned int new_reg() {

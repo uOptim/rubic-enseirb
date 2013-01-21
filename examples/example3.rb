@@ -1,7 +1,6 @@
 def f(a)
-	zozo = 1 + 3
-	toto = zozo
-	toto = zozo + 10
-	resultat = toto
-	return 10
+	zozo = 1 + 3.4
+	toto = 10.0 + zozo
+	truc = false
+	return 11
 end
