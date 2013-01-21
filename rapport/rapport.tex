@@ -114,6 +114,60 @@ normalement.}]\emph{(rayer la mention inutile)}
 
 \subsection{Les classes}
 
+\section{Analyse sémantique}
+
+\subsection{Tables de hashage}
+
+Notre compilateur propose trois espaces de noms : un pour les
+variables, un autre pour les fonctions et un dernier pour les classes. Cela
+permet à une variable de coexister avec une classe ou une fonction du même
+nom. Chaque espace de nom est implémenté à l'aide d'une table de hashage dont
+le fonctionnement est le suivant.
+
+Deux éléments sont demandés : un identificateur et un poiteur vers une donnée.
+Une clé est obtenue en sommant tous les octets de l'identificateur modulo la
+taille de la table de hashage (constante fixée à la compilation). Pour prendre
+en charge les éventuelles collisions, à chaque case de la table correspond une
+liste chaînée (une LIFO pour réutiliser ce qui a déjà été implémenté) où sont
+insérés les données ayant la même clé (eg. "toto" et "otto" produisent la même
+clé) et les identifiants avant le hashage sont alors conservés dans la liste
+pour distinguer deux éléments lors de la recherche. La recherche est alors
+simple : à partir de l'identifiant recherché, reproduire la clé et parcourir
+la liste dans la case de la table de hashage correspondante.
+
+
+\subsection{Visibilité des symboles}
+
+La visibilité des symboles a été prise en charge à l'aide d'une pile et d'une
+structure appelée "block" comprenant trois tables de hashage (une par espace
+de nom). Un nouveau bloc est empilé à chaque fois qu'un lexème définissant une
+nouvelle visibilité est lu. C'est le cas par exemple de la règle IF/THEN/ELSE
+:
+
+\begin{verbatim}
+IF
+    { nouveau bloc pour IF afin de stocker les éléments de expr
+      qui doit rester visible dans le THEN et dans le ELSE }
+expr
+THEN
+    { nouveau bloc pour stocker les éléments du bloc IF }
+stmts
+terms
+ELSE
+    { dépiler le bloc THEN et créer un nouveau bloc pour le ELSE.
+      ici le bloc du IF contenant les éléments de expr est tojours
+      visible. }
+stmts
+terms
+END
+    { dépiler le bloc ELSE et celui du IF }
+\end{verbatim}
+
+
+La recherche d'un symbole se fait en parcourant la pile pour
+tester sa présence dans la table de hashage du type correspondant dans chaque
+bloc.
+
 \section{Typage}
 
 \section{Génération de code}
