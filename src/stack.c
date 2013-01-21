@@ -93,3 +93,11 @@ void * stack_peak(struct stack *s, unsigned int n)
 int stack_size(struct stack *s) {
 	return s->size;
 }
+
+void stack_move(struct stack *src, struct stack *dst) {
+	void *data = NULL;
+
+	while ((data = stack_pop(src)) != NULL) {
+		stack_push(dst, data);
+	}
+}

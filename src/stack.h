@@ -11,6 +11,7 @@ void * stack_pop(struct stack *);
 void * stack_peak(struct stack *, unsigned int);
 int    stack_push(struct stack *, void *);
 int    stack_size(struct stack *s);
+void   stack_move(struct stack *src, struct stack *dst);
 
 
 #endif
