@@ -158,25 +158,7 @@ endif			: ELSE
 	stack_push(scopes, block_new());
 }
 				stmts terms END
-{
-	struct block *b;
-	// delete ELSE scope block
-	b = stack_pop(scopes);
-	block_free(b);
-	// delete IF scope block
-	b = stack_pop(scopes);
-	block_free(b);
-}
 				| END
-{
-	struct block *b;
-	// delete THEN scope block
-	b = stack_pop(scopes);
-	block_free(b);
-	// delete IF scope block
-	b = stack_pop(scopes);
-	block_free(b);
-}
 				;
 stmt
 				: IF 
@@ -190,11 +172,42 @@ stmt
 	stack_push(scopes, block_new());
 }
 				stmts terms endif
-                | FOR ID IN expr TO expr term stmts terms END
 {
-	free($2);
+	struct block *b;
+	// delete THEN/ELSE scope block
+	b = stack_pop(scopes);
+	block_free(b);
+	// delete IF scope block
+	b = stack_pop(scopes);
+	block_free(b);
 }
-                | WHILE expr DO term stmts terms END 
+
+                | FOR
+{
+	// create new scope block
+	stack_push(scopes, block_new());
+}
+				ID IN expr TO expr term stmts terms END
+{
+	struct block *b;
+	// delete scope block
+	b = stack_pop(scopes);
+	block_free(b);
+
+	free($3); // free ID
+}
+                | WHILE
+{
+	// create new scope block
+	stack_push(scopes, block_new());
+}
+				expr DO term stmts terms END 
+{
+	struct block *b;
+	// delete scope block
+	b = stack_pop(scopes);
+	block_free(b);
+}
                 | lhs '=' expr
 {
 	struct var *var = symbol_lookup(scopes, $1, VAR_T);
