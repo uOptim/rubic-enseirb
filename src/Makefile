@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Wextra -g -std=c99# -O0
+CFLAGS=-Wall -Wextra -g # -O0
 LDFLAGS=-lfl #-ly # les bibliotheques necessaires
 CC=gcc
 

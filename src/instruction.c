@@ -44,11 +44,11 @@ static struct instruction * instr_new(
 	return i;
 }
 
-static void instruction_free(struct instruction **i)
+void instruction_free(struct instruction **i)
 {
-	sym_free(&((*i)->sr));
-	sym_free(&((*i)->s1));
-	sym_free(&((*i)->s2));
+	if ((*i)->sr != NULL) sym_free(&((*i)->sr));
+	if ((*i)->s1 != NULL) sym_free(&((*i)->s1));
+	if ((*i)->s2 != NULL) sym_free(&((*i)->s2));
 
 	*i = NULL;
 }
@@ -58,57 +58,52 @@ static void instruction_free(struct instruction **i)
  * instruction creation functions *
  **********************************/
 
-struct instruction * i_add(struct cst *cr, struct cst *c1, struct cst *c2)
+struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
 {
 	struct instruction *i;
-	i = instr_new(I_ADD, sym_new(CST_T, cr), sym_new(CST_T, c1), sym_new(CST_T, c2));
+
+	i = instr_new(
+			type,
+			sym_new(CST_T, cst_new(UND_T, CST_OPRESULT)),
+			sym_new(CST_T, c1),
+			sym_new(CST_T, c2)
+	);
+
 	return i;
 }
 
-struct instruction * i_sub(struct cst *cr, struct cst *c1, struct cst *c2)
+struct instruction * i_load(struct var *vr)
 {
 	struct instruction *i;
-	i = instr_new(I_SUB, sym_new(CST_T, cr), sym_new(CST_T, c1), sym_new(CST_T, c2));
-	return i;
-}
 
-struct instruction * i_mul(struct cst *cr, struct cst *c1, struct cst *c2)
-{
-	struct instruction *i;
-	i = instr_new(I_MUL, sym_new(CST_T, cr), sym_new(CST_T, c1), sym_new(CST_T, c2));
-	return i;
-}
-
-struct instruction * i_div(struct cst *cr, struct cst *c1, struct cst *c2)
-{
-	struct instruction *i;
-	i = instr_new(I_DIV, sym_new(CST_T, cr), sym_new(CST_T, c1), sym_new(CST_T, c2));
+	i = instr_new(
+			I_LOA,
+			sym_new(CST_T, cst_new(UND_T, CST_OPRESULT)),
+			sym_new(VAR_T, vr),
+			NULL
+	);
 	return i;
 }
 
 struct instruction * i_store(struct var *vr, struct cst *c1)
 {
-	struct instruction *i;
-	i = instr_new(I_STO, sym_new(VAR_T, vr), sym_new(CST_T, c1), NULL);
-	return i;
+	return NULL;
 }
 
-struct instruction * i_load(struct var *vr, struct cst *c1)
-{
-	struct instruction *i;
-	i = instr_new(I_LOA, sym_new(VAR_T, vr), sym_new(CST_T, c1), NULL);
-	return i;
-}
 
-struct instruction * i_assign(struct var *vr, struct cst *c1)
+struct cst * instruction_get_result(const struct instruction *i)
 {
+	if (i->sr->type == CST_T) {
+		return i->sr->cst;
+	}
+
 	return NULL;
 }
 
 
 void instruction_dump(const struct instruction* i)
 {
-	switch(i->sr->type) {
+	switch (i->sr->type) {
 		case CST_T:
 			printf("reg");
 			break;
@@ -118,8 +113,8 @@ void instruction_dump(const struct instruction* i)
 	}
 
 	printf(" = constant ");
-		
-	switch(i->op_type) {
+
+	switch (i->op_type) {
 		case I_ADD:
 			printf("+");
 			break;
@@ -132,9 +127,12 @@ void instruction_dump(const struct instruction* i)
 		case I_DIV:
 			printf("*");
 			break;
+		case I_OR:
+			printf("||");
+			break;
 	}
 
-	printf("constant\n");
+	printf(" constant\n");
 }
 
 

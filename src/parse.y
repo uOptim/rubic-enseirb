@@ -7,6 +7,7 @@
 	#include "block.h"
 	#include "hashmap.h"
 	#include "symtable.h"
+	#include "instruction.h"
 
 	// include y.tab.h after every type definition
 	#include "y.tab.h"
@@ -53,6 +54,7 @@
 	double f;
 	
 	struct cst *cst;
+	struct instruction *inst;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -65,7 +67,8 @@
 %token <s> ID 
 
 %type <s> lhs
-%type <cst> primary expr exprs comp_expr additive_expr multiplicative_expr
+%type <cst> primary
+%type <inst> expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -188,17 +191,7 @@ stmt 			: IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
 
-	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	if ($2->reg > 0) {
-		printf("br i1 %%r%d, label %%IfTrue%d, label %%IfFalse%d\n",
-			$2->reg, lnum, lnum);
-	} else {
-		printf("br i1 %s, label %%IfTrue%d, label %%IfFalse%d\n",
-			($2->c > 0) ? "true" : "false", lnum, lnum);
-	}
-	printf("IfTrue%d:\n", lnum);
-
-	cst_free($2);
+	instruction_dump($2);
 }
 				stmts terms endif
 {
@@ -209,33 +202,12 @@ stmt 			: IF expr opt_terms THEN
 	free($2); // free ID
 	cst_free($4);
 }
-                | WHILE expr
+                | WHILE expr term stmts terms END 
 {
 	stack_push(labels, new_label());
-	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	if ($2->reg > 0) {
-		printf("br i1 %%r%d, label %%loop%d, label %%endloop%d\n",
-			$2->reg, lnum, lnum);
-	} else {
-		printf("br i1 %s, label %%loop%d, label %%endloop%d\n",
-			($2->c > 0) ? "true" : "false", lnum, lnum);
-	}
-	printf("loop%d:\n", lnum);
-}
-				term stmts terms END 
-{
-	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	if ($2->reg > 0) {
-		printf("br i1 %%r%d, label %%loop%d, label %%endloop%d\n",
-			$2->reg, lnum, lnum);
-	} else {
-		printf("br i1 %s, label %%loop%d, label %%endloop%d\n",
-			($2->c > 0) ? "true" : "false", lnum, lnum);
-	}
-	printf("endloop%d:\n", lnum);
 
-	free(stack_pop(labels));
-	cst_free($2);
+	printf("While: ");
+	instruction_dump($2);
 }
                 | lhs '=' expr
 {
@@ -243,7 +215,6 @@ stmt 			: IF expr opt_terms THEN
 
 	if (var == NULL) {
 		var = var_new($1);
-		var->tt = $3->type;
 
 		hashmap_set(
 			((struct block *) stack_peak(scopes, 0))->variables,
@@ -251,17 +222,13 @@ stmt 			: IF expr opt_terms THEN
 			var
 		);
 
-		printf("%%%s = alloca %s\n", var->vn, local2llvm_type(var->tt));
+		//i_alloca(var);
 	}
 	
-	int rv = craft_store(var, $3);
-	if (rv == -1) {
-		fprintf(stderr, "Incompatible types in assignment\n");
-		exit(EXIT_FAILURE);
-	}
+	instruction_dump($3);
+	i_store(var, instruction_get_result($3));
 
 	free($1);
-	cst_free($3);
 }
                 | RETURN expr
 {
@@ -270,26 +237,8 @@ stmt 			: IF expr opt_terms THEN
 		exit(EXIT_FAILURE);
 	}
 	
-	tmp_function->ret = $2->type;
-
-	if ($2->reg > 0) {
-		printf("ret %s %%r%d\n", local2llvm_type($2->type), $2->reg);
-	} else {
-		switch ($2->type) {
-			case INT_T:
-				printf("ret i32 %d\n", $2->i);
-				break;
-			case BOO_T:
-				printf("ret i1 %s\n", ($2->c > 0) ? "true" : "false");
-				break;
-			case FLO_T:
-				printf("ret double %g\n", $2->f);
-				break;
-			default:
-				fprintf(stderr, "Invalid return type?\n");
-				exit(EXIT_FAILURE);
-		}
-	}
+	instruction_dump($2);
+	//instruction_ret(instruction_get_result($2));
 
 	cst_free($2);
 }
@@ -377,13 +326,7 @@ lhs             : ID
 }
 ;
 exprs           : exprs ',' expr
-{
-	cst_free($3);
-}
                 | expr
-{
-	cst_free($1);
-}
 ;
 primary         : lhs
 {
@@ -394,15 +337,13 @@ primary         : lhs
 		exit(EXIT_FAILURE);
 	}
 
-	$$ = cst_new(v->tt, CST_OPRESULT);
-	printf("%%r%d = load %s* %%%s\n", $$->reg, local2llvm_type(v->tt), v->vn);
+	$$ = instruction_get_result(i_load(v));
 	
 	free($1);
 }
                 | STRING 
 {
-	$$ = cst_new(STR_T, CST_PURECST);
-	$$->s = $1;
+	$$ = NULL;
 }
                 | FLOAT
 {
@@ -421,94 +362,94 @@ primary         : lhs
 }
                 | '(' expr ')'
 {
-	$$ = $2;
+	instruction_dump($2);
+	$$ = instruction_get_result($2);
 }
 ;
 expr            : expr AND comp_expr
 {
-
-	$$ = craft_boolean_operation($1, $3, "and");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for boolean operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_boolean_operation($1, $3, "and");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for boolean operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | expr OR comp_expr
 {
-	$$ = craft_boolean_operation($1, $3, "or");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for boolean operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_boolean_operation($1, $3, "or");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for boolean operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | comp_expr
 {
-	$$ = $1;
+	//$$ = $1;
 }
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	$$ = craft_operation($1, $3, "icmp slt", "fcmp slt");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for comparison operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_operation($1, $3, "icmp slt", "fcmp slt");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for comparison operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr '>' additive_expr
 {
-	$$ = craft_operation($1, $3, "icmp sgt", "fcmp sgt");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for comparison operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_operation($1, $3, "icmp sgt", "fcmp sgt");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for comparison operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr LEQ additive_expr
 {
-	$$ = craft_operation($1, $3, "icmp sle", "fcmp sle");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for comparison operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_operation($1, $3, "icmp sle", "fcmp sle");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for comparison operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr GEQ additive_expr
 {
-	$$ = craft_operation($1, $3, "icmp sge", "fcmp sge");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for comparison operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_operation($1, $3, "icmp sge", "fcmp sge");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for comparison operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr EQ additive_expr
 {
-	$$ = craft_operation($1, $3, "icmp eq", "fcmp eq");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for comparison operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_operation($1, $3, "icmp eq", "fcmp eq");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for comparison operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr NEQ additive_expr
 {
-	$$ = craft_operation($1, $3, "icmp neq", "fcmp neq");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible type for comparison operation\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	//$$ = craft_operation($1, $3, "icmp neq", "fcmp neq");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible type for comparison operation\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr
 {
@@ -521,48 +462,74 @@ additive_expr   : multiplicative_expr
 }
                 | additive_expr '+' multiplicative_expr
 {
-	$$ = craft_operation($1, $3, "add", "fadd");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator +\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	instruction_dump($1);
+	instruction_dump($3);
+	struct cst *c1 = instruction_get_result($1);
+	struct cst *c2 = instruction_get_result($3);
+
+	$$ = i3addr(I_ADD, c1, c2);
+	//$$ = craft_operation($1, $3, "add", "fadd");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible types for operator +\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                 | additive_expr '-' multiplicative_expr
 {
-	$$ = craft_operation($1, $3, "sub", "fsub");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator -\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	instruction_dump($1);
+	instruction_dump($3);
+	struct cst *c1 = instruction_get_result($1);
+	struct cst *c2 = instruction_get_result($3);
+
+	$$ = i3addr(I_SUB, c1, c2);
+
+	//$$ = craft_operation($1, $3, "sub", "fsub");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible types for operator -\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
 ;
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	$$ = craft_operation($1, $3, "mul", "fmul");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator *\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	instruction_dump($1);
+	struct cst *c1 = instruction_get_result($1);
+
+	$$ = i3addr(I_MUL, c1, $3);
+
+	//$$ = craft_operation($1, $3, "mul", "fmul");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible types for operator *\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                     | multiplicative_expr '/' primary
 {
-	$$ = craft_operation($1, $3, "sdiv", "fdiv");
-	if ($$ == NULL) {
-		fprintf(stderr, "Incompatible types for operator /\n");
-		exit(EXIT_FAILURE);
-	}
-	cst_free($1);
-	cst_free($3);
+	instruction_dump($1);
+	struct cst *c1 = instruction_get_result($1);
+
+	$$ = i3addr(I_DIV, c1, $3);
+
+	//$$ = craft_operation($1, $3, "sdiv", "fdiv");
+	//if ($$ == NULL) {
+	//	fprintf(stderr, "Incompatible types for operator /\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	//cst_free($1);
+	//cst_free($3);
 }
                     | primary
 {
-	$$ = $1;
+	struct cst *c = cst_new(INT_T, CST_PURECST);
+	c->i = 0;
+
+	$$ = i3addr(I_ADD, $1, c);
 }
 ;
 opt_terms	: /* none */
