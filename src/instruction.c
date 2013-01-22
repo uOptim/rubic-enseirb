@@ -1,7 +1,17 @@
 #include "instruction.h"
+#include "types.h"
+#include "gencode.h"
+#include <assert.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+
+static char * local2llvm_instr[4][2] = {
+	{"add", "fadd"},
+	{"sub", "fsub"},
+	{"mul", "fmul"},
+	{"sdiv","fdiv"}
+};
 
 // symbols
 struct symbol {
@@ -51,6 +61,45 @@ void instruction_free(struct instruction **i)
 	if ((*i)->s2 != NULL) sym_free(&((*i)->s2));
 
 	*i = NULL;
+}
+
+/* Set possible symbol types according to the operation they appear in
+*/
+void type_constrain(struct instruction *i)
+{
+	if (i->op_type & I_ARI) {
+		unsigned char types[2] = {INT_T, FLO_T};
+
+		type_inter(i->s1->var, types, 2);
+		type_inter(i->s2->var, types, 2);
+		if (var_type_card((struct var*)i->s1->var) == 1
+				&& var_type_card((struct var*)i->s2->var) == 1) {
+			// Common type for variables stored in s1 and s2
+			types[0] = compatibility_table
+				[var_type((struct var *)i->s1->var)]
+				[var_type((struct var *)i->s2->var)];
+			type_inter(i->sr->var, types, 1);
+		}
+		else {
+			type_inter(i->sr->var, types, 2);
+		}
+	}
+}
+
+void instr_print(struct instruction *i)
+{
+	// TODO print instruction code
+	switch (i->op_type) {
+		case I_ARI:
+			assert(i->s1->type == CST_T && i->s2->type == CST_T);
+			craft_operation(
+					i->s1->cst,
+					i->s2->cst,
+					local2llvm_instr[i->op_type - I_ARI - 1][0],
+					local2llvm_instr[i->op_type - I_ARI - 1][1]
+					);
+			break;
+	}
 }
 
 

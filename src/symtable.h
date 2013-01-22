@@ -62,9 +62,6 @@ struct class {
 
 unsigned int new_reg();
 
-struct type * type_new(unsigned char);
-void          type_free(void *);
-
 struct var * var_new(const char *);
 void         var_free(void *);
 void         var_dump(void *);

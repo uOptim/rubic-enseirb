@@ -48,7 +48,12 @@ void var_free(void *var)
 
 void var_pushtype(struct var *v, unsigned char t)
 {
-	;
+	unsigned char * vt = malloc(sizeof *vt);
+	if (vt == NULL) return;
+
+	*vt = t;
+
+	stack_push(v->t, vt);
 }
 
 int var_isconst(const struct var *v)

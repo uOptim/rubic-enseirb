@@ -41,5 +41,11 @@ void         instruction_free(struct instruction **i);
 void         instruction_dump(const struct instruction *);
 struct cst * instruction_get_result(const struct instruction *);
 
+void type_constrain(struct instruction *);
+
+/* Print an instruction code on stdout.
+ * Symbol type needs to be determined especially for variables.
+ */
+void instr_print(struct instruction *);
 
 #endif
