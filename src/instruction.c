@@ -69,10 +69,12 @@ struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
 			sym_new(CST_T, c2)
 	);
 
+	i->sr->cst->type = compatibility_table[(int)c1->type][(int)c2->type];
+
 	return i;
 }
 
-struct instruction * i_load(struct var *vr)
+struct instruction * iload(struct var *vr)
 {
 	struct instruction *i;
 
@@ -85,7 +87,7 @@ struct instruction * i_load(struct var *vr)
 	return i;
 }
 
-struct instruction * i_store(struct var *vr, struct cst *c1)
+struct instruction * istore(struct var *vr, struct cst *c1)
 {
 	return NULL;
 }
@@ -105,7 +107,7 @@ void instruction_dump(const struct instruction* i)
 {
 	switch (i->sr->type) {
 		case CST_T:
-			printf("reg");
+			printf("reg%d", i->sr->cst->reg);
 			break;
 		case VAR_T:
 			printf("%s", i->sr->var->vn);
@@ -114,13 +116,22 @@ void instruction_dump(const struct instruction* i)
 
 	printf(" = ");
 
-	switch (i->s1->cst->type) {
-		case INT_T:
-			printf("%d", i->s1->cst->i);
-			break;
-		case FLO_T:
-			printf("%g", i->s1->cst->f);
-			break;
+	if (i->s1->cst->reg > 0) {
+		printf("reg%d", i->s1->cst->reg);
+	} else {
+		switch (i->s1->cst->type) {
+			case INT_T:
+				printf("%d", i->s1->cst->i);
+				break;
+			case FLO_T:
+				printf("%g", i->s1->cst->f);
+				break;
+			case UND_T:
+				printf("UND_T");
+				break;
+			default:
+				printf("Gné??");
+		}
 	}
 
 	printf(" ");
@@ -136,22 +147,52 @@ void instruction_dump(const struct instruction* i)
 			printf("*");
 			break;
 		case I_DIV:
-			printf("*");
+			printf("/");
 			break;
 		case I_OR:
 			printf("||");
+			break;
+		case I_AND:
+			printf("&&");
+			break;
+		case I_GT:
+			printf(">");
+			break;
+		case I_LT:
+			printf("<");
+			break;
+		case I_GEQ:
+			printf(">=");
+			break;
+		case I_LEQ:
+			printf("<=");
+			break;
+		case I_EQ:
+			printf("==");
+			break;
+		case I_NEQ:
+			printf("!=");
 			break;
 	}
 
 	printf(" ");
 
-	switch (i->s2->cst->type) {
-		case INT_T:
-			printf("%d", i->s2->cst->i);
-			break;
-		case FLO_T:
-			printf("%g", i->s2->cst->f);
-			break;
+	if (i->s2->cst->reg > 0) {
+		printf("reg%d", i->s2->cst->reg);
+	} else {
+		switch (i->s2->cst->type) {
+			case INT_T:
+				printf("%d", i->s2->cst->i);
+				break;
+			case FLO_T:
+				printf("%g", i->s2->cst->f);
+				break;
+			case UND_T:
+				printf("UND_T");
+				break;
+			default:
+				printf("Gné??");
+		}
 	}
 
 	printf("\n");

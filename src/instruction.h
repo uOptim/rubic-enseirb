@@ -16,10 +16,14 @@
 
 /* Boolean operation */
 #define I_BOO	0x20
-#define I_AND	0x21
-#define I_OR	0x22
-#define I_LEQ	0x23
-#define I_GEQ	0x24
+#define I_EQ	0x21
+#define I_NEQ	0x22
+#define I_AND	0x23
+#define I_OR	0x24
+#define I_LEQ	0x25
+#define I_GEQ	0x26
+#define I_LT	0x27
+#define I_GT	0x28
 
 
 
@@ -30,10 +34,8 @@ void instr_push(struct function *, struct instruction *);
 
 struct instruction * i3addr(char, struct cst *, struct cst *);
 
-struct instruction * i_store(struct var *, struct cst *);
-struct instruction * i_load(struct var *);
-
-struct instruction * i_assign(struct var *, struct cst *);
+struct instruction * istore(struct var *, struct cst *);
+struct instruction * iload(struct var *);
 
 void         instruction_free(struct instruction **i);
 void         instruction_dump(const struct instruction *);
