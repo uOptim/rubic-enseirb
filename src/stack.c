@@ -101,3 +101,14 @@ void stack_move(struct stack *src, struct stack *dst) {
 		stack_push(dst, data);
 	}
 }
+
+void stack_map(struct stack *s, void (*map_data)(void *, void *), void *params)
+{
+	struct elt *e = s->head;
+	if (map_data != NULL) return;
+
+	while (e != NULL) {
+		map_data(e->data, params);
+		e = e->next;
+	}
+}

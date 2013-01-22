@@ -260,9 +260,14 @@ int params_type_is_known(struct function *f)
  * possible type.
  * Otherwise no change is performed.
  */
-void type_explicit(struct var *v)
+void type_explicit(void *variable, void *params)
 {
 	int i = 0;
+	struct var *v = (struct var *)variable;
+
+	if (params != NULL) {
+		return;
+	}
 
 	if (((struct type *)stack_pop(v->t))->tt == UND_T) {
 		for (; i < TYPE_NB; i++) {
