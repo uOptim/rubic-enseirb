@@ -112,7 +112,18 @@ void instruction_dump(const struct instruction* i)
 			break;
 	}
 
-	printf(" = constant ");
+	printf(" = ");
+
+	switch (i->s1->cst->type) {
+		case INT_T:
+			printf("%d", i->s1->cst->i);
+			break;
+		case FLO_T:
+			printf("%g", i->s1->cst->f);
+			break;
+	}
+
+	printf(" ");
 
 	switch (i->op_type) {
 		case I_ADD:
@@ -132,7 +143,18 @@ void instruction_dump(const struct instruction* i)
 			break;
 	}
 
-	printf(" constant\n");
+	printf(" ");
+
+	switch (i->s2->cst->type) {
+		case INT_T:
+			printf("%d", i->s2->cst->i);
+			break;
+		case FLO_T:
+			printf("%g", i->s2->cst->f);
+			break;
+	}
+
+	printf("\n");
 }
 
 
