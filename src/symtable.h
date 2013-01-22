@@ -4,7 +4,7 @@
 #include "stack.h"
 #include "hashmap.h"
 
-/* Type */
+/* symbol type */
 #define FUN_T   0
 #define CLA_T   1
 #define VAR_T   2
@@ -21,29 +21,13 @@
 
 extern const char compatibility_table[3][3];
 
-// symbols
-struct symbol {
-	char type;
-	char *name;
-	void *ptr;
-};
-
-struct type {
-	union {
-		unsigned char t;         // general type
-		struct {
-			unsigned char tt:7;  // specific type
-			unsigned char tc:1;  // is const
-		};
-	};
-};
 
 struct var {
 	char *vn;
 
 	// type
-	unsigned char tt; // TODO remove when ok
 	struct stack *t;
+	unsigned char tt; // XXX when ok
 };
 
 
@@ -78,16 +62,13 @@ struct class {
 
 unsigned int new_reg();
 
-struct symbol * sym_new(const char *, char, void *);
-void            sym_dump(void *);
-void            sym_free(void *);
-
 struct type * type_new(unsigned char);
 void          type_free(void *);
 
 struct var * var_new(const char *);
 void         var_free(void *);
 void         var_dump(void *);
+void         var_pushtype(struct var *, unsigned char);
 
 struct cst * cst_new(char, char);
 void         cst_free(void *);

@@ -16,74 +16,6 @@ unsigned int new_reg() {
 	return reg++;
 }
 
-
-struct symbol * sym_new(const char *name, char t, void *d)
-{
-	struct symbol *s = malloc(sizeof *s);
-
-	s->ptr = d;
-	s->type = t;
-	s->name = strdup(name);
-
-	return s;
-}
-
-void sym_free(void *sym)
-{
-	struct symbol *s = (struct symbol *) sym;
-	free(s->name);
-
-	switch (s->type) {
-		case VAR_T:
-			var_free(s->ptr);
-			break;
-		case FUN_T:
-			function_free(s->ptr);
-			break;
-		case CLA_T:
-			class_free(s->ptr);
-			break;
-		default:
-			break;
-	}
-
-	free(s);
-}
-
-
-void sym_dump(void *sym)
-{
-	struct symbol *s = (struct symbol *) sym;
-	printf("Symbol name: %s\n", s->name);
-
-	switch (s->type) {
-		case VAR_T:
-			var_dump((struct var *) s->ptr);
-			break;
-		case FUN_T:
-			function_dump((struct function *) s->ptr);
-			break;
-		case CLA_T:
-			class_dump((struct class *) s->ptr);
-			break;
-		default:
-			break;
-	}
-}
-
-struct type * type_new(unsigned char t) {
-	struct type * ty = malloc(sizeof *ty);
-
-	if (ty == NULL) return NULL;
-
-	ty->t = t;
-	return ty;
-}
-
-void type_free(void *t) {
-	free(t);
-}
-
 struct var * var_new(const char *name)
 {
 	struct var * v = malloc(sizeof *v);
@@ -92,20 +24,11 @@ struct var * var_new(const char *name)
 
 	v->t = stack_new();
 	v->vn = strdup(name);
-
-	v->tt = UND_T;
-	struct type *tmp = type_new(UND_T);
-	/* Constants start with a capital letter */
-	if (name[0] > 'A' && name[0] < 'Z') {
-		tmp->tc = 1;
-	} else {
-		tmp->tc = 0;
-	}
-	stack_push(v->t, tmp);
+	v->tt = UND_T; // XXX
+	var_pushtype(v, UND_T);
 
 	return v;
 }
-
 
 void var_free(void *var)
 {
@@ -116,12 +39,26 @@ void var_free(void *var)
 		v->vn = NULL;
 	}
 	if (v->t != NULL) {
-		stack_free(&v->t, type_free);
+		stack_free(&v->t, free);
 		v->t = NULL;
 	}
 
 	free(v);
 }
+
+void var_pushtype(struct var *v, unsigned char t)
+{
+	;
+}
+
+int var_isconst(const struct var *v)
+{
+	if (v->vn != NULL && v->vn[0] >= 'A' && v->vn[0] <= 'Z')
+		return 1;
+
+	return 0;
+}
+
 
 
 void var_dump(void * var)

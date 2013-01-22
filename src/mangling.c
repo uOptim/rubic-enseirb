@@ -2,22 +2,11 @@
 #include <assert.h>
 #include "stack.h"
 #include "mangling.h"
+#include "instruction.h"
 
 #define TYPE_NB	5
 static unsigned char possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T,
 	STR_T, OBJ_T};
-
-struct instruction {
-	char op_type;
-
-	struct symbol *sr; // returned symbol
-
-	struct symbol *s1;
-	struct symbol *s2; // might be unused for some instruction
-};
-
-/* Instruction operations */
-static struct instruction * instr_new(int, struct symbol *, struct symbol *);
 
 /* Code generation */
 static void func_gen_codes_rec(struct function *);
@@ -35,25 +24,6 @@ static int            var_type_card(struct var *);
 static unsigned char  var_type(struct var *);
 
 
-/********************************************************************/
-/*                      Instruction operations                      */
-/********************************************************************/
-
-struct instruction * instr_new(
-	int op_type,
-	struct symbol *s1,
-	struct symbol *s2)
-{
-	struct instruction *i = malloc(sizeof *i);
-
-	i->op_type = op_type;
-	i->sr = sym_new("OSEF", CST_T, cst_new(UND_T, CST_OPRESULT));
-	i->s1 = s1;
-	i->s2 = s2;
-	type_constrain(i);
-
-	return i;
-}
 
 struct symbol * instr_push(
 	struct function *f,

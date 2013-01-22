@@ -1,4 +1,4 @@
-CFLAGS=-Wall -Wextra -g # -O0
+CFLAGS=-Wall -Wextra -g -std=c99# -O0
 LDFLAGS=-lfl #-ly # les bibliotheques necessaires
 CC=gcc
 
@@ -16,10 +16,10 @@ y.tab.o: y.tab.c y.tab.h
 lex.yy.o: lex.yy.c
 	$(CC) $(CFLAGS) -c $<
 
-rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o block.o mangling.o instruction.o
+rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o block.o instruction.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-symtable.o: symtable.c symtable.h
+symtable.o: symtable.c symtable.h hashmap.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 hashmap.o: hashmap.c hashmap.h
@@ -28,10 +28,10 @@ hashmap.o: hashmap.c hashmap.h
 stack.o: stack.c stack.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-block.o: block.c block.h stack.o
+block.o: block.c block.h symtable.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-mangling.o: mangling.c mangling.h symtable.h stack.h
+mangling.o: mangling.c mangling.h symtable.h stack.h instruction.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 instruction.o: instruction.c instruction.h symtable.h stack.h
