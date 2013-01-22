@@ -105,9 +105,15 @@ struct cst * instruction_get_result(const struct instruction *i)
 
 void instruction_dump(const struct instruction* i)
 {
-	switch (i->sr->type) {
+	char srtype = i->sr->type;
+
+	struct cst *cr = i->sr->cst;
+	struct cst *c1 = i->s1->cst;
+	struct cst *c2 = i->s2->cst;
+
+	switch (srtype) {
 		case CST_T:
-			printf("reg%d", i->sr->cst->reg);
+			printf("reg%d", cr->reg);
 			break;
 		case VAR_T:
 			printf("%s", i->sr->var->vn);
@@ -116,15 +122,15 @@ void instruction_dump(const struct instruction* i)
 
 	printf(" = ");
 
-	if (i->s1->cst->reg > 0) {
-		printf("reg%d", i->s1->cst->reg);
+	if (c1->reg > 0) {
+		printf("reg%d", c1->reg);
 	} else {
-		switch (i->s1->cst->type) {
+		switch (c1->type) {
 			case INT_T:
-				printf("%d", i->s1->cst->i);
+				printf("%d", c1->i);
 				break;
 			case FLO_T:
-				printf("%g", i->s1->cst->f);
+				printf("%g", c1->f);
 				break;
 			case UND_T:
 				printf("UND_T");
@@ -177,15 +183,15 @@ void instruction_dump(const struct instruction* i)
 
 	printf(" ");
 
-	if (i->s2->cst->reg > 0) {
-		printf("reg%d", i->s2->cst->reg);
+	if (c2->reg > 0) {
+		printf("reg%d", c2->reg);
 	} else {
-		switch (i->s2->cst->type) {
+		switch (c2->type) {
 			case INT_T:
-				printf("%d", i->s2->cst->i);
+				printf("%d", c2->i);
 				break;
 			case FLO_T:
-				printf("%g", i->s2->cst->f);
+				printf("%g", c2->f);
 				break;
 			case UND_T:
 				printf("UND_T");
