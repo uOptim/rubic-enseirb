@@ -19,6 +19,8 @@
 #define UND_T   127 // Undef
 
 
+typedef unsigned char type_t;
+
 extern const char compatibility_table[3][3];
 
 
@@ -68,6 +70,7 @@ void         var_dump(void *);
 void         var_pushtype(struct var *, unsigned char);
 
 struct cst * cst_new(char, char);
+struct cst * cst_copy(struct cst *);
 void         cst_free(void *);
 void         cst_dump(void *);
 

@@ -2,6 +2,25 @@
 
 #include <stdio.h>
 
+
+char convert2bool(struct cst *c)
+{
+	char v;
+
+	if (c->type == INT_T) {
+		if (c->i > 0) v = 1;
+		else v = 0;
+	} else if (c->type == FLO_T) {
+		if (c->f > 0) v = 1;
+		else v = 0;
+	} else {
+		fprintf(stderr, "Incompatible type for boolean conversion\n");
+	}
+
+	return v;
+}
+
+
 static const char * local2llvm_type(char type)
 {
 	switch(type) {

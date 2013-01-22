@@ -5,9 +5,9 @@
 #include <assert.h>
 
 const char compatibility_table[3][3] = 
-{ { INT_T, FLO_T, BOO_T },
-  { FLO_T, FLO_T, BOO_T },
-  { BOO_T, BOO_T, BOO_T } };
+{ { INT_T, FLO_T, -1 },
+  { FLO_T, FLO_T, -1 },
+  { -1   , -1   , -1 } };
 
 
 unsigned int new_reg() {
@@ -24,7 +24,6 @@ struct var * var_new(const char *name)
 
 	v->t = stack_new();
 	v->vn = strdup(name);
-	v->tt = UND_T; // XXX
 	var_pushtype(v, UND_T);
 
 	return v;
@@ -49,8 +48,6 @@ void var_free(void *var)
 void var_pushtype(struct var *v, unsigned char t)
 {
 	unsigned char * vt = malloc(sizeof *vt);
-	if (vt == NULL) return;
-
 	*vt = t;
 
 	stack_push(v->t, vt);
@@ -68,34 +65,19 @@ int var_isconst(const struct var *v)
 
 void var_dump(void * var)
 {
-	struct var * t = (struct var *)var;
+	struct var * v = (struct var *)var;
 
-	printf("var name: %s", t->vn);
+	printf("var name: %s\n. Possible types", v->vn);
 
-	printf(" - ");
-
-	switch (t->tt) {
-		case INT_T:
-			printf("integer");
-			break;
-		case BOO_T:
-			printf("boolean");
-			break;
-		case FLO_T:
-			printf("floating point number");
-			break;
-		case STR_T:
-			printf("string");
-			break;
-		case OBJ_T:
-			printf("object");
-			break;
-		default:
-			printf("unknown type.");
-			break;
+	type_t * t;
+	struct stack *tmp = stack_new();
+	while ((t = (type_t *) stack_pop(v->t)) != NULL) {
+		printf("%c", *t);
+		stack_push(tmp, t);
 	}
 
-	puts("");
+	stack_move(tmp, v->t);
+	stack_free(&tmp, free);
 }
 
 struct cst * cst_new(char type, char cst_type)
@@ -106,6 +88,23 @@ struct cst * cst_new(char type, char cst_type)
 	c->reg  = (cst_type == CST_PURECST) ? 0 : new_reg();
 
 	return c;
+}
+
+struct cst * cst_copy(struct cst *c)
+{
+	struct cst *copy = malloc(sizeof *copy);
+
+	copy->reg  = c->reg;
+	copy->type = c->type;
+
+	switch (c->type) {
+		case INT_T: copy->i = c->i; break;
+		case FLO_T: copy->f = c->f; break;
+		case BOO_T: copy->c = c->c; break;
+		case STR_T: copy->s = strdup(c->s); break;
+	}
+
+	return copy;
 }
 
 void cst_free(void *cst)
@@ -133,9 +132,6 @@ void cst_dump(void *cst)
 			break;
 		case FLO_T:
 			printf("INT: %g\n", c->f);
-			break;
-		case STR_T:
-			printf("INT: %s\n", c->s);
 			break;
 	}
 }

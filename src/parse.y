@@ -189,7 +189,6 @@ stmt 			: IF expr opt_terms THEN
                 | FOR ID IN expr TO expr term stmts terms END
 {
 	free($2); // free ID
-	cst_free($4);
 }
                 | WHILE expr term stmts terms END 
 {
@@ -214,8 +213,11 @@ stmt 			: IF expr opt_terms THEN
 		//i_alloca(var);
 	}
 	
+	struct instruction * i;
 	instruction_dump($3);
-	istore(var, instruction_get_result($3));
+	i = istore(var, instruction_get_result($3));
+	instruction_dump(i);
+
 
 	free($1);
 }
@@ -226,8 +228,8 @@ stmt 			: IF expr opt_terms THEN
 		exit(EXIT_FAILURE);
 	}
 	
-	instruction_dump($2);
 	//instruction_ret(instruction_get_result($2));
+	instruction_dump($2);
 
 	cst_free($2);
 }
@@ -315,7 +317,11 @@ lhs             : ID
 }
 ;
 exprs           : exprs ',' expr
+{
+}
                 | expr
+{
+}
 ;
 primary         : lhs
 {
@@ -375,7 +381,7 @@ expr            : expr AND comp_expr
 }
                 | comp_expr
 {
-	//$$ = $1;
+	$$ = $1;
 }
 ;
 comp_expr       : additive_expr '<' additive_expr
@@ -583,22 +589,3 @@ struct var * param_lookup(struct function *f, const char *name)
 	return sym;
 }
 
-
-
-char convert2bool(struct cst *c)
-{
-	char v;
-
-	if (c->type == INT_T) {
-		if (c->i > 0) v = 1;
-		else v = 0;
-	} else if (c->type == FLO_T) {
-		if (c->f > 0) v = 1;
-		else v = 0;
-	} else {
-		fprintf(stderr, "Incompatible type for boolean conversion\n");
-		exit(EXIT_FAILURE);
-	}
-
-	return v;
-}
