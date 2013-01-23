@@ -30,7 +30,14 @@
 
 
 
-struct instr;
+struct instr {
+	char op_type;
+
+	struct symbol * sr; // returned symbol
+	struct symbol * s1;
+	struct symbol * s2; // might be unused for some instruction
+};
+
 		
 void instr_push(struct function *, struct instr*);
 
@@ -40,13 +47,12 @@ struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct cst *);
 struct instr * i3addr(char, struct cst *, struct cst *);
 
-void         instr_free(struct instr**i);
-void         instr_dump(const struct instr*);
-struct cst * instr_get_result(const struct instr*);
+void instr_free(struct instr**i);
+void instr_dump(const struct instr*);
 
-int instr_type(struct instr*);
+struct cst * instr_get_result(const struct instr *);
 
-void type_constrain(struct instr*);
+void type_constrain(struct instr *);
 
 /* Print an instrcode on stdout.
  * Symbol type needs to be determined especially for variables.

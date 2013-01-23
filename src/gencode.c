@@ -29,8 +29,14 @@ int gencode_stack(struct stack *s)
 	struct instr*i;
 
 	while ((i = (struct instr*) stack_pop(s)) != NULL) {
-		;
+		if (instr_get_optype(i) == I_ALL) {
+			stack_push(alloc, i);
+		} else {
+			stack_push(other, i);
+		}
 	}
+
+	;
 
 	stack_free(&other, NULL);
 	stack_free(&alloc, NULL);

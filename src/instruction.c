@@ -33,13 +33,6 @@ struct symbol {
 static struct symbol * sym_new(char, void *);
 static void            sym_free(struct symbol **);
 
-struct instr {
-	char op_type;
-
-	struct symbol * sr; // returned symbol
-	struct symbol * s1;
-	struct symbol * s2; // might be unused for some instruction
-};
 
 
 /********************************************************************/
