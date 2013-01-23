@@ -16,7 +16,7 @@ y.tab.o: y.tab.c y.tab.h
 lex.yy.o: lex.yy.c
 	$(CC) $(CFLAGS) -c $<
 
-rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o block.o instruction.o gencode.o gencode.h types.o mangling.o
+rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o block.o instruction.o gencode.o gencode.h types.o genfunc.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 symtable.o: symtable.c symtable.h hashmap.h stack.h
@@ -31,7 +31,7 @@ stack.o: stack.c stack.h
 block.o: block.c block.h symtable.h hashmap.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-mangling.o: mangling.c mangling.h symtable.h stack.h instruction.h
+genfunc.o: genfunc.c genfunc.h symtable.h stack.h instruction.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 types.o: types.c types.h symtable.h

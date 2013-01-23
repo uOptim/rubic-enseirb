@@ -1,5 +1,5 @@
 #include "stack.h"
-#include "mangling.h"
+#include "genfunc.h"
 #include "instruction.h"
 #include "types.h"
 #include "gencode.h"
