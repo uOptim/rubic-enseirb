@@ -6,11 +6,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define CMP_OFF 4 // first index of comp operations in the following array
+
 static char * local2llvm_instr[4][2] = {
-	{"add", "fadd"},
-	{"sub", "fsub"},
-	{"mul", "fmul"},
-	{"sdiv","fdiv"}
+	{"add"     , "fadd"    },
+	{"sub"     , "fsub"    },
+	{"mul"     , "fmul"    },
+	{"sdiv"    , "fdiv"    },
+	{"icmp eq" , "fcmp oeq"},
+	{"icmp ne" , "fcmp one"},
+	{"icmp sle", "fcmp ole"},
+	{"icmp sge", "fcmp oge"},
+	{"icmp slt", "fcmp olt"},
+	{"icmp sgt", "fcmp ogt"}
 };
 
 // symbols
@@ -91,12 +99,30 @@ void instruction_print(struct instruction *i)
 	// TODO print instruction code
 	if (i->op_type & I_ARI) {
 		assert(i->s1->type == CST_T && i->s2->type == CST_T);
-		craft_operation(
+		craft_ari(
 				i->s1->cst,
 				i->s2->cst,
 				local2llvm_instr[i->op_type - I_ARI - 1][0],
 				local2llvm_instr[i->op_type - I_ARI - 1][1]
 				);
+	}
+	else if (i->op_type & I_BOO) {
+		if (i->op_type == I_AND) {
+			craft_boolean_operation(i->s2->cst, i->s2->cst, "and");
+		}
+		else if (i->op_type == I_OR) {
+			craft_boolean_operation(i->s2->cst, i->s2->cst, "or");
+		}
+		else {
+			assert(i->s1->type == CST_T && i->s2->type == CST_T);
+			craft_operation(
+					i->s1->cst,
+					i->s2->cst,
+					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][0],
+					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][1]
+					);
+		}
+
 	}
 	else if (i->op_type == I_STO) {
 		assert(i->s1->type == VAR_T && i->sr->type == CST_T);
@@ -122,9 +148,9 @@ struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
 
 	cr = cst_new(UND_T, CST_OPRESULT);
 
-	if (type && I_ARI) {
+	if (type & I_ARI) {
 		cr->type = compatibility_table[(int)c1->type][(int)c2->type];
-	} else if (type && I_BOO) {
+	} else if (type & I_BOO) {
 		cr->type = BOO_T;
 	} else {
 		fprintf(stderr, "Unrecognized types\n");

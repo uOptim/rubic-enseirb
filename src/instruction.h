@@ -15,15 +15,16 @@
 #define I_DIV	0x14
 
 /* Boolean operation */
-#define I_BOO	0x20
-#define I_EQ	0x21
-#define I_NEQ	0x22
-#define I_AND	0x23
-#define I_OR	0x24
-#define I_LEQ	0x25
-#define I_GEQ	0x26
-#define I_LT	0x27
-#define I_GT	0x28
+#define I_BOO	0x20	// operations below return boolean
+#define I_AND	0x21
+#define I_OR	0x22
+#define I_CMP	0x30	// operations below are comparative operations
+#define I_EQ	0x31
+#define I_NEQ	0x32
+#define I_LEQ	0x33
+#define I_GEQ	0x33
+#define I_LT	0x34
+#define I_GT	0x35
 
 
 
