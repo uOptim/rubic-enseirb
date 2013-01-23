@@ -3,6 +3,12 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+
+#define MAX_FN_SIZE 250
+#define TYPE_NB	5
+static char type2mangling[TYPE_NB] = { 'I', 'F', 'B', 'S', 'O' };
+
 
 #define CMP_OFF 4 // first index of comp operations in the following array
 
@@ -31,6 +37,10 @@ struct cst * craft_boolean_operation(
 	const char *);
 
 int craft_store(struct var *, const struct cst *);
+static const char * local2llvm_type(char);
+
+static const char * func_mangling(struct function *);
+static void         fn_append(void *, void *, void *);
 
 int gencode_instr(struct instr *i)
 {
@@ -75,6 +85,17 @@ int gencode_stack(struct stack *s)
 	return 0;
 }
 
+/* Given a function with parameters, local variables and return type 
+ * determined, the function code is generated.
+ * The code is printed on stdout.
+ */
+void gencode_func(struct function *f)
+{
+	// TODO: use gencode_instr
+	printf("define %s @%s(", local2llvm_type(f->ret), func_mangling(f));
+
+}
+
 char convert2bool(struct cst *c)
 {
 	char v;
@@ -93,7 +114,7 @@ char convert2bool(struct cst *c)
 }
 
 
-static const char * local2llvm_type(char type)
+const char * local2llvm_type(char type)
 {
 	switch(type) {
 		case INT_T:
@@ -340,5 +361,48 @@ void print_instr(struct instr *i)
 		assert(i->s1->type == VAR_T && i->sr->type == CST_T);
 		craft_store(i->s1->var, i->sr->cst);
 	}
+	else if (i->op_type == I_ALO) {
+		// allo
+	}
+	else if (i->op_type == I_RET) {
+		// ret
+	}
+	else {
+		gencode_instr(i);
+	}
+}
+
+/* Generates a unique name for a fonction whose parameters type is
+ * determined
+ */
+const char * func_mangling(struct function *f)
+{
+	char * fn = NULL;
+	char buffer[MAX_FN_SIZE] = "";
+	int id = 0;
+
+	assert(params_type_is_known(f));
+
+	stack_map(f->params, fn_append, buffer, &id);
+	buffer[id] = '\0';
+
+	fn = strdup(buffer);
+	if (fn == NULL) {
+		perror("strdup");
+	}
+
+	return fn;
+}
+
+// TODO: use class name instead of obj type
+void fn_append(void * variable, void *d, void *i)
+{
+	struct var *v = (struct var *)variable;
+	char * dst = (char *)d;
+	int *id = (int *)i;
+
+	assert(*id < MAX_FN_SIZE);
+
+	dst[(*id)++] = type2mangling[var_gettype(v)];
 }
 

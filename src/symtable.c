@@ -1,4 +1,5 @@
 #include "symtable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,8 +75,6 @@ int var_isconst(const struct var *v)
 
 	return 0;
 }
-
-
 
 void var_dump(void * var)
 {

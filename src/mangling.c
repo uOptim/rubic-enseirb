@@ -1,14 +1,14 @@
-#include <stdlib.h>
-#include <assert.h>
 #include "stack.h"
 #include "mangling.h"
 #include "instruction.h"
 #include "types.h"
+#include "gencode.h"
+
+#include <stdlib.h>
 
 /* Code generation */
 static void func_gen_codes_rec(struct function *);
 static void func_compute_var_type(struct function *);
-static void func_mangling(struct function *);
 
 
 /********************************************************************/
@@ -23,7 +23,7 @@ void func_gen_codes(struct function *f)
 {
 	// If some params type is UND_T then it should be put to
 	// the list of every possible type
-	stack_map(f->params, type_explicit, NULL);
+	stack_map(f->params, type_explicit, NULL, NULL);
 
 	func_gen_codes_rec(f);
 }
@@ -52,7 +52,7 @@ void func_gen_codes_rec(struct function *f)
 }
 
 /* Given a function with parameters type determined, this function
- * tries to determine the type for every local variable.
+ * tries to determine the type for every local variable and return type.
  * If a type is found for each local variable then the function
  * code is generated.
  * Otherwise, no generation is performed.
@@ -61,15 +61,6 @@ void func_compute_var_type(struct function *f)
 {
 	// TODO: use type_constrain
 
-	func_mangling(f);
+	gencode_func(f);
 }
-
-/* Given a function with parameters and local variables type determined,
- * the function code is generated.
- * The code is printed on stdout.
- */
-void func_mangling(struct function *f) {
-	// TODO: use instr_print
-}
-
 

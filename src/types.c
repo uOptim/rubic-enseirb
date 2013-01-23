@@ -6,7 +6,7 @@
 static type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T,
 	STR_T, OBJ_T};
 
-static void var_type_is_known(void *variable, void *params);
+static void var_type_is_known(void *variable, void *params, void* dummy);
 
 /********************************************************************/
 /*                        Type computation                          */
@@ -73,14 +73,18 @@ int params_type_is_known(struct function *f)
 {
 	int is_known = 1;
 
-	stack_map(f->params, var_type_is_known, &is_known);
+	stack_map(f->params, var_type_is_known, &is_known, NULL);
 
 	return is_known;
 }
 
-void var_type_is_known(void *variable, void *params) {
+void var_type_is_known(void *variable, void *params, void* dummy) {
 	struct var *v = (struct var *)variable;
 	int *is_known = (int *)params;
+
+	if (dummy != NULL) {
+		return;
+	}
 
 	if (var_gettype(v) == UND_T || var_type_card(v) != 1) {
 		*is_known = 0;
@@ -91,12 +95,12 @@ void var_type_is_known(void *variable, void *params) {
  * possible type.
  * Otherwise no change is performed.
  */
-void type_explicit(void *variable, void *params)
+void type_explicit(void *variable, void *dummy1, void *dummy2)
 {
 	int i = 0;
 	struct var *v = (struct var *)variable;
 
-	if (params != NULL) {
+	if (dummy1 != NULL || dummy2 != NULL) {
 		return;
 	}
 

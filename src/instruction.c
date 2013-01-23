@@ -1,8 +1,8 @@
 #include "instruction.h"
 #include "types.h"
 #include "gencode.h"
-#include <assert.h>
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 

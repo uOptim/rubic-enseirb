@@ -28,7 +28,7 @@ struct var {
 
 	// type
 	struct stack *t;
-	unsigned char tt; // XXX when ok
+	type_t tt; // XXX when ok
 };
 
 
@@ -65,7 +65,10 @@ unsigned int new_reg();
 struct var * var_new(const char *);
 void         var_free(void *);
 void         var_dump(void *);
-void         var_pushtype(struct var *, unsigned char);
+void         var_pushtype(struct var *, type_t);
+type_t       var_gettype(struct var *);
+int          var_type_card(struct var *);
+int          var_isconst(const struct var *);
 
 struct cst * cst_new(char, char);
 struct cst * cst_copy(struct cst *);

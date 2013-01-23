@@ -19,7 +19,7 @@ lex.yy.o: lex.yy.c
 rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o block.o instruction.o gencode.o gencode.h types.o mangling.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-symtable.o: symtable.c symtable.h hashmap.h
+symtable.o: symtable.c symtable.h hashmap.h stack.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 hashmap.o: hashmap.c hashmap.h
@@ -28,7 +28,7 @@ hashmap.o: hashmap.c hashmap.h
 stack.o: stack.c stack.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-block.o: block.c block.h symtable.h
+block.o: block.c block.h symtable.h hashmap.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 mangling.o: mangling.c mangling.h symtable.h stack.h instruction.h
@@ -40,7 +40,7 @@ types.o: types.c types.h symtable.h
 instruction.o: instruction.c instruction.h symtable.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-gencode.o: gencode.c gencode.h symtable.h stack.h
+gencode.o: gencode.c gencode.h symtable.h stack.h instruction.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 tests: tests.c stack.o hashmap.o
