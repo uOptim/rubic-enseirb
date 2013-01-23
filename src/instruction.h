@@ -6,7 +6,7 @@
 #define I_RET	0x00	// return
 #define I_STO	0x01	// store
 #define I_LOA	0x02	// load
-#define I_ALL	0x03	// allocate
+#define I_ALO	0x03	// allocate
 
 /* Arithmetic operation, be careful if changing this */
 #define I_ARI	0x10
@@ -44,16 +44,14 @@ struct instr {
 };
 
 		
-void instr_push(struct function *, struct instr*);
-
 struct instr * iret(struct cst *);
 struct instr * iload(struct var *);
 struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct cst *);
 struct instr * i3addr(char, struct cst *, struct cst *);
 
-void instr_free(struct instr**i);
-void instr_dump(const struct instr*);
+void instr_free(struct instr *);
+void instr_dump(const struct instr *);
 
 struct cst * instr_get_result(const struct instr *);
 

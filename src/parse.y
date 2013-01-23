@@ -42,7 +42,7 @@
 	double f;
 	
 	struct cst *cst;
-	struct instr*inst;
+	struct instr *inst;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -197,7 +197,7 @@ stmt 			: IF expr opt_terms THEN
                 | lhs '=' expr
 {
 	struct var *var;
-	struct instr* i;
+	struct instr *i;
 	
 	var = symbol_lookup(scopes, $1, VAR_T);
 
@@ -210,21 +210,26 @@ stmt 			: IF expr opt_terms THEN
 			var
 		);
 
-		ialloca(var);
+		i = ialloca(var);
+		stack_push(istack, i);
 	}
 	
 	i = istore(var, instr_get_result($3));
+	stack_push(istack, i);
 
 	free($1);
 }
                 | RETURN expr
 {
+	struct instr *i;
+
 	if (tmp_function == NULL) {
 		fprintf(stderr, "Unexpected 'return' token\n");
 		exit(EXIT_FAILURE);
 	}
 	
-	iret(instr_get_result($2));
+	i = iret(instr_get_result($2));
+	stack_push(istack, i);
 	cst_free($2);
 }
 
@@ -361,6 +366,7 @@ expr            : expr AND comp_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | expr OR comp_expr
 {
@@ -369,6 +375,7 @@ expr            : expr AND comp_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | comp_expr
 {
@@ -382,6 +389,7 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | additive_expr '>' additive_expr
 {
@@ -390,6 +398,7 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | additive_expr LEQ additive_expr
 {
@@ -398,6 +407,7 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | additive_expr GEQ additive_expr
 {
@@ -406,6 +416,7 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | additive_expr EQ additive_expr
 {
@@ -414,6 +425,7 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | additive_expr NEQ additive_expr
 {
@@ -422,6 +434,7 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($1),
 		instr_get_result($3)
 	);
+	stack_push(istack, $$);
 }
                 | additive_expr
 {
@@ -430,17 +443,21 @@ comp_expr       : additive_expr '<' additive_expr
 ;
 additive_expr   : additive_expr '+' multiplicative_expr
 {
-	struct cst *c1 = instr_get_result($1);
-	struct cst *c2 = instr_get_result($3);
-
-	$$ = i3addr(I_ADD, c1, c2);
+	$$ = i3addr(
+		I_ADD, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
+	stack_push(istack, $$);
 }
                 | additive_expr '-' multiplicative_expr
 {
-	struct cst *c1 = instr_get_result($1);
-	struct cst *c2 = instr_get_result($3);
-
-	$$ = i3addr(I_SUB, c1, c2);
+	$$ = i3addr(
+		I_SUB, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
+	stack_push(istack, $$);
 }
 				| multiplicative_expr
 {
@@ -450,22 +467,33 @@ additive_expr   : additive_expr '+' multiplicative_expr
 
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	struct cst *c1 = instr_get_result($1);
-
-	$$ = i3addr(I_MUL, c1, $3);
+	$$ = i3addr(
+		I_MUL, 
+		instr_get_result($1),
+		$3
+	);
+	stack_push(istack, $$);
 }
                     | multiplicative_expr '/' primary
 {
-	struct cst *c1 = instr_get_result($1);
-
-	$$ = i3addr(I_DIV, c1, $3);
+	$$ = i3addr(
+		I_DIV, 
+		instr_get_result($1),
+		$3
+	);
+	stack_push(istack, $$);
 }
                     | primary
 {
 	struct cst *c = cst_new(INT_T, CST_PURECST);
 	c->i = 0;
 
-	$$ = i3addr(I_ADD, $1, c);
+	$$ = i3addr(
+		I_DIV, 
+		$1,
+		c
+	);
+	stack_push(istack, $$);
 }
 ;
 opt_terms	: /* none */
@@ -486,6 +514,7 @@ int main() {
 
 	scopes = stack_new();
 	labels = stack_new();
+	istack = stack_new();
 
 	stack_push(scopes, block_new());
 
@@ -498,8 +527,9 @@ int main() {
 		block_free(b);
 	}
 
-	stack_free(&scopes, NULL);
 	stack_free(&labels, free);
+	stack_free(&scopes, block_free);
+	stack_free(&istack, instr_free);
 
 	return 0;
 }

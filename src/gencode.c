@@ -34,25 +34,40 @@ int craft_store(struct var *, const struct cst *);
 
 int gencode_instr(struct instr *i)
 {
+	printf("Instruction: optype = %d\n", i->op_type);
 	return 0;
 }
 
 int gencode_stack(struct stack *s)
 {
+	struct instr *i;
 	struct stack *alloc = stack_new();
 	struct stack *other = stack_new();
 
-	struct instr*i;
+	/* Note that instruction are poped from the stack in reverse order. We
+	 * first sort them in order to separate allocs from other instructions by
+	 * pushing them onto two other stacks. As a side effect, this process
+	 * reorders instructions in the correct order. */
 
-	while ((i = (struct instr*) stack_pop(s)) != NULL) {
-		if (instr_get_optype(i) == I_ALL) {
+	while ((i = (struct instr *) stack_pop(s)) != NULL) {
+		if (i->op_type == I_ALO) {
 			stack_push(alloc, i);
 		} else {
 			stack_push(other, i);
 		}
 	}
 
-	;
+	// gen allocs first
+	while ((i = (struct instr *) stack_pop(alloc)) != NULL) {
+		gencode_instr(i);
+		stack_push(s, i);
+	}
+
+	// then generate other instruction
+	while ((i = (struct instr *) stack_pop(other)) != NULL) {
+		gencode_instr(i);
+		stack_push(s, i);
+	}
 
 	stack_free(&other, NULL);
 	stack_free(&alloc, NULL);

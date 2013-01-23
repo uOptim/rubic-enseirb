@@ -31,13 +31,11 @@ static struct instr* instr_new(
 	return i;
 }
 
-void instr_free(struct instr**i)
+void instr_free(struct instr *i)
 {
-	if ((*i)->sr != NULL) { sym_free(&((*i)->sr)); (*i)->sr = NULL; }
-	if ((*i)->s1 != NULL) { sym_free(&((*i)->s1)); (*i)->s1 = NULL; }
-	if ((*i)->s2 != NULL) { sym_free(&((*i)->s2)); (*i)->s2 = NULL; }
-
-	*i = NULL;
+	if (i->sr != NULL) { sym_free(&i->sr); i->sr = NULL; }
+	if (i->s1 != NULL) { sym_free(&i->s1); i->s1 = NULL; }
+	if (i->s2 != NULL) { sym_free(&i->s2); i->s2 = NULL; }
 }
 
 /* Set possible symbol types according to the operation they appear in
@@ -94,7 +92,7 @@ struct instr* i3addr(char type, struct cst *c1, struct cst *c2)
 	return i;
 }
 
-struct instr* iret(struct cst *cr)
+struct instr * iret(struct cst *cr)
 {
 	struct instr*i;
 
@@ -113,7 +111,7 @@ struct instr* ialloca(struct var *vr)
 	struct instr*i;
 
 	i = instr_new(
-			I_ALL,
+			I_ALO,
 			sym_new(VAR_T, vr),
 			NULL,
 			NULL
