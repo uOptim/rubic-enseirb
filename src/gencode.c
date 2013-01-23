@@ -16,6 +16,27 @@ struct cst * craft_boolean_operation(
 
 int craft_store(struct var *, const struct cst *);
 
+int gencode_instr(struct instr *i)
+{
+	return 0;
+}
+
+int gencode_stack(struct stack *s)
+{
+	struct stack *alloc = stack_new();
+	struct stack *other = stack_new();
+
+	struct instr*i;
+
+	while ((i = (struct instr*) stack_pop(s)) != NULL) {
+		;
+	}
+
+	stack_free(&other, NULL);
+	stack_free(&alloc, NULL);
+
+	return 0;
+}
 
 char convert2bool(struct cst *c)
 {

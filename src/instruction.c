@@ -33,7 +33,7 @@ struct symbol {
 static struct symbol * sym_new(char, void *);
 static void            sym_free(struct symbol **);
 
-struct instruction {
+struct instr {
 	char op_type;
 
 	struct symbol * sr; // returned symbol
@@ -43,16 +43,16 @@ struct instruction {
 
 
 /********************************************************************/
-/*                      Instruction operations                      */
+/*                      instroperations                      */
 /********************************************************************/
 
-static struct instruction * instr_new(
+static struct instr* instr_new(
 		int op_type,
 		struct symbol * sr,
 		struct symbol * s1,
 		struct symbol * s2)
 {
-	struct instruction *i = malloc(sizeof *i);
+	struct instr*i = malloc(sizeof *i);
 
 	i->sr = sr;
 	i->s1 = s1;
@@ -62,7 +62,7 @@ static struct instruction * instr_new(
 	return i;
 }
 
-void instr_free(struct instruction **i)
+void instr_free(struct instr**i)
 {
 	if ((*i)->sr != NULL) { sym_free(&((*i)->sr)); (*i)->sr = NULL; }
 	if ((*i)->s1 != NULL) { sym_free(&((*i)->s1)); (*i)->s1 = NULL; }
@@ -73,7 +73,7 @@ void instr_free(struct instruction **i)
 
 /* Set possible symbol types according to the operation they appear in
 */
-void type_constrain(struct instruction *i)
+void type_constrain(struct instr*i)
 {
 	if (i->op_type & I_ARI) {
 		unsigned char types[2] = {INT_T, FLO_T};
@@ -94,9 +94,9 @@ void type_constrain(struct instruction *i)
 	}
 }
 
-void instr_print(struct instruction *i)
+void instr_print(struct instr *i)
 {
-	// TODO print instruction code
+	// TODO print instrcode
 	if (i->op_type & I_ARI) {
 		assert(i->s1->type == CST_T && i->s2->type == CST_T);
 		craft_ari(
@@ -132,13 +132,13 @@ void instr_print(struct instruction *i)
 
 
 /**********************************
- * instruction creation functions *
+ * instrcreation functions *
  **********************************/
 
-struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
+struct instr* i3addr(char type, struct cst *c1, struct cst *c2)
 {
 	struct cst *cr;
-	struct instruction *i;
+	struct instr*i;
 
 	cr = cst_new(UND_T, CST_OPRESULT);
 
@@ -161,9 +161,9 @@ struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
 	return i;
 }
 
-struct instruction * iret(struct cst *cr)
+struct instr* iret(struct cst *cr)
 {
-	struct instruction *i;
+	struct instr*i;
 
 	i = instr_new(
 			I_RET,
@@ -175,9 +175,9 @@ struct instruction * iret(struct cst *cr)
 	return i;
 }
 
-struct instruction * ialloca(struct var *vr)
+struct instr* ialloca(struct var *vr)
 {
-	struct instruction *i;
+	struct instr*i;
 
 	i = instr_new(
 			I_ALL,
@@ -189,9 +189,9 @@ struct instruction * ialloca(struct var *vr)
 	return i;
 }
 
-struct instruction * iload(struct var *vr)
+struct instr* iload(struct var *vr)
 {
-	struct instruction *i;
+	struct instr*i;
 
 	i = instr_new(
 			I_LOA,
@@ -203,9 +203,9 @@ struct instruction * iload(struct var *vr)
 	return i;
 }
 
-struct instruction * istore(struct var *vr, struct cst *c1)
+struct instr* istore(struct var *vr, struct cst *c1)
 {
-	struct instruction *i;
+	struct instr*i;
 
 	i = instr_new(
 			I_STO,
@@ -218,7 +218,7 @@ struct instruction * istore(struct var *vr, struct cst *c1)
 }
 
 
-struct cst * instr_get_result(const struct instruction *i)
+struct cst * instr_get_result(const struct instr * i)
 {
 	if (i->sr->type == CST_T) {
 		return cst_copy(i->sr->cst);
@@ -228,7 +228,7 @@ struct cst * instr_get_result(const struct instruction *i)
 }
 
 
-void instr_dump(const struct instruction* i)
+void instr_dump(const struct instr * i)
 {
 	if (i->sr == NULL) return;
 

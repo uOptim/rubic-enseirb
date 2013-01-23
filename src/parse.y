@@ -18,7 +18,7 @@
 
 	struct stack *scopes; // variables scope
 	struct stack *labels; // labels for br`s
-	struct stack *istack; // instruction stack
+	struct stack *istack; // instrstack
 
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
@@ -42,7 +42,7 @@
 	double f;
 	
 	struct cst *cst;
-	struct instruction *inst;
+	struct instr*inst;
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
@@ -197,7 +197,7 @@ stmt 			: IF expr opt_terms THEN
                 | lhs '=' expr
 {
 	struct var *var;
-	struct instruction * i;
+	struct instr* i;
 	
 	var = symbol_lookup(scopes, $1, VAR_T);
 

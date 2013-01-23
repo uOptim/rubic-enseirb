@@ -23,33 +23,34 @@
 #define I_EQ	0x31
 #define I_NEQ	0x32
 #define I_LEQ	0x33
-#define I_GEQ	0x33
-#define I_LT	0x34
-#define I_GT	0x35
+#define I_GEQ	0x34
+#define I_LT	0x35
+#define I_GT	0x36
 
 
 
 
-struct instruction;
+struct instr;
 		
-void instr_push(struct function *, struct instruction *);
+void instr_push(struct function *, struct instr*);
 
-struct instruction * i3addr(char, struct cst *, struct cst *);
+struct instr * iret(struct cst *);
+struct instr * iload(struct var *);
+struct instr * ialloca(struct var *);
+struct instr * istore(struct var *, struct cst *);
+struct instr * i3addr(char, struct cst *, struct cst *);
 
-struct instruction * iret(struct cst *);
-struct instruction * istore(struct var *, struct cst *);
-struct instruction * iload(struct var *);
-struct instruction * ialloca(struct var *);
+void         instr_free(struct instr**i);
+void         instr_dump(const struct instr*);
+struct cst * instr_get_result(const struct instr*);
 
-void         instr_free(struct instruction **i);
-void         instr_dump(const struct instruction *);
-struct cst * instr_get_result(const struct instruction *);
+int instr_type(struct instr*);
 
-void type_constrain(struct instruction *);
+void type_constrain(struct instr*);
 
-/* Print an instruction code on stdout.
+/* Print an instrcode on stdout.
  * Symbol type needs to be determined especially for variables.
  */
-void instr_print(struct instruction *);
+void instr_print(struct instr*);
 
 #endif
