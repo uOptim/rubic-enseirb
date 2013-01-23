@@ -209,33 +209,34 @@ stmt 			: IF expr opt_terms THEN
 	free($2); // free ID
 	cst_free($4);
 }
-                | WHILE expr
+                | WHILE
 {
 	stack_push(labels, new_label());
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	if ($2->reg > 0) {
-		printf("br i1 %%r%d, label %%loop%d, label %%endloop%d\n",
-			$2->reg, lnum, lnum);
-	} else {
-		printf("br i1 %s, label %%loop%d, label %%endloop%d\n",
-			($2->c > 0) ? "true" : "false", lnum, lnum);
-	}
+
+	printf("br label %%loop%d\n", lnum);
 	printf("loop%d:\n", lnum);
+}
+				expr
+{
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	if ($3->reg > 0) {
+		printf("br i1 %%r%d, label %%cond%d, label %%endloop%d\n",
+			$3->reg, lnum, lnum);
+	} else {
+		printf("br i1 %s, label %%cond%d, label %%endloop%d\n",
+			($3->c > 0) ? "true" : "false", lnum, lnum);
+	}
+	printf("cond%d:\n", lnum);
 }
 				term stmts terms END 
 {
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	if ($2->reg > 0) {
-		printf("br i1 %%r%d, label %%loop%d, label %%endloop%d\n",
-			$2->reg, lnum, lnum);
-	} else {
-		printf("br i1 %s, label %%loop%d, label %%endloop%d\n",
-			($2->c > 0) ? "true" : "false", lnum, lnum);
-	}
+	printf("br label %%loop%d\n", lnum);
 	printf("endloop%d:\n", lnum);
 
 	free(stack_pop(labels));
-	cst_free($2);
+	cst_free($3);
 }
                 | lhs '=' expr
 {
