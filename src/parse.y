@@ -16,13 +16,12 @@
 	struct class    *tmp_class;
 	struct function *tmp_function;
 
-	struct stack *scopes;
-	struct stack *labels;
+	struct stack *scopes; // variables scope
+	struct stack *labels; // labels for br`s
+	struct stack *istack; // instruction stack
 
-	const char * local2llvm_type(char);
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
-
 
 	unsigned int *new_label() {
 		static unsigned int labelnum = 1;
@@ -180,7 +179,6 @@ stmt 			: IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
 
-	instruction_dump($2);
 }
 				stmts terms endif
 {
@@ -195,11 +193,13 @@ stmt 			: IF expr opt_terms THEN
 	stack_push(labels, new_label());
 
 	printf("While: ");
-	instruction_dump($2);
 }
                 | lhs '=' expr
 {
-	struct var *var = symbol_lookup(scopes, $1, VAR_T);
+	struct var *var;
+	struct instruction * i;
+	
+	var = symbol_lookup(scopes, $1, VAR_T);
 
 	if (var == NULL) {
 		var = var_new($1);
@@ -210,16 +210,10 @@ stmt 			: IF expr opt_terms THEN
 			var
 		);
 
-		//i_alloca(var);
+		ialloca(var);
 	}
 	
-	struct instruction * i;
-	instruction_dump($3);
-	instruction_print($3);
-	i = istore(var, instruction_get_result($3));
-	instruction_dump(i);
-	instruction_print(i);
-
+	i = istore(var, instr_get_result($3));
 
 	free($1);
 }
@@ -230,9 +224,7 @@ stmt 			: IF expr opt_terms THEN
 		exit(EXIT_FAILURE);
 	}
 	
-	//instruction_ret(instruction_get_result($2));
-	instruction_dump($2);
-
+	iret(instr_get_result($2));
 	cst_free($2);
 }
 
@@ -334,7 +326,7 @@ primary         : lhs
 		exit(EXIT_FAILURE);
 	}
 
-	$$ = instruction_get_result(iload(v));
+	$$ = instr_get_result(iload(v));
 	
 	free($1);
 }
@@ -359,27 +351,24 @@ primary         : lhs
 }
                 | '(' expr ')'
 {
-	instruction_dump($2);
-	$$ = instruction_get_result($2);
+	$$ = instr_get_result($2);
 }
 ;
 expr            : expr AND comp_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_AND, c1, c2);
+	$$ = i3addr(
+		I_AND, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | expr OR comp_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_OR, c1, c2);
+	$$ = i3addr(
+		I_OR, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | comp_expr
 {
@@ -388,57 +377,51 @@ expr            : expr AND comp_expr
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_LT, c1, c2);
+	$$ = i3addr(
+		I_LT, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | additive_expr '>' additive_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_GT, c1, c2);
+	$$ = i3addr(
+		I_GT, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | additive_expr LEQ additive_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_LEQ, c1, c2);
+	$$ = i3addr(
+		I_LEQ, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | additive_expr GEQ additive_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_GEQ, c1, c2);
+	$$ = i3addr(
+		I_GEQ, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | additive_expr EQ additive_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_EQ, c1, c2);
+	$$ = i3addr(
+		I_EQ, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | additive_expr NEQ additive_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
-
-	$$ = i3addr(I_NEQ, c1, c2);
+	$$ = i3addr(
+		I_NEQ, 
+		instr_get_result($1),
+		instr_get_result($3)
+	);
 }
                 | additive_expr
 {
@@ -447,23 +430,17 @@ comp_expr       : additive_expr '<' additive_expr
 ;
 additive_expr   : additive_expr '+' multiplicative_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
+	struct cst *c1 = instr_get_result($1);
+	struct cst *c2 = instr_get_result($3);
 
 	$$ = i3addr(I_ADD, c1, c2);
-	instruction_print($$);
 }
                 | additive_expr '-' multiplicative_expr
 {
-	instruction_dump($1);
-	instruction_dump($3);
-	struct cst *c1 = instruction_get_result($1);
-	struct cst *c2 = instruction_get_result($3);
+	struct cst *c1 = instr_get_result($1);
+	struct cst *c2 = instr_get_result($3);
 
 	$$ = i3addr(I_SUB, c1, c2);
-	instruction_print($$);
 }
 				| multiplicative_expr
 {
@@ -473,19 +450,15 @@ additive_expr   : additive_expr '+' multiplicative_expr
 
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	instruction_dump($1);
-	struct cst *c1 = instruction_get_result($1);
+	struct cst *c1 = instr_get_result($1);
 
 	$$ = i3addr(I_MUL, c1, $3);
-	instruction_print($$);
 }
                     | multiplicative_expr '/' primary
 {
-	instruction_dump($1);
-	struct cst *c1 = instruction_get_result($1);
+	struct cst *c1 = instr_get_result($1);
 
 	$$ = i3addr(I_DIV, c1, $3);
-	instruction_print($$);
 }
                     | primary
 {

@@ -214,7 +214,6 @@ struct function * function_new(const char *name)
 	f->ret = UND_T;
 	f->fn = strdup(name);
 	f->params = stack_new();
-	f->instr = stack_new();
 
 	return f;
 }
@@ -234,12 +233,6 @@ void function_free(void *function)
 		// the scope block too
 		stack_free(&f->params, NULL);
 		f->params = NULL;
-	}
-
-	if (f->instr != NULL) {
-		// TODO replace NULL by a fonction that free memory correctly
-		stack_free(&f->instr, NULL);
-		f->instr = NULL;
 	}
 
 	free(f);

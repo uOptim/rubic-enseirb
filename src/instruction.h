@@ -6,6 +6,7 @@
 #define I_RET	0x00	// return
 #define I_STO	0x01	// store
 #define I_LOA	0x02	// load
+#define I_ALL	0x03	// allocate
 
 /* Arithmetic operation, be careful if changing this */
 #define I_ARI	0x10
@@ -35,18 +36,20 @@ void instr_push(struct function *, struct instruction *);
 
 struct instruction * i3addr(char, struct cst *, struct cst *);
 
+struct instruction * iret(struct cst *);
 struct instruction * istore(struct var *, struct cst *);
 struct instruction * iload(struct var *);
+struct instruction * ialloca(struct var *);
 
-void         instruction_free(struct instruction **i);
-void         instruction_dump(const struct instruction *);
-struct cst * instruction_get_result(const struct instruction *);
+void         instr_free(struct instruction **i);
+void         instr_dump(const struct instruction *);
+struct cst * instr_get_result(const struct instruction *);
 
 void type_constrain(struct instruction *);
 
 /* Print an instruction code on stdout.
  * Symbol type needs to be determined especially for variables.
  */
-void instruction_print(struct instruction *);
+void instr_print(struct instruction *);
 
 #endif

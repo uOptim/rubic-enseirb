@@ -8,7 +8,7 @@
 
 #define CMP_OFF 4 // first index of comp operations in the following array
 
-static char * local2llvm_instr[4][2] = {
+static char * local2llvm_instr[10][2] = {
 	{"add"     , "fadd"    },
 	{"sub"     , "fsub"    },
 	{"mul"     , "fmul"    },
@@ -62,7 +62,7 @@ static struct instruction * instr_new(
 	return i;
 }
 
-void instruction_free(struct instruction **i)
+void instr_free(struct instruction **i)
 {
 	if ((*i)->sr != NULL) { sym_free(&((*i)->sr)); (*i)->sr = NULL; }
 	if ((*i)->s1 != NULL) { sym_free(&((*i)->s1)); (*i)->s1 = NULL; }
@@ -94,7 +94,7 @@ void type_constrain(struct instruction *i)
 	}
 }
 
-void instruction_print(struct instruction *i)
+void instr_print(struct instruction *i)
 {
 	// TODO print instruction code
 	if (i->op_type & I_ARI) {
@@ -130,12 +130,6 @@ void instruction_print(struct instruction *i)
 	}
 }
 
-void instr_push(struct function *f, struct instruction *i)
-{
-	stack_push(f->instr, i);
-	//return i->sr;
-}
-
 
 /**********************************
  * instruction creation functions *
@@ -162,6 +156,34 @@ struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
 			sym_new(CST_T, cr),
 			sym_new(CST_T, c1),
 			sym_new(CST_T, c2)
+			);
+
+	return i;
+}
+
+struct instruction * iret(struct cst *cr)
+{
+	struct instruction *i;
+
+	i = instr_new(
+			I_RET,
+			sym_new(CST_T, cr),
+			NULL,
+			NULL
+			);
+
+	return i;
+}
+
+struct instruction * ialloca(struct var *vr)
+{
+	struct instruction *i;
+
+	i = instr_new(
+			I_ALL,
+			sym_new(VAR_T, vr),
+			NULL,
+			NULL
 			);
 
 	return i;
@@ -196,7 +218,7 @@ struct instruction * istore(struct var *vr, struct cst *c1)
 }
 
 
-struct cst * instruction_get_result(const struct instruction *i)
+struct cst * instr_get_result(const struct instruction *i)
 {
 	if (i->sr->type == CST_T) {
 		return cst_copy(i->sr->cst);
@@ -206,7 +228,7 @@ struct cst * instruction_get_result(const struct instruction *i)
 }
 
 
-void instruction_dump(const struct instruction* i)
+void instr_dump(const struct instruction* i)
 {
 	if (i->sr == NULL) return;
 

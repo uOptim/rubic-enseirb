@@ -50,7 +50,6 @@ struct function {
 	char *fn;
 	char ret;
 	struct stack *params;
-	struct stack *instr;
 };
 
 
