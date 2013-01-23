@@ -1,7 +1,23 @@
 #include "types.h"
 #include "gencode.h"
 
+#include <assert.h>
 #include <stdio.h>
+
+#define CMP_OFF 4 // first index of comp operations in the following array
+
+static char * local2llvm_instr[10][2] = {
+	{"add"     , "fadd"    },
+	{"sub"     , "fsub"    },
+	{"mul"     , "fmul"    },
+	{"sdiv"    , "fdiv"    },
+	{"icmp eq" , "fcmp oeq"},
+	{"icmp ne" , "fcmp one"},
+	{"icmp sle", "fcmp ole"},
+	{"icmp sge", "fcmp oge"},
+	{"icmp slt", "fcmp olt"},
+	{"icmp sgt", "fcmp ogt"}
+};
 
 struct cst * craft_operation(
 	const struct cst *,
@@ -273,5 +289,41 @@ struct cst * craft_boolean_operation(
 	puts("");
 
 	return c;
+}
+
+void print_instr(struct instr *i)
+{
+	// TODO print instrcode
+	if (i->op_type & I_ARI) {
+		assert(i->s1->type == CST_T && i->s2->type == CST_T);
+		craft_operation(
+				i->s1->cst,
+				i->s2->cst,
+				local2llvm_instr[i->op_type - I_ARI - 1][0],
+				local2llvm_instr[i->op_type - I_ARI - 1][1]
+				);
+	}
+	else if (i->op_type & I_BOO) {
+		if (i->op_type == I_AND) {
+			craft_boolean_operation(i->s2->cst, i->s2->cst, "and");
+		}
+		else if (i->op_type == I_OR) {
+			craft_boolean_operation(i->s2->cst, i->s2->cst, "or");
+		}
+		else {
+			assert(i->s1->type == CST_T && i->s2->type == CST_T);
+			craft_operation(
+					i->s1->cst,
+					i->s2->cst,
+					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][0],
+					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][1]
+					);
+		}
+
+	}
+	else if (i->op_type == I_STO) {
+		assert(i->s1->type == VAR_T && i->sr->type == CST_T);
+		craft_store(i->s1->var, i->sr->cst);
+	}
 }
 

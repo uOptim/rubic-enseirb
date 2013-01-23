@@ -27,8 +27,13 @@
 #define I_LT	0x35
 #define I_GT	0x36
 
-
-
+struct symbol {
+	char type;
+	union {
+		struct cst *cst;
+		struct var *var;
+	};
+};
 
 struct instr {
 	char op_type;
