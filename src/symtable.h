@@ -36,7 +36,7 @@ struct var {
 #define CST_OPRESULT 1
 
 struct cst {
-	char type;
+	type_t type;
 	unsigned int reg;
 	union {
 		int i;
@@ -48,7 +48,7 @@ struct cst {
 
 struct function {
 	char *fn;
-	char ret;
+	type_t ret;
 	struct stack *params;
 };
 
@@ -70,7 +70,7 @@ type_t       var_gettype(struct var *);
 int          var_type_card(struct var *);
 int          var_isconst(const struct var *);
 
-struct cst * cst_new(char, char);
+struct cst * cst_new(type_t, char);
 struct cst * cst_copy(struct cst *);
 void         cst_free(void *);
 void         cst_dump(void *);

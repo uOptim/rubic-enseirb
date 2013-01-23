@@ -36,9 +36,9 @@ struct cst * craft_boolean_operation(
 	const struct cst *,
 	const char *);
 
-int craft_store(struct var *, const struct cst *);
+int                 craft_store(struct var *, const struct cst *);
 static const char * local2llvm_type(char);
-
+static void         gencode_param(void *, void *, void *);
 static const char * func_mangling(struct function *);
 static void         fn_append(void *, void *, void *);
 
@@ -89,11 +89,33 @@ int gencode_stack(struct stack *s)
  * determined, the function code is generated.
  * The code is printed on stdout.
  */
-void gencode_func(struct function *f)
+void gencode_func(struct function *f, struct stack *instructions)
 {
-	// TODO: use gencode_instr
-	printf("define %s @%s(", local2llvm_type(f->ret), func_mangling(f));
+	int is_first_param = 1;
+	assert(params_type_is_known(f));
 
+	printf("define %s @%s(", local2llvm_type(f->ret), func_mangling(f));
+	stack_map(f->params, gencode_param, &is_first_param, NULL);
+	printf(") {\n");
+	gencode_stack(instructions);
+	printf("}");
+}
+
+void gencode_param(void *param, void *is_first_param, void *dummy) {
+	struct var * p = (struct var *)param;
+	int * is_fp = (int *)is_first_param;
+
+	if (dummy == NULL) {
+		return;
+	}
+
+	if (*is_fp) {
+		printf("%s %%%s", local2llvm_type(var_gettype(p)), p->vn);
+	}
+	else {
+		printf(", %s %%%s", local2llvm_type(var_gettype(p)), p->vn);
+	}
+	*is_fp = 0;
 }
 
 char convert2bool(struct cst *c)
@@ -327,9 +349,9 @@ struct cst * craft_boolean_operation(
 	return c;
 }
 
+// TODO finish him!
 void print_instr(struct instr *i)
 {
-	// TODO print instrcode
 	if (i->op_type & I_ARI) {
 		assert(i->s1->type == CST_T && i->s2->type == CST_T);
 		craft_operation(
@@ -380,8 +402,6 @@ const char * func_mangling(struct function *f)
 	char * fn = NULL;
 	char buffer[MAX_FN_SIZE] = "";
 	int id = 0;
-
-	assert(params_type_is_known(f));
 
 	stack_map(f->params, fn_append, buffer, &id);
 	buffer[id] = '\0';

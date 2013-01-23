@@ -93,7 +93,7 @@ void var_dump(void * var)
 	stack_free(&tmp, free);
 }
 
-struct cst * cst_new(char type, char cst_type)
+struct cst * cst_new(type_t type, char cst_type)
 {
 	struct cst *c = malloc(sizeof *c);
 
