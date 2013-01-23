@@ -1,5 +1,5 @@
 #include "instruction.h"
-//#include "types.h"
+#include "types.h"
 #include "gencode.h"
 #include <assert.h>
 
@@ -39,10 +39,10 @@ struct instruction {
 /********************************************************************/
 
 static struct instruction * instr_new(
-	int op_type,
-	struct symbol * sr,
-	struct symbol * s1,
-	struct symbol * s2)
+		int op_type,
+		struct symbol * sr,
+		struct symbol * s1,
+		struct symbol * s2)
 {
 	struct instruction *i = malloc(sizeof *i);
 
@@ -65,7 +65,7 @@ void instruction_free(struct instruction **i)
 
 /* Set possible symbol types according to the operation they appear in
 */
-/*void type_constrain(struct instruction *i)
+void type_constrain(struct instruction *i)
 {
 	if (i->op_type & I_ARI) {
 		unsigned char types[2] = {INT_T, FLO_T};
@@ -84,22 +84,26 @@ void instruction_free(struct instruction **i)
 			type_inter(i->sr->var, types, 2);
 		}
 	}
-}*/
+}
 
 void instr_print(struct instruction *i)
 {
 	// TODO print instruction code
-	switch (i->op_type) {
-		case I_ARI:
-			assert(i->s1->type == CST_T && i->s2->type == CST_T);
-			craft_operation(
-					i->s1->cst,
-					i->s2->cst,
-					local2llvm_instr[i->op_type - I_ARI - 1][0],
-					local2llvm_instr[i->op_type - I_ARI - 1][1]
-					);
-			break;
+	if (i->op_type & I_ARI) {
+		assert(i->s1->type == CST_T && i->s2->type == CST_T);
+		craft_operation(
+				i->s1->cst,
+				i->s2->cst,
+				local2llvm_instr[i->op_type - I_ARI - 1][0],
+				local2llvm_instr[i->op_type - I_ARI - 1][1]
+				);
 	}
+}
+
+void instr_push(struct function *f, struct instruction *i)
+{
+	stack_push(f->instr, i);
+	//return i->sr;
 }
 
 
@@ -128,7 +132,7 @@ struct instruction * i3addr(char type, struct cst *c1, struct cst *c2)
 			sym_new(CST_T, cr),
 			sym_new(CST_T, c1),
 			sym_new(CST_T, c2)
-	);
+			);
 
 	return i;
 }
@@ -142,7 +146,7 @@ struct instruction * iload(struct var *vr)
 			sym_new(CST_T, cst_new(UND_T, CST_OPRESULT)),
 			sym_new(VAR_T, vr),
 			NULL
-	);
+			);
 
 	return i;
 }
@@ -156,7 +160,7 @@ struct instruction * istore(struct var *vr, struct cst *c1)
 			sym_new(CST_T, c1),
 			sym_new(VAR_T, vr),
 			NULL
-	);
+			);
 
 	return i;
 }

@@ -10,13 +10,6 @@ static void func_compute_var_type(struct function *);
 static void func_mangling(struct function *);
 
 
-struct symbol * instr_push(struct function *f, struct instruction *i)
-{
-	stack_push(f->instr, i);
-
-	return i->sr;
-}
-
 /********************************************************************/
 /*                          Code generation                         */
 /********************************************************************/
