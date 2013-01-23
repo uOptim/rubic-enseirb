@@ -31,8 +31,10 @@ static struct instr* instr_new(
 	return i;
 }
 
-void instr_free(struct instr *i)
+void instr_free(void *instruction)
 {
+	struct instr *i = (struct instr *) instruction;
+
 	if (i->sr != NULL) { sym_free(&i->sr); i->sr = NULL; }
 	if (i->s1 != NULL) { sym_free(&i->s1); i->s1 = NULL; }
 	if (i->s2 != NULL) { sym_free(&i->s2); i->s2 = NULL; }

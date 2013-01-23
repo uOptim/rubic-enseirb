@@ -50,7 +50,7 @@ struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct cst *);
 struct instr * i3addr(char, struct cst *, struct cst *);
 
-void instr_free(struct instr *);
+void instr_free(void *);
 void instr_dump(const struct instr *);
 
 struct cst * instr_get_result(const struct instr *);
