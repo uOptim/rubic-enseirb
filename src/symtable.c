@@ -46,9 +46,9 @@ void var_free(void *var)
 	free(v);
 }
 
-void var_pushtype(struct var *v, unsigned char t)
+void var_pushtype(struct var *v, type_t t)
 {
-	unsigned char * vt = malloc(sizeof *vt);
+	type_t * vt = malloc(sizeof *vt);
 	*vt = t;
 
 	stack_push(v->t, vt);

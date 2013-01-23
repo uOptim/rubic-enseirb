@@ -70,7 +70,7 @@ void instr_free(void *instruction)
 void type_constrain(struct instr*i)
 {
 	if (i->op_type & I_ARI) {
-		unsigned char types[2] = {INT_T, FLO_T};
+		type_t types[2] = {INT_T, FLO_T};
 
 		type_inter(i->s1->var, types, 2);
 		type_inter(i->s2->var, types, 2);
