@@ -3,7 +3,7 @@
 #include "stack.h"
 
 #define TYPE_NB	5
-static unsigned char possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T,
+static type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T,
 	STR_T, OBJ_T};
 
 static void var_type_is_known(void *variable, void *params);
@@ -18,15 +18,15 @@ static void var_type_is_known(void *variable, void *params);
  * type is an array of possibles types for the symbol
  * n	is the size of this array
  */
-void type_inter(struct var *v, const unsigned char types[], int n)
+void type_inter(struct var *v, const type_t types[], int n)
 {
 	int i = 0;
 	struct stack *stmp = stack_new();
-	unsigned char * cur_type = NULL;
+	type_t * cur_type = NULL;
 
 	// the symbol type was undefined
 	// we have now some idea of its possible types
-	if (var_type(v) == UND_T) {
+	if (var_gettype(v) == UND_T) {
 		free(stack_pop(v->t));
 
 		for (i = 0; i < n; i++) {
@@ -82,7 +82,7 @@ void var_type_is_known(void *variable, void *params) {
 	struct var *v = (struct var *)variable;
 	int *is_known = (int *)params;
 
-	if (var_type(v) == UND_T || var_type_card(v) != 1) {
+	if (var_gettype(v) == UND_T || var_type_card(v) != 1) {
 		*is_known = 0;
 	}
 }
@@ -100,23 +100,9 @@ void type_explicit(void *variable, void *params)
 		return;
 	}
 
-	if (*((unsigned char *)stack_pop(v->t)) == UND_T) {
+	if (*((type_t *)stack_pop(v->t)) == UND_T) {
 		for (; i < TYPE_NB; i++) {
 			var_pushtype(v, possible_types[i]);
 		}
 	}
-}
-
-/* Returns the number of types possible for a variable
-*/
-int var_type_card(struct var *v)
-{
-	return stack_size(v->t);
-}
-
-/* Returns the first possible variable type
-*/
-unsigned char var_type(struct var *v)
-{
-	return *((unsigned char *)stack_peak(v->t, 0));
 }

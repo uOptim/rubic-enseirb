@@ -53,6 +53,20 @@ void var_pushtype(struct var *v, unsigned char t)
 	stack_push(v->t, vt);
 }
 
+/* Returns the first possible variable type
+*/
+type_t var_gettype(struct var *v)
+{
+	return *((type_t *)stack_peak(v->t, 0));
+}
+
+/* Returns the number of types possible for a variable
+*/
+int var_type_card(struct var *v)
+{
+	return stack_size(v->t);
+}
+
 int var_isconst(const struct var *v)
 {
 	if (v->vn != NULL && v->vn[0] >= 'A' && v->vn[0] <= 'Z')

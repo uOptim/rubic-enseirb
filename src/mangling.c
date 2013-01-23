@@ -3,6 +3,7 @@
 #include "stack.h"
 #include "mangling.h"
 #include "instruction.h"
+#include "types.h"
 
 /* Code generation */
 static void func_gen_codes_rec(struct function *);
@@ -20,9 +21,6 @@ static void func_mangling(struct function *);
  */
 void func_gen_codes(struct function *f)
 {
-	struct stack *tmp = stack_new();
-	struct var *cur_param = NULL;
-
 	// If some params type is UND_T then it should be put to
 	// the list of every possible type
 	stack_map(f->params, type_explicit, NULL);

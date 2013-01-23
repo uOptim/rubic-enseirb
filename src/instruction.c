@@ -76,8 +76,8 @@ void type_constrain(struct instruction *i)
 				&& var_type_card((struct var*)i->s2->var) == 1) {
 			// Common type for variables stored in s1 and s2
 			types[0] = compatibility_table
-				[var_type((struct var *)i->s1->var)]
-				[var_type((struct var *)i->s2->var)];
+				[var_gettype((struct var *)i->s1->var)]
+				[var_gettype((struct var *)i->s2->var)];
 			type_inter(i->sr->var, types, 1);
 		}
 		else {
@@ -90,6 +90,15 @@ void instr_print(struct instruction *i)
 {
 	// TODO print instruction code
 	if (i->op_type & I_ARI) {
+		assert(i->s1->type == CST_T && i->s2->type == CST_T);
+		craft_operation(
+				i->s1->cst,
+				i->s2->cst,
+				local2llvm_instr[i->op_type - I_ARI - 1][0],
+				local2llvm_instr[i->op_type - I_ARI - 1][1]
+				);
+	}
+	else if (i->op_type == I_STO) {
 		assert(i->s1->type == CST_T && i->s2->type == CST_T);
 		craft_operation(
 				i->s1->cst,

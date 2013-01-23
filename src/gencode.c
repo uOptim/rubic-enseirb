@@ -1,4 +1,5 @@
 #include "gencode.h"
+#include "types.h"
 
 #include <stdio.h>
 
@@ -45,13 +46,15 @@ static const char * local2llvm_type(char type)
 
 int craft_store(struct var *var, const struct cst *c)
 {
-	if (var->tt == UND_T) {
-		var->tt = c->type;
+	if (var_gettype(var) == UND_T) {
+		var_pushtype(var, c->type);
 	} else {
-		var->tt = compatibility_table[(int)var->tt][(int)c->type];
+		var_pushtype(var, compatibility_table
+				[(int)var_gettype(var)]
+				[(int)c->type]);
 	}
 
-	printf("store %s ", local2llvm_type(var->tt));
+	printf("store %s ", local2llvm_type(var_gettype(var)));
 	if (c->reg > 0) {
 		printf("%%r%d, ", c->reg);
 	} else {
@@ -67,7 +70,7 @@ int craft_store(struct var *var, const struct cst *c)
 				break;
 		}
 	}
-	printf("%s* %%%s\n", local2llvm_type(var->tt), var->vn);
+	printf("%s* %%%s\n", local2llvm_type(var_gettype(var)), var->vn);
 	return 0;
 }
 

@@ -18,7 +18,6 @@
 
 #define UND_T   127 // Undef
 
-
 typedef unsigned char type_t;
 
 extern const char compatibility_table[3][3];
