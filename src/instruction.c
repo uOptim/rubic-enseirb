@@ -21,7 +21,7 @@ static struct instr* instr_new(
 		struct symbol * s1,
 		struct symbol * s2)
 {
-	struct instr*i = malloc(sizeof *i);
+	struct instr *i = malloc(sizeof *i);
 
 	i->sr = sr;
 	i->s1 = s1;
@@ -35,9 +35,34 @@ void instr_free(void *instruction)
 {
 	struct instr *i = (struct instr *) instruction;
 
-	if (i->sr != NULL) { sym_free(&i->sr); i->sr = NULL; }
-	if (i->s1 != NULL) { sym_free(&i->s1); i->s1 = NULL; }
-	if (i->s2 != NULL) { sym_free(&i->s2); i->s2 = NULL; }
+	// do not free symbols of type VAR_T, they are used elsewhere.
+	if (i->sr != NULL) {
+		if (i->sr->type != VAR_T) { 
+			sym_free(&i->sr);
+		} else {
+			free(i->sr);
+		}
+	}
+	if (i->s1 != NULL) {
+		if (i->s1->type != VAR_T) {
+			sym_free(&i->s1);
+		} else {
+			free(i->s1);
+		}
+	}
+	if (i->s2 != NULL) {
+		if (i->s2->type != VAR_T) {
+			sym_free(&i->s2);
+		} else {
+			free(i->s2);
+		}
+	}
+
+	i->sr = NULL;
+	i->s1 = NULL;
+	i->s2 = NULL;
+
+	free(i);
 }
 
 /* Set possible symbol types according to the operation they appear in
@@ -117,7 +142,7 @@ struct instr* ialloca(struct var *vr)
 			sym_new(VAR_T, vr),
 			NULL,
 			NULL
-			);
+		);
 
 	return i;
 }

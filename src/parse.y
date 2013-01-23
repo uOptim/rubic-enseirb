@@ -178,7 +178,7 @@ endif			: ELSE
 stmt 			: IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
-
+	instr_free($2);
 }
 				stmts terms endif
 {
@@ -187,12 +187,13 @@ stmt 			: IF expr opt_terms THEN
                 | FOR ID IN expr TO expr term stmts terms END
 {
 	free($2); // free ID
+	instr_free($4);
+	instr_free($6);
 }
                 | WHILE expr term stmts terms END 
 {
 	stack_push(labels, new_label());
-
-	printf("While: ");
+	instr_free($2);
 }
                 | lhs '=' expr
 {
@@ -317,13 +318,16 @@ lhs             : ID
 ;
 exprs           : exprs ',' expr
 {
+	instr_free($3);
 }
                 | expr
 {
+	instr_free($1);
 }
 ;
 primary         : lhs
 {
+	struct instr *i;
 	struct var *v = symbol_lookup(scopes, $1, VAR_T);
 
 	if (v == NULL) {
@@ -331,7 +335,9 @@ primary         : lhs
 		exit(EXIT_FAILURE);
 	}
 
-	$$ = instr_get_result(iload(v));
+	i = iload(v);
+	stack_push(istack, i);
+	$$ = instr_get_result(i);
 	
 	free($1);
 }
@@ -357,6 +363,7 @@ primary         : lhs
                 | '(' expr ')'
 {
 	$$ = instr_get_result($2);
+	instr_free($2);
 }
 ;
 expr            : expr AND comp_expr
@@ -367,6 +374,8 @@ expr            : expr AND comp_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | expr OR comp_expr
 {
@@ -376,6 +385,8 @@ expr            : expr AND comp_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | comp_expr
 {
@@ -390,6 +401,8 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr '>' additive_expr
 {
@@ -399,6 +412,8 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr LEQ additive_expr
 {
@@ -408,6 +423,8 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr GEQ additive_expr
 {
@@ -417,6 +434,8 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr EQ additive_expr
 {
@@ -426,6 +445,8 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr NEQ additive_expr
 {
@@ -435,6 +456,8 @@ comp_expr       : additive_expr '<' additive_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr
 {
@@ -449,6 +472,8 @@ additive_expr   : additive_expr '+' multiplicative_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                 | additive_expr '-' multiplicative_expr
 {
@@ -458,6 +483,8 @@ additive_expr   : additive_expr '+' multiplicative_expr
 		instr_get_result($3)
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
 				| multiplicative_expr
 {
@@ -473,6 +500,8 @@ multiplicative_expr : multiplicative_expr '*' primary
 		$3
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                     | multiplicative_expr '/' primary
 {
@@ -482,6 +511,8 @@ multiplicative_expr : multiplicative_expr '*' primary
 		$3
 	);
 	stack_push(istack, $$);
+	instr_free($1);
+	instr_free($3);
 }
                     | primary
 {
@@ -489,7 +520,7 @@ multiplicative_expr : multiplicative_expr '*' primary
 	c->i = 0;
 
 	$$ = i3addr(
-		I_DIV, 
+		I_ADD, 
 		$1,
 		c
 	);
@@ -526,6 +557,8 @@ int main() {
 	while ((b = stack_pop(scopes)) != NULL) {
 		block_free(b);
 	}
+
+	gencode_stack(istack);
 
 	stack_free(&labels, free);
 	stack_free(&scopes, block_free);

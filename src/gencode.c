@@ -34,7 +34,7 @@ int craft_store(struct var *, const struct cst *);
 
 int gencode_instr(struct instr *i)
 {
-	printf("Instruction: optype = %d\n", i->op_type);
+	printf("Instruction: optype = %#x\n", i->op_type);
 	return 0;
 }
 
