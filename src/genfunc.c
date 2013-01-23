@@ -6,14 +6,9 @@
 
 #include <stdlib.h>
 
-/* Code generation */
 static void func_gen_codes_rec(struct function *);
 static void func_compute_var_type(struct function *);
 
-
-/********************************************************************/
-/*                          Code generation                         */
-/********************************************************************/
 
 /* Given a function with parameters not completely determined, this function
  * generates every possible function code to fit with every possible

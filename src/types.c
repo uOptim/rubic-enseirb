@@ -14,9 +14,9 @@ static void var_type_is_known(void *variable, void *params, void* dummy);
 
 /* Restrict a variable type with a set of possible types given in an array
  *
- * s	is a variable whose type may not be known
- * type is an array of possibles types for the symbol
- * n	is the size of this array
+ * v	 is a variable whose type may not be known
+ * types is an array of possibles types for the variable
+ * n	 is the size of this array
  */
 void type_inter(struct var *v, const type_t types[], int n)
 {
