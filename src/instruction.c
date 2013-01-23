@@ -86,7 +86,7 @@ void type_constrain(struct instruction *i)
 	}
 }
 
-void instr_print(struct instruction *i)
+void instruction_print(struct instruction *i)
 {
 	// TODO print instruction code
 	if (i->op_type & I_ARI) {
@@ -99,13 +99,8 @@ void instr_print(struct instruction *i)
 				);
 	}
 	else if (i->op_type == I_STO) {
-		assert(i->s1->type == CST_T && i->s2->type == CST_T);
-		craft_operation(
-				i->s1->cst,
-				i->s2->cst,
-				local2llvm_instr[i->op_type - I_ARI - 1][0],
-				local2llvm_instr[i->op_type - I_ARI - 1][1]
-				);
+		assert(i->s1->type == VAR_T && i->sr->type == CST_T);
+		craft_store(i->s1->var, i->sr->cst);
 	}
 }
 

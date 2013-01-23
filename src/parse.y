@@ -215,8 +215,10 @@ stmt 			: IF expr opt_terms THEN
 	
 	struct instruction * i;
 	instruction_dump($3);
+	instruction_print($3);
 	i = istore(var, instruction_get_result($3));
 	instruction_dump(i);
+	instruction_print(i);
 
 
 	free($1);
@@ -451,6 +453,7 @@ additive_expr   : additive_expr '+' multiplicative_expr
 	struct cst *c2 = instruction_get_result($3);
 
 	$$ = i3addr(I_ADD, c1, c2);
+	instruction_print($$);
 }
                 | additive_expr '-' multiplicative_expr
 {
@@ -460,6 +463,7 @@ additive_expr   : additive_expr '+' multiplicative_expr
 	struct cst *c2 = instruction_get_result($3);
 
 	$$ = i3addr(I_SUB, c1, c2);
+	instruction_print($$);
 }
 				| multiplicative_expr
 {
@@ -473,6 +477,7 @@ multiplicative_expr : multiplicative_expr '*' primary
 	struct cst *c1 = instruction_get_result($1);
 
 	$$ = i3addr(I_MUL, c1, $3);
+	instruction_print($$);
 }
                     | multiplicative_expr '/' primary
 {
@@ -480,6 +485,7 @@ multiplicative_expr : multiplicative_expr '*' primary
 	struct cst *c1 = instruction_get_result($1);
 
 	$$ = i3addr(I_DIV, c1, $3);
+	instruction_print($$);
 }
                     | primary
 {

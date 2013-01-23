@@ -46,6 +46,6 @@ void type_constrain(struct instruction *);
 /* Print an instruction code on stdout.
  * Symbol type needs to be determined especially for variables.
  */
-void instr_print(struct instruction *);
+void instruction_print(struct instruction *);
 
 #endif
