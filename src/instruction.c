@@ -122,7 +122,7 @@ struct instr * i3addr(char optype, struct cst *c1, struct cst *c2)
 
 	if (optype & I_ARI || optype & I_CMP) {
 		if (c1->type > FLO_T || c2->type > FLO_T) {
-			fprintf(stderr, "Incomatible types for operation\n");
+			fprintf(stderr, "Incomatible types for operation.\n");
 			return NULL;
 		}
 
@@ -131,7 +131,7 @@ struct instr * i3addr(char optype, struct cst *c1, struct cst *c2)
 	
 	else if (optype & I_BOO) {
 		if (c1->type != BOO_T || c2->type != BOO_T) {
-			fprintf(stderr, "Incomatible types for boolean operation\n");
+			fprintf(stderr, "Incompatible types for boolean operation.\n");
 			return NULL;
 		}
 

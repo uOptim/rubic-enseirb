@@ -37,6 +37,15 @@
 		return l;
 	}
 
+	void exit_cleanly(int code)
+	{
+		stack_free(&labels, free);
+		stack_free(&scopes, block_free);
+		stack_free(&istack, instr_free);
+
+		exit(code);
+	}
+
 	void yyerror(char *);
 %}
 
@@ -84,7 +93,7 @@ topstmt
 
 	if (symbol_lookup(scopes, $2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
-		exit(EXIT_FAILURE);
+		exit_cleanly(EXIT_FAILURE);
 	}
 
 	tmp_class->cn = strdup($2);
@@ -118,12 +127,12 @@ topstmt
 	// error checking
 	if ((super = symbol_lookup(scopes, $4, CLA_T)) == NULL) {
 		fprintf(stderr, "Super class %s of %s not defined\n", $4, $2);
-		exit(EXIT_FAILURE);
+		exit_cleanly(EXIT_FAILURE);
 	}
 
 	if (symbol_lookup(scopes, $2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
-		exit(EXIT_FAILURE);
+		exit_cleanly(EXIT_FAILURE);
 	}
 
 	tmp_class->cn = strdup($2);
@@ -241,10 +250,12 @@ stmt 			: IF expr opt_terms THEN
 		);
 
 		i = ialloca(var);
+		if (i == NULL) exit_cleanly(EXIT_FAILURE);
 		stack_push(istack, i);
 	}
 	
 	i = istore(var, instr_get_result($3));
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
 
 	free($1);
@@ -255,12 +266,13 @@ stmt 			: IF expr opt_terms THEN
 
 	if (tmp_function == NULL) {
 		fprintf(stderr, "Unexpected 'return' token\n");
-		exit(EXIT_FAILURE);
+		exit_cleanly(EXIT_FAILURE);
 	}
 	
 	tmp_function->ret = $2->cr->type;
 
 	i = iret(instr_get_result($2));
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
 }
 
@@ -272,7 +284,7 @@ stmt 			: IF expr opt_terms THEN
 
 	if (symbol_lookup(scopes, $2, FUN_T) != NULL) {
 		fprintf(stderr, "Function %s already defined\n", $2);
-		exit(EXIT_FAILURE);
+		exit_cleanly(EXIT_FAILURE);
 	}
 
 	hashmap_set(
@@ -361,10 +373,11 @@ primary         : lhs
 
 	if (v == NULL) {
 		fprintf(stderr, "Error: undefined variable %s\n", $1);
-		exit(EXIT_FAILURE);
+		exit_cleanly(EXIT_FAILURE);
 	}
 
 	i = iload(v);
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
 	$$ = instr_get_result(i);
 	
@@ -413,31 +426,37 @@ expr            : expr AND comp_expr
 comp_expr       : additive_expr '<' additive_expr
 {
 	$$ = i3addr(I_LT, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr '>' additive_expr
 {
 	$$ = i3addr(I_GT, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr LEQ additive_expr
 {
 	$$ = i3addr(I_LEQ, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr GEQ additive_expr
 {
 	$$ = i3addr(I_GEQ, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr EQ additive_expr
 {
 	$$ = i3addr(I_EQ, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr NEQ additive_expr
 {
 	$$ = i3addr(I_NEQ, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr
@@ -448,11 +467,13 @@ comp_expr       : additive_expr '<' additive_expr
 additive_expr   : additive_expr '+' multiplicative_expr
 {
 	$$ = i3addr(I_ADD, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | additive_expr '-' multiplicative_expr
 {
 	$$ = i3addr(I_SUB, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
 				| multiplicative_expr
@@ -464,11 +485,13 @@ additive_expr   : additive_expr '+' multiplicative_expr
 multiplicative_expr : multiplicative_expr '*' primary
 {
 	$$ = i3addr(I_MUL, instr_get_result($1), $3);
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                     | multiplicative_expr '/' primary
 {
 	$$ = i3addr(I_DIV, instr_get_result($1), $3);
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                     | primary
@@ -477,6 +500,7 @@ multiplicative_expr : multiplicative_expr '*' primary
 	c->i = 0;
 
 	$$ = i3addr(I_ADD, $1, c);
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
 ;
@@ -504,9 +528,7 @@ int main() {
 
 	yyparse(); 
 
-	stack_free(&labels, free);
-	stack_free(&scopes, block_free);
-	stack_free(&istack, instr_free);
+	exit_cleanly(EXIT_SUCCESS);
 
 	return 0;
 }
