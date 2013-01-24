@@ -121,21 +121,29 @@ struct instr * i3addr(char optype, struct cst *c1, struct cst *c2)
 	cr = cst_new(UND_T, CST_OPRESULT);
 
 	if (optype & I_ARI || optype & I_CMP) {
-		if (c1->type > FLO_T || c2->type > FLO_T) {
-			fprintf(stderr, "Incomatible types for operation.\n");
+		if (c1->type == UND_T || c2->type == UND_T) {
+			// we are in a function
+		}
+		else if (c1->type > FLO_T || c2->type > FLO_T) {
+			fprintf(stderr, "Incompatible types for operation.\n");
 			return NULL;
 		}
-
-		cr->type = compatibility_table[(int)c1->type][(int)c2->type];
+		else {
+			cr->type = compatibility_table[(int)c1->type][(int)c2->type];
+		}
 	} 
 	
 	else if (optype & I_BOO) {
-		if (c1->type != BOO_T || c2->type != BOO_T) {
+		if (c1->type == UND_T || c2->type == UND_T) {
+			// we are in a function
+		}
+		else if (c1->type != BOO_T || c2->type != BOO_T) {
 			fprintf(stderr, "Incompatible types for boolean operation.\n");
 			return NULL;
 		}
-
-		cr->type = BOO_T;
+		else {
+			cr->type = BOO_T;
+		}
 	}
 	
 	else {
