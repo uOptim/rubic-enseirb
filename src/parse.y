@@ -266,6 +266,7 @@ stmt 			: IF expr opt_terms THEN
 /* DEF ID opt_params term stmts terms END */
                 | DEF ID
 {
+
 	tmp_function = function_new($2);
 
 	if (symbol_lookup(scopes, $2, FUN_T) != NULL) {
@@ -284,8 +285,9 @@ stmt 			: IF expr opt_terms THEN
 }
 				opt_params term stmts terms END
 {
-	// GENERATE CODE FOR FUNCTION HERE
 	gencode_func(tmp_function, istack);
+	stack_free(&istack, instr_free);
+	istack = stack_new();
 
 	// delete scope block
 	struct block *b = stack_pop(scopes);
@@ -550,16 +552,7 @@ int main() {
 
 	stack_push(scopes, block_new());
 
-	puts("define i32 @main () {");
 	yyparse(); 
-	puts("}");
-
-	struct block *b;
-	while ((b = stack_pop(scopes)) != NULL) {
-		block_free(b);
-	}
-
-	gencode_stack(istack);
 
 	stack_free(&labels, free);
 	stack_free(&scopes, block_free);

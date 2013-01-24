@@ -145,7 +145,7 @@ struct instr * i3addr(char type, struct cst *c1, struct cst *c2)
 			sym_new(CST_T, cr),
 			sym_new(CST_T, c1),
 			sym_new(CST_T, c2)
-			);
+		);
 
 	return i;
 }
@@ -159,7 +159,7 @@ struct instr * iret(struct cst *cr)
 			sym_new(CST_T, cr),
 			NULL,
 			NULL
-			);
+		);
 
 	return i;
 }
@@ -187,7 +187,7 @@ struct instr * iload(struct var *vr)
 			sym_new(CST_T, cst_new(UND_T, CST_OPRESULT)),
 			sym_new(VAR_T, vr),
 			NULL
-			);
+		);
 
 	return i;
 }

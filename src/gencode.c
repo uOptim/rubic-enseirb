@@ -101,11 +101,38 @@ int gencode_stack(struct stack *s)
 // TODO: add a hashmap parameter for local variables
 void gencode_func(struct function *f, struct stack *instructions)
 {
+	struct var *v;
+	struct stack *tmp = stack_new();
+
 	int is_first_param = 1;
+
 	//assert(params_type_is_known(f));
 
-	printf("define %s @%s(", local2llvm_type(f->ret), func_mangling(f));
-	stack_map(f->params, gencode_param, &is_first_param, NULL);
+	printf("define");
+	if (f->ret == UND_T) {
+		printf(" void ");
+	} else {
+		printf(" %s ", local2llvm_type(f->ret));
+	}
+	// @david: func mangling will be called before calling this function from
+	// the parser. Use f->fn instead.
+	printf("@%s(", f->fn);
+
+	// TODO: add something here to allocate space for the object passed as
+	// implicit argument if needed.
+
+	while ((v = (struct var *) stack_pop(f->params)) != NULL) {
+		// allocate space for params
+		stack_push(instructions, ialloca(v));
+		stack_push(tmp, v);
+	}
+
+	stack_move(tmp, f->params);
+	stack_free(&tmp, NULL);
+
+	// @david: uncomment when stack_map works again
+	//stack_map(f->params, gencode_param, &is_first_param, NULL);
+
 	printf(") {\n");
 	// TODO uncomment when ready
 	//gencode_stack(instructions);
