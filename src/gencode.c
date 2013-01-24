@@ -438,15 +438,14 @@ void print_instr(struct instr *i)
 		else if (i->op_type == I_OR) {
 			craft_boolean_operation(i->c2, i->c2, "or");
 		}
-		else {
-			craft_operation(
-					i->c1,
-					i->c2,
-					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][0],
-					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][1]
-					);
-		}
-
+	}
+	else if (i->op_type & I_CMP) {
+		craft_operation(
+				i->c1,
+				i->c2,
+				local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][0],
+				local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][1]
+				);
 	}
 	else if (i->op_type == I_STO) {
 		craft_store(i->vr, i->cr);

@@ -390,7 +390,7 @@ params          : ID ',' params
 {
 	struct var *var = var_new($1);
 
-	// masks poossible variables with the same name in the parrent block
+	// masks possible variables with the same name in the parent block
 	hashmap_set(
 		((struct block *) stack_peak(scopes, 0))->variables,
 		$1,
