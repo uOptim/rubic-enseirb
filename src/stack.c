@@ -47,6 +47,15 @@ void stack_free(struct stack **s, void (*free_data)(void *))
 }
 
 
+void stack_clear(struct stack *s, void (*free_data)(void *))
+{
+	void *ptr;
+
+	while ((ptr = stack_pop(s)) != NULL) {
+		if (free_data != NULL) free_data(ptr);
+	}
+}
+
 void * stack_pop(struct stack *s)
 {
 	void *data = NULL;

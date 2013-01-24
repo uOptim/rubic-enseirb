@@ -258,6 +258,8 @@ stmt 			: IF expr opt_terms THEN
 		exit(EXIT_FAILURE);
 	}
 	
+	tmp_function->ret = $2->cr->type;
+
 	i = iret(instr_get_result($2));
 	stack_push(istack, i);
 }

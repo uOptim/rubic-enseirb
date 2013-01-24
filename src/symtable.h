@@ -25,10 +25,7 @@ extern const char compatibility_table[3][3];
 
 struct var {
 	char *vn;
-
-	// type
-	struct stack *t;
-	type_t tt; // XXX when ok
+	struct stack *t; // types
 };
 
 

@@ -12,10 +12,6 @@ static void            sym_free(struct symbol **);
 
 
 
-/********************************************************************/
-/*                      instroperations                      */
-/********************************************************************/
-
 static struct instr* instr_new(
 		int op_type,
 		struct var * vr,
@@ -71,7 +67,7 @@ void instr_free(void *instruction)
 
 /* Set possible symbol types according to the operation they appear in
 */
-void type_constrain(struct instr*i)
+void type_constrain(struct instr *i)
 {
 	/*
 	if (i->op_type & I_ARI) {
@@ -117,30 +113,44 @@ struct instr * iraw(const char *s)
 }
 
 
-struct instr * i3addr(char type, struct cst *c1, struct cst *c2)
+struct instr * i3addr(char optype, struct cst *c1, struct cst *c2)
 {
 	struct cst *cr;
 	struct instr *i;
 
 	cr = cst_new(UND_T, CST_OPRESULT);
 
-	if (type & I_ARI) {
+	if (optype & I_ARI || optype & I_CMP) {
+		if (c1->type > FLO_T || c2->type > FLO_T) {
+			fprintf(stderr, "Incomatible types for operation\n");
+			return NULL;
+		}
+
 		cr->type = compatibility_table[(int)c1->type][(int)c2->type];
-	} else if (type & I_BOO) {
+	} 
+	
+	else if (optype & I_BOO) {
+		if (c1->type != BOO_T || c2->type != BOO_T) {
+			fprintf(stderr, "Incomatible types for boolean operation\n");
+			return NULL;
+		}
+
 		cr->type = BOO_T;
-	} else {
+	}
+	
+	else {
 		fprintf(stderr, "Unrecognized types.\n");
 		return NULL;
 	}
 
-	i = instr_new(type, NULL, cr, c1, c2);
+	i = instr_new(optype, NULL, cr, c1, c2);
 
 	return i;
 }
 
 struct instr * iret(struct cst *cr)
 {
-	struct instr*i;
+	struct instr *i;
 	i = instr_new(I_RET, NULL, cr, NULL, NULL);
 
 	return i;
@@ -157,15 +167,53 @@ struct instr * ialloca(struct var *vr)
 struct instr * iload(struct var *vr)
 {
 	struct instr *i;
-	i = instr_new(I_LOA, vr, cst_new(UND_T, CST_OPRESULT), NULL, NULL);
+
+	i = instr_new(
+			I_LOA, 
+			vr,
+			cst_new(var_gettype(vr), CST_OPRESULT),
+			NULL,
+			NULL
+		);
 
 	return i;
 }
 
 struct instr * istore(struct var *vr, struct cst *c1)
 {
+	type_t *t;
 	struct instr *i;
+	struct stack *tmp;
+
+	tmp = stack_new();
 	i = instr_new(I_STO, vr, c1, NULL, NULL);
+
+	// if variable not yet defined
+	if (var_gettype(vr) == UND_T) {
+		stack_clear(vr->t, free);
+		var_pushtype(vr, c1->type);
+	}
+
+	else {
+		while ((t = stack_pop(vr->t)) != NULL) {
+			stack_push(tmp, t);
+			if (*t == c1->type) break;
+		}
+
+		if (t == NULL) {
+			instr_free(i);
+			i = NULL;
+			// restore type stack
+			stack_move(tmp, vr->t);
+			fprintf(stderr, "Error: Incompatible types in assignment\n");
+		} else {
+			stack_clear(vr->t, free);
+			var_pushtype(vr, c1->type);
+		}
+	}
+
+	stack_free(&tmp, free);
+
 	return i;
 }
 

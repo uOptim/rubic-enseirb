@@ -105,6 +105,8 @@ struct cst * cst_new(type_t type, char cst_type)
 
 struct cst * cst_copy(struct cst *c)
 {
+	if (c == NULL) return NULL;
+
 	struct cst *copy = malloc(sizeof *copy);
 
 	copy->reg  = c->reg;
@@ -260,3 +262,4 @@ void function_dump(void *function)
 
 	puts("");
 }
+
