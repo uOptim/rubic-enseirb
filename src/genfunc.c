@@ -28,15 +28,15 @@ void func_gen_codes(struct function *f, struct stack *instructions)
 void func_gen_codes_rec(struct function *f, struct stack *instructions)
 {
 	struct var *cur_param = NULL;
-	struct type *cur_type = NULL;
+	type_t *cur_type = NULL;
 	int i = 0;
 
 	if (params_type_is_known(f)) {
-		func_compute_var_type(f, instructions);
 	}
 
 	else {
 		while ((cur_param = stack_peak(f->params, i++)) != NULL) {
+			func_compute_var_type(f, instructions);
 			cur_type = stack_pop(cur_param->t);
 			// If their was only one possible type, we cannot try to
 			// generate a function code with a parameters without type

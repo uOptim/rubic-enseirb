@@ -38,15 +38,18 @@ struct cst * craft_boolean_operation(
 
 int                 craft_store(struct var *, const struct cst *);
 static const char * local2llvm_type(char);
-static void         gencode_param(void *, void *, void *);
+// TODO: remove if unused in the end
+//static void         gencode_param(void *, void *, void *);
 static const char * func_mangling(struct function *);
 static void         fn_append(void *, void *, void *);
+void                print_instr(struct instr *);
 
 static unsigned int new_varid() {
 	static unsigned int varid = 0;
 	return varid++;
 }
 
+// TODO: use print_instr code when finished
 int gencode_instr(struct instr *i)
 {
 	if (i->op_type == I_RAW) {
@@ -85,13 +88,15 @@ int gencode_stack(struct stack *s)
 
 	// gen allocs first
 	while ((i = (struct instr *) stack_pop(alloc)) != NULL) {
-		gencode_instr(i);
+		//gencode_instr(i);
+		print_instr(i);
 		stack_push(s, i);
 	}
 
 	// then generate other instruction
 	while ((i = (struct instr *) stack_pop(other)) != NULL) {
-		gencode_instr(i);
+		//gencode_instr(i);
+		print_instr(i);
 		stack_push(s, i);
 	}
 
@@ -151,6 +156,7 @@ void gencode_func(struct function *f, struct stack *instructions)
 	printf("ret void\n}");
 }
 
+/*
 void gencode_param(void *param, void *is_first_param, void *dummy) {
 	struct var * p = (struct var *)param;
 	int * is_fp = (int *)is_first_param;
@@ -167,6 +173,7 @@ void gencode_param(void *param, void *is_first_param, void *dummy) {
 	}
 	*is_fp = 0;
 }
+*/
 
 char convert2bool(struct cst *c)
 {
@@ -208,16 +215,15 @@ const char * local2llvm_type(char type)
 	return "UNKNOWN TYPE";
 }
 
+int craft_ret(const struct cst *c)
+{
+	printf("ret %s %%r%d\n", local2llvm_type(c->type), c->reg);
+
+	return 0;
+}
+
 int craft_store(struct var *var, const struct cst *c)
 {
-	if (var_gettype(var) == UND_T) {
-		var_pushtype(var, c->type);
-	} else {
-		var_pushtype(var, compatibility_table
-				[(int)var_gettype(var)]
-				[(int)c->type]);
-	}
-
 	printf("store %s ", local2llvm_type(var_gettype(var)));
 	if (c->reg > 0) {
 		printf("%%r%d, ", c->reg);
@@ -235,6 +241,21 @@ int craft_store(struct var *var, const struct cst *c)
 		}
 	}
 	printf("%s* %%%s\n", local2llvm_type(var_gettype(var)), var->vn);
+	return 0;
+}
+
+int craft_load(struct var *var, const struct cst *c)
+{
+	printf("%%r%d = load %s %%%s\n", c->reg, local2llvm_type(var_gettype(var)),
+			var->vn);
+
+	return 0;
+}
+
+int craft_alloca(struct var *var)
+{
+	printf("%%%s = alloca %s\n", var->vn, local2llvm_type(var_gettype(var)));
+
 	return 0;
 }
 
@@ -430,14 +451,20 @@ void print_instr(struct instr *i)
 	else if (i->op_type == I_STO) {
 		craft_store(i->vr, i->cr);
 	}
+	else if (i->op_type == I_LOA) {
+		craft_load(i->vr, i->cr);
+	}
 	else if (i->op_type == I_ALO) {
-		// allo
+		craft_alloca(i->vr);
 	}
 	else if (i->op_type == I_RET) {
-		// ret
+		craft_ret(i->cr);
+	}
+	else if (i->op_type == I_RAW) {
+		puts(i->rawllvm);
 	}
 	else {
-		gencode_instr(i);
+		fprintf(stderr, "Error: Instruction not supported\n");
 	}
 }
 
