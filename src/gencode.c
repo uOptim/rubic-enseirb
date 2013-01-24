@@ -134,8 +134,7 @@ void gencode_func(struct function *f, struct stack *instructions)
 	//stack_map(f->params, gencode_param, &is_first_param, NULL);
 
 	printf(") {\n");
-	// TODO uncomment when ready
-	//gencode_stack(instructions);
+	gencode_stack(instructions);
 	printf("ret void\n}");
 }
 
