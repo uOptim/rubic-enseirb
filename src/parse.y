@@ -269,9 +269,10 @@ stmt 			: IF expr opt_terms THEN
 		exit_cleanly(EXIT_FAILURE);
 	}
 	
-	tmp_function->ret = $2->cr->type;
 
-	i = iret(instr_get_result($2));
+	struct cst *cres = instr_get_result($2);
+	tmp_function->ret = cres->type;
+	i = iret(cres);
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
 }

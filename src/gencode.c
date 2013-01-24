@@ -51,6 +51,13 @@ int gencode_instr(struct instr *i)
 {
 	if (i->op_type == I_RAW) {
 		puts(i->rawllvm);
+	} else if (i->op_type & I_ARI || i->op_type & I_CMP) {
+		printf("%%r%d = %#x %s %%r%d, %%r%d\n",
+				i->cr->reg,
+				i->op_type,
+				"i32",
+				i->c1->reg,
+				i->c2->reg);
 	} else {
 		printf("optype = %#x\n", i->op_type);
 	}

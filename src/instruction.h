@@ -44,15 +44,11 @@ struct symbol {
 struct instr {
 	unsigned char op_type;
 
-	union {
-		char *rawllvm;
-		struct {
-			struct var * vr;
-			struct cst * cr; // returned symbol
-			struct cst * c1;
-			struct cst * c2; // might be unused for some instruction
-		};
-	};
+	char *rawllvm;
+	struct var * vr;
+	struct cst * cr; // returned symbol
+	struct cst * c1;
+	struct cst * c2; // might be unused for some instruction
 };
 
 		

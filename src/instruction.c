@@ -1,6 +1,6 @@
 #include "instruction.h"
-#include "types.h"
 #include "gencode.h"
+#include "types.h"
 
 #include <stdio.h>
 #include <string.h>
