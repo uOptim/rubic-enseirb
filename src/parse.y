@@ -467,11 +467,13 @@ primary         : lhs
 expr            : expr AND comp_expr
 {
 	$$ = i3addr(I_AND, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | expr OR comp_expr
 {
 	$$ = i3addr(I_OR, instr_get_result($1), instr_get_result($3));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | comp_expr

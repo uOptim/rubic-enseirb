@@ -7,6 +7,7 @@
 #define I_STO	0x01	// store
 #define I_LOA	0x02	// load
 #define I_ALO	0x03	// allocate
+#define I_CAL	0x04	// call function
 
 /* Arithmetic operation, be careful if changing this */
 #define I_ARI	0x10
@@ -21,13 +22,13 @@
 #define I_OR	0x22
 
 /* comparison operations : ari -> bool */
-#define I_CMP	0x30	// operations below are comparative operations
-#define I_EQ	0x31
-#define I_NEQ	0x32
-#define I_LEQ	0x33
-#define I_GEQ	0x34
-#define I_LT	0x35
-#define I_GT	0x36
+#define I_CMP	0x40	// operations below are comparative operations
+#define I_EQ	0x41
+#define I_NEQ	0x42
+#define I_LEQ	0x43
+#define I_GEQ	0x44
+#define I_LT	0x45
+#define I_GT	0x46
 
 /* raw llvm instruction */
 #define I_RAW	0x80
