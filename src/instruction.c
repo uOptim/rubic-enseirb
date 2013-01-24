@@ -43,35 +43,37 @@ void instr_free(void *instruction)
 
 	if (i->op_type == I_RAW) {
 		free(i->rawllvm);
-		return;
+		i->rawllvm = NULL;
 	}
 
-	// do not free symbols of type VAR_T, they are used elsewhere.
-	if (i->sr != NULL) {
-		if (i->sr->type != VAR_T) { 
-			sym_free(&i->sr);
-		} else {
-			free(i->sr);
+	else {
+		// do not free symbols of type VAR_T, they are used elsewhere.
+		if (i->sr != NULL) {
+			if (i->sr->type != VAR_T) { 
+				sym_free(&i->sr);
+			} else {
+				free(i->sr);
+			}
 		}
-	}
-	if (i->s1 != NULL) {
-		if (i->s1->type != VAR_T) {
-			sym_free(&i->s1);
-		} else {
-			free(i->s1);
+		if (i->s1 != NULL) {
+			if (i->s1->type != VAR_T) {
+				sym_free(&i->s1);
+			} else {
+				free(i->s1);
+			}
 		}
-	}
-	if (i->s2 != NULL) {
-		if (i->s2->type != VAR_T) {
-			sym_free(&i->s2);
-		} else {
-			free(i->s2);
+		if (i->s2 != NULL) {
+			if (i->s2->type != VAR_T) {
+				sym_free(&i->s2);
+			} else {
+				free(i->s2);
+			}
 		}
-	}
 
-	i->sr = NULL;
-	i->s1 = NULL;
-	i->s2 = NULL;
+		i->sr = NULL;
+		i->s1 = NULL;
+		i->s2 = NULL;
+	}
 
 	free(i);
 }
@@ -100,11 +102,29 @@ void type_constrain(struct instr*i)
 }
 
 
-/**********************************
- * instrcreation functions *
- **********************************/
+struct instr * iraw(const char *s)
+{
+	struct instr *i = malloc(sizeof *i);
 
-struct instr* i3addr(char type, struct cst *c1, struct cst *c2)
+	if (i == NULL) {
+		perror("malloc");
+		return NULL;
+	}
+
+	i->op_type = I_RAW;
+	i->rawllvm = strdup(s);
+
+	if (i->rawllvm == NULL) {
+		perror("strdup");
+		free(i);
+		return NULL;
+	}
+
+	return i;
+}
+
+
+struct instr * i3addr(char type, struct cst *c1, struct cst *c2)
 {
 	struct cst *cr;
 	struct instr*i;
@@ -182,16 +202,6 @@ struct instr * istore(struct var *vr, struct cst *c1)
 			sym_new(VAR_T, vr),
 			NULL
 			);
-
-	return i;
-}
-
-struct instr * iraw(const char *s)
-{
-	struct instr *i = malloc(sizeof *i);
-
-	i->op_type = I_RAW;
-	i->rawllvm = strdup(s);
 
 	return i;
 }

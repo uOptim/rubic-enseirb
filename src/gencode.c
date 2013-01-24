@@ -49,7 +49,11 @@ static unsigned int new_varid() {
 
 int gencode_instr(struct instr *i)
 {
-	printf("optype = %#x\n", i->op_type);
+	if (i->op_type == I_RAW) {
+		puts(i->rawllvm);
+	} else {
+		printf("optype = %#x\n", i->op_type);
+	}
 	return 0;
 }
 

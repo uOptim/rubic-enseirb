@@ -13,6 +13,11 @@
 	// include y.tab.h after every type definition
 	#include "y.tab.h"
 
+	// used for string manipulations
+	#define BUFSZ 128
+	ssize_t size;
+	char buf[BUFSZ];
+
 	struct class    *tmp_class;
 	struct function *tmp_function;
 
@@ -156,22 +161,46 @@ stmts	        : /* none */
 endif			: ELSE
 {
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	printf("br label %%EndIf%d\n", lnum);
-	printf("IfFalse%d:\n", lnum);
+
+	size = snprintf(buf, BUFSZ, "br label %%EndIf%d\n", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "IfFalse%d:\n", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
 }
 				stmts terms END
 {
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	printf("br label %%EndIf%d\n", lnum);
-	printf("EndIf%d:\n", lnum);
+
+	size = snprintf(buf, BUFSZ, "br label %%EndIf%d\n", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "EndIf%d:\n", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
 }
 				| END
 {
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	printf("br label %%EndIf%d\n", lnum);
-	printf("IfFalse%d:\n", lnum);
-	printf("br label %%EndIf%d\n", lnum);
-	printf("EndIf%d:\n", lnum);
+
+	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	stack_push(istack, iraw(buf));
 }
 				;
 
@@ -187,9 +216,13 @@ stmt 			: IF expr opt_terms THEN
 {
 	free($2); // free ID
 }
-                | WHILE expr term stmts terms END 
+                | WHILE 
 {
 	stack_push(labels, new_label());
+}
+				expr term stmts terms END 
+{
+	free(stack_pop(labels));
 }
                 | lhs '=' expr
 {

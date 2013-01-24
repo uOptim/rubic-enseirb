@@ -30,7 +30,7 @@
 #define I_GT	0x36
 
 /* raw llvm instruction */
-#define I_RAW	0xFF
+#define I_RAW	0x80
 
 
 struct symbol {
@@ -57,6 +57,7 @@ struct instr {
 		
 struct instr * iret(struct cst *);
 struct instr * iload(struct var *);
+struct instr * iraw(const char *s);
 struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct cst *);
 struct instr * i3addr(char, struct cst *, struct cst *);
