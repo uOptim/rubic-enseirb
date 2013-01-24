@@ -134,7 +134,13 @@ void gencode_func(struct function *f, struct stack *instructions)
 		stack_push(tmp, v);
 	}
 
-	stack_move(tmp, f->params);
+	while ((v = (struct var *) stack_pop(tmp)) != NULL) {
+		// allocate space for params
+		stack_push(f->params, v);
+
+		printf("%s %s", local2llvm_type(var_gettype(v)), v->vn);
+		if (stack_peak(tmp, 0) != NULL) printf(", ");
+	}
 	stack_free(&tmp, NULL);
 
 	// @david: uncomment when stack_map works again
