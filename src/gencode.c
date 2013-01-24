@@ -390,26 +390,24 @@ struct cst * craft_boolean_operation(
 void print_instr(struct instr *i)
 {
 	if (i->op_type & I_ARI) {
-		assert(i->s1->type == CST_T && i->s2->type == CST_T);
 		craft_operation(
-				i->s1->cst,
-				i->s2->cst,
+				i->c1,
+				i->c2,
 				local2llvm_instr[i->op_type - I_ARI - 1][0],
 				local2llvm_instr[i->op_type - I_ARI - 1][1]
 				);
 	}
 	else if (i->op_type & I_BOO) {
 		if (i->op_type == I_AND) {
-			craft_boolean_operation(i->s2->cst, i->s2->cst, "and");
+			craft_boolean_operation(i->c2, i->c2, "and");
 		}
 		else if (i->op_type == I_OR) {
-			craft_boolean_operation(i->s2->cst, i->s2->cst, "or");
+			craft_boolean_operation(i->c2, i->c2, "or");
 		}
 		else {
-			assert(i->s1->type == CST_T && i->s2->type == CST_T);
 			craft_operation(
-					i->s1->cst,
-					i->s2->cst,
+					i->c1,
+					i->c2,
 					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][0],
 					local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][1]
 					);
@@ -417,8 +415,7 @@ void print_instr(struct instr *i)
 
 	}
 	else if (i->op_type == I_STO) {
-		assert(i->s1->type == VAR_T && i->sr->type == CST_T);
-		craft_store(i->s1->var, i->sr->cst);
+		craft_store(i->vr, i->cr);
 	}
 	else if (i->op_type == I_ALO) {
 		// allo

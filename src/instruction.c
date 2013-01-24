@@ -18,9 +18,10 @@ static void            sym_free(struct symbol **);
 
 static struct instr* instr_new(
 		int op_type,
-		struct symbol * sr,
-		struct symbol * s1,
-		struct symbol * s2)
+		struct var * vr,
+		struct cst * cr,
+		struct cst * c1,
+		struct cst * c2)
 {
 	if (op_type == I_RAW) {
 		return NULL;
@@ -28,9 +29,10 @@ static struct instr* instr_new(
 
 	struct instr *i = malloc(sizeof *i);
 
-	i->sr = sr;
-	i->s1 = s1;
-	i->s2 = s2;
+	i->vr = vr;
+	i->cr = cr;
+	i->c1 = c1;
+	i->c2 = c2;
 	i->op_type = op_type;
 
 	return i;
@@ -48,31 +50,20 @@ void instr_free(void *instruction)
 
 	else {
 		// do not free symbols of type VAR_T, they are used elsewhere.
-		if (i->sr != NULL) {
-			if (i->sr->type != VAR_T) { 
-				sym_free(&i->sr);
-			} else {
-				free(i->sr);
-			}
-		}
-		if (i->s1 != NULL) {
-			if (i->s1->type != VAR_T) {
-				sym_free(&i->s1);
-			} else {
-				free(i->s1);
-			}
-		}
-		if (i->s2 != NULL) {
-			if (i->s2->type != VAR_T) {
-				sym_free(&i->s2);
-			} else {
-				free(i->s2);
-			}
+		if (i->cr != NULL) {
+			cst_free(i->cr);
+			i->cr = NULL;
 		}
 
-		i->sr = NULL;
-		i->s1 = NULL;
-		i->s2 = NULL;
+		if (i->c1 != NULL) {
+			cst_free(i->c1);
+			i->c1 = NULL;
+		}
+		
+		if (i->c2 != NULL) {
+			cst_free(i->c2);
+			i->c2 = NULL;
+		}
 	}
 
 	free(i);
@@ -82,23 +73,25 @@ void instr_free(void *instruction)
 */
 void type_constrain(struct instr*i)
 {
+	/*
 	if (i->op_type & I_ARI) {
 		type_t types[2] = {INT_T, FLO_T};
 
-		type_inter(i->s1->var, types, 2);
-		type_inter(i->s2->var, types, 2);
-		if (var_type_card((struct var*)i->s1->var) == 1
-				&& var_type_card((struct var*)i->s2->var) == 1) {
-			// Common type for variables stored in s1 and s2
+		type_inter(i->c1->var, types, 2);
+		type_inter(i->c2->var, types, 2);
+		if (var_type_card((struct var*)i->c1->var) == 1
+				&& var_type_card((struct var*)i->c2->var) == 1) {
+			// Common type for variables stored in c1 and c2
 			types[0] = compatibility_table
-				[var_gettype((struct var *)i->s1->var)]
-				[var_gettype((struct var *)i->s2->var)];
-			type_inter(i->sr->var, types, 1);
+				[var_gettype((struct var *)i->c1->var)]
+				[var_gettype((struct var *)i->c2->var)];
+			type_inter(i->cr->var, types, 1);
 		}
 		else {
-			type_inter(i->sr->var, types, 2);
+			type_inter(i->cr->var, types, 2);
 		}
 	}
+	*/
 }
 
 
@@ -127,7 +120,7 @@ struct instr * iraw(const char *s)
 struct instr * i3addr(char type, struct cst *c1, struct cst *c2)
 {
 	struct cst *cr;
-	struct instr*i;
+	struct instr *i;
 
 	cr = cst_new(UND_T, CST_OPRESULT);
 
@@ -136,16 +129,11 @@ struct instr * i3addr(char type, struct cst *c1, struct cst *c2)
 	} else if (type & I_BOO) {
 		cr->type = BOO_T;
 	} else {
-		fprintf(stderr, "Unrecognized types\n");
+		fprintf(stderr, "Unrecognized types.\n");
 		return NULL;
 	}
 
-	i = instr_new(
-			type,
-			sym_new(CST_T, cr),
-			sym_new(CST_T, c1),
-			sym_new(CST_T, c2)
-		);
+	i = instr_new(type, NULL, cr, c1, c2);
 
 	return i;
 }
@@ -153,13 +141,7 @@ struct instr * i3addr(char type, struct cst *c1, struct cst *c2)
 struct instr * iret(struct cst *cr)
 {
 	struct instr*i;
-
-	i = instr_new(
-			I_RET,
-			sym_new(CST_T, cr),
-			NULL,
-			NULL
-		);
+	i = instr_new(I_RET, NULL, cr, NULL, NULL);
 
 	return i;
 }
@@ -167,13 +149,7 @@ struct instr * iret(struct cst *cr)
 struct instr * ialloca(struct var *vr)
 {
 	struct instr *i;
-
-	i = instr_new(
-			I_ALO,
-			sym_new(VAR_T, vr),
-			NULL,
-			NULL
-		);
+	i = instr_new(I_ALO, vr, NULL, NULL, NULL);
 
 	return i;
 }
@@ -181,13 +157,7 @@ struct instr * ialloca(struct var *vr)
 struct instr * iload(struct var *vr)
 {
 	struct instr *i;
-
-	i = instr_new(
-			I_LOA,
-			sym_new(CST_T, cst_new(UND_T, CST_OPRESULT)),
-			sym_new(VAR_T, vr),
-			NULL
-		);
+	i = instr_new(I_LOA, vr, cst_new(UND_T, CST_OPRESULT), NULL, NULL);
 
 	return i;
 }
@@ -195,25 +165,14 @@ struct instr * iload(struct var *vr)
 struct instr * istore(struct var *vr, struct cst *c1)
 {
 	struct instr *i;
-
-	i = instr_new(
-			I_STO,
-			sym_new(CST_T, c1),
-			sym_new(VAR_T, vr),
-			NULL
-		);
-
+	i = instr_new(I_STO, vr, c1, NULL, NULL);
 	return i;
 }
 
 
 struct cst * instr_get_result(const struct instr * i)
 {
-	if (i->sr->type == CST_T) {
-		return cst_copy(i->sr->cst);
-	}
-
-	return NULL;
+	return cst_copy(i->cr);
 }
 
 

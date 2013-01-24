@@ -260,7 +260,6 @@ stmt 			: IF expr opt_terms THEN
 	
 	i = iret(instr_get_result($2));
 	stack_push(istack, i);
-	cst_free($2);
 }
 
 /* DEF ID opt_params term stmts terms END */
@@ -371,6 +370,7 @@ primary         : lhs
 }
                 | STRING 
 {
+	fprintf(stderr, "WARNING: SEGFAULT HAZARD\n");
 	$$ = NULL;
 }
                 | FLOAT
@@ -395,20 +395,12 @@ primary         : lhs
 ;
 expr            : expr AND comp_expr
 {
-	$$ = i3addr(
-		I_AND, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_AND, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | expr OR comp_expr
 {
-	$$ = i3addr(
-		I_OR, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_OR, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | comp_expr
@@ -418,56 +410,32 @@ expr            : expr AND comp_expr
 ;
 comp_expr       : additive_expr '<' additive_expr
 {
-	$$ = i3addr(
-		I_LT, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_LT, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr '>' additive_expr
 {
-	$$ = i3addr(
-		I_GT, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_GT, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr LEQ additive_expr
 {
-	$$ = i3addr(
-		I_LEQ, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_LEQ, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr GEQ additive_expr
 {
-	$$ = i3addr(
-		I_GEQ, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_GEQ, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr EQ additive_expr
 {
-	$$ = i3addr(
-		I_EQ, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_EQ, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr NEQ additive_expr
 {
-	$$ = i3addr(
-		I_NEQ, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_NEQ, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr
@@ -477,20 +445,12 @@ comp_expr       : additive_expr '<' additive_expr
 ;
 additive_expr   : additive_expr '+' multiplicative_expr
 {
-	$$ = i3addr(
-		I_ADD, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_ADD, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
                 | additive_expr '-' multiplicative_expr
 {
-	$$ = i3addr(
-		I_SUB, 
-		instr_get_result($1),
-		instr_get_result($3)
-	);
+	$$ = i3addr(I_SUB, instr_get_result($1), instr_get_result($3));
 	stack_push(istack, $$);
 }
 				| multiplicative_expr
@@ -501,20 +461,12 @@ additive_expr   : additive_expr '+' multiplicative_expr
 
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	$$ = i3addr(
-		I_MUL, 
-		instr_get_result($1),
-		$3
-	);
+	$$ = i3addr(I_MUL, instr_get_result($1), $3);
 	stack_push(istack, $$);
 }
                     | multiplicative_expr '/' primary
 {
-	$$ = i3addr(
-		I_DIV, 
-		instr_get_result($1),
-		$3
-	);
+	$$ = i3addr(I_DIV, instr_get_result($1), $3);
 	stack_push(istack, $$);
 }
                     | primary
@@ -522,11 +474,7 @@ multiplicative_expr : multiplicative_expr '*' primary
 	struct cst *c = cst_new(INT_T, CST_PURECST);
 	c->i = 0;
 
-	$$ = i3addr(
-		I_ADD, 
-		$1,
-		c
-	);
+	$$ = i3addr(I_ADD, $1, c);
 	stack_push(istack, $$);
 }
 ;

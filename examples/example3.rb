@@ -1,6 +1,4 @@
-def main(a)
-	if (a == 2) then
-		a = 1
-	end
-	b = 5
+def main(a, b)
+	b = 2 + 5
+	return b
 end

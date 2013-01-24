@@ -47,9 +47,10 @@ struct instr {
 	union {
 		char *rawllvm;
 		struct {
-			struct symbol * sr; // returned symbol
-			struct symbol * s1;
-			struct symbol * s2; // might be unused for some instruction
+			struct var * vr;
+			struct cst * cr; // returned symbol
+			struct cst * c1;
+			struct cst * c2; // might be unused for some instruction
 		};
 	};
 };
