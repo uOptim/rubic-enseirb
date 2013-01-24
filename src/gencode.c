@@ -42,9 +42,14 @@ static void         gencode_param(void *, void *, void *);
 static const char * func_mangling(struct function *);
 static void         fn_append(void *, void *, void *);
 
+static unsigned int new_varid() {
+	static unsigned int varid = 0;
+	return varid++;
+}
+
 int gencode_instr(struct instr *i)
 {
-	printf("Instruction: optype = %#x\n", i->op_type);
+	printf("optype = %#x\n", i->op_type);
 	return 0;
 }
 

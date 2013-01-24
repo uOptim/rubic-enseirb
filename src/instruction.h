@@ -19,6 +19,8 @@
 #define I_BOO	0x20	// operations below return boolean
 #define I_AND	0x21
 #define I_OR	0x22
+
+/* comparison operations : ari -> bool */
 #define I_CMP	0x30	// operations below are comparative operations
 #define I_EQ	0x31
 #define I_NEQ	0x32
@@ -27,8 +29,12 @@
 #define I_LT	0x35
 #define I_GT	0x36
 
+/* raw llvm instruction */
+#define I_RAW	0xFF
+
+
 struct symbol {
-	char type;
+	unsigned char type;
 	union {
 		struct cst *cst;
 		struct var *var;
@@ -36,11 +42,16 @@ struct symbol {
 };
 
 struct instr {
-	char op_type;
+	unsigned char op_type;
 
-	struct symbol * sr; // returned symbol
-	struct symbol * s1;
-	struct symbol * s2; // might be unused for some instruction
+	union {
+		char *rawllvm;
+		struct {
+			struct symbol * sr; // returned symbol
+			struct symbol * s1;
+			struct symbol * s2; // might be unused for some instruction
+		};
+	};
 };
 
 		

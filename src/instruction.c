@@ -2,8 +2,9 @@
 #include "types.h"
 #include "gencode.h"
 
-#include <assert.h>
 #include <stdio.h>
+#include <string.h>
+#include <assert.h>
 #include <stdlib.h>
 
 static struct symbol * sym_new(char, void *);
@@ -21,6 +22,10 @@ static struct instr* instr_new(
 		struct symbol * s1,
 		struct symbol * s2)
 {
+	if (op_type == I_RAW) {
+		return NULL;
+	}
+
 	struct instr *i = malloc(sizeof *i);
 
 	i->sr = sr;
@@ -31,9 +36,15 @@ static struct instr* instr_new(
 	return i;
 }
 
+
 void instr_free(void *instruction)
 {
 	struct instr *i = (struct instr *) instruction;
+
+	if (i->op_type == I_RAW) {
+		free(i->rawllvm);
+		return;
+	}
 
 	// do not free symbols of type VAR_T, they are used elsewhere.
 	if (i->sr != NULL) {
@@ -133,9 +144,9 @@ struct instr * iret(struct cst *cr)
 	return i;
 }
 
-struct instr* ialloca(struct var *vr)
+struct instr * ialloca(struct var *vr)
 {
-	struct instr*i;
+	struct instr *i;
 
 	i = instr_new(
 			I_ALO,
@@ -147,9 +158,9 @@ struct instr* ialloca(struct var *vr)
 	return i;
 }
 
-struct instr* iload(struct var *vr)
+struct instr * iload(struct var *vr)
 {
-	struct instr*i;
+	struct instr *i;
 
 	i = instr_new(
 			I_LOA,
@@ -161,9 +172,9 @@ struct instr* iload(struct var *vr)
 	return i;
 }
 
-struct instr* istore(struct var *vr, struct cst *c1)
+struct instr * istore(struct var *vr, struct cst *c1)
 {
-	struct instr*i;
+	struct instr *i;
 
 	i = instr_new(
 			I_STO,
@@ -171,6 +182,16 @@ struct instr* istore(struct var *vr, struct cst *c1)
 			sym_new(VAR_T, vr),
 			NULL
 			);
+
+	return i;
+}
+
+struct instr * iraw(const char *s)
+{
+	struct instr *i = malloc(sizeof *i);
+
+	i->op_type = I_RAW;
+	i->rawllvm = strdup(s);
 
 	return i;
 }
