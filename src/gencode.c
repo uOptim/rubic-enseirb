@@ -98,16 +98,18 @@ int gencode_stack(struct stack *s)
  * determined, the function code is generated.
  * The code is printed on stdout.
  */
+// TODO: add a hashmap parameter for local variables
 void gencode_func(struct function *f, struct stack *instructions)
 {
 	int is_first_param = 1;
-	assert(params_type_is_known(f));
+	//assert(params_type_is_known(f));
 
 	printf("define %s @%s(", local2llvm_type(f->ret), func_mangling(f));
 	stack_map(f->params, gencode_param, &is_first_param, NULL);
 	printf(") {\n");
-	gencode_stack(instructions);
-	printf("}");
+	// TODO uncomment when ready
+	//gencode_stack(instructions);
+	printf("ret void\n}");
 }
 
 void gencode_param(void *param, void *is_first_param, void *dummy) {
@@ -412,6 +414,7 @@ const char * func_mangling(struct function *f)
 	char buffer[MAX_FN_SIZE] = "";
 	int id = 0;
 
+	id += snprintf(buffer, MAX_FN_SIZE, "%s", f->fn);
 	stack_map(f->params, fn_append, buffer, &id);
 	buffer[id] = '\0';
 
@@ -429,9 +432,13 @@ void fn_append(void * variable, void *d, void *i)
 	struct var *v = (struct var *)variable;
 	char * dst = (char *)d;
 	int *id = (int *)i;
+	char c = 'U';
 
 	assert(*id < MAX_FN_SIZE);
 
-	dst[(*id)++] = type2mangling[var_gettype(v)];
+	if  (var_gettype(v) != UND_T) {
+		c = type2mangling[var_gettype(v)];
+	}
+	dst[(*id)++] = c;
 }
 

@@ -14,6 +14,7 @@ static void func_compute_var_type(struct function *, struct stack *);
  * generates every possible function code to fit with every possible
  * parameters type.
  */
+// TODO: add a hashmap parameter for local variables
 void func_gen_codes(struct function *f, struct stack *instructions)
 {
 	// If some params type is UND_T then it should be put to
@@ -23,6 +24,7 @@ void func_gen_codes(struct function *f, struct stack *instructions)
 	func_gen_codes_rec(f, instructions);
 }
 
+// TODO: add a hashmap parameter for local variables
 void func_gen_codes_rec(struct function *f, struct stack *instructions)
 {
 	struct var *cur_param = NULL;
@@ -52,9 +54,10 @@ void func_gen_codes_rec(struct function *f, struct stack *instructions)
  * code is generated.
  * Otherwise, no generation is performed.
  */
+// TODO: add a hashmap parameter for local variables
 void func_compute_var_type(struct function *f, struct stack *instructions)
 {
-	// TODO: use type_constrain
+	// TODO: use type_constrain on variable hashmap
 
 	gencode_func(f, instructions);
 }

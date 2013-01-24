@@ -102,11 +102,11 @@ void stack_move(struct stack *src, struct stack *dst) {
 	}
 }
 
-void stack_map(struct stack *s, void (*map_data)(void *, void *, void *),
+void stack_map(struct stack * s, void (*map_data)(void *, void *, void *),
 		void *param1, void *param2)
 {
 	struct elt *e = s->head;
-	if (map_data != NULL) return;
+	if (map_data == NULL) return;
 
 	while (e != NULL) {
 		map_data(e->data, param1, param2);

@@ -285,6 +285,7 @@ stmt 			: IF expr opt_terms THEN
 				opt_params term stmts terms END
 {
 	// GENERATE CODE FOR FUNCTION HERE
+	gencode_func(tmp_function, istack);
 
 	// delete scope block
 	struct block *b = stack_pop(scopes);
@@ -303,7 +304,6 @@ opt_params      : /* none */
 params          : ID ',' params
 {
 	struct var *var = var_new($1);
-	var_pushtype(var, UND_T);
 
 	// masks possible variables with the same name in the parent block
 	hashmap_set(
@@ -318,7 +318,6 @@ params          : ID ',' params
                 | ID
 {
 	struct var *var = var_new($1);
-	var_pushtype(var, UND_T);
 
 	// masks poossible variables with the same name in the parrent block
 	hashmap_set(
@@ -603,9 +602,7 @@ void * symbol_lookup(
 		}
 	}
 
-	while ((b = stack_pop(tmp)) != NULL) {
-		stack_push(scopes, b);
-	}
+	stack_move(tmp, scopes);
 
 	stack_free(&tmp, block_free);
 
