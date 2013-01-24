@@ -201,7 +201,7 @@ struct instr * istore(struct var *vr, struct cst *c1)
 			sym_new(CST_T, c1),
 			sym_new(VAR_T, vr),
 			NULL
-			);
+		);
 
 	return i;
 }
@@ -214,66 +214,6 @@ struct cst * instr_get_result(const struct instr * i)
 	}
 
 	return NULL;
-}
-
-
-void instr_dump(const struct instr * i)
-{
-	if (i->sr == NULL) return;
-
-	char srtype = i->sr->type;
-
-	switch (srtype) {
-		case CST_T: printf("reg%d", i->sr->cst->reg); break;
-		case VAR_T: printf("%s", i->sr->var->vn); break;
-	}
-
-	if (i->s1 == NULL) return;
-	printf(" = ");
-
-	if (i->s1->cst->reg > 0) {
-		printf("reg%d", i->s1->cst->reg);
-	} else {
-		switch (i->s1->cst->type) {
-			case INT_T: printf("%d", i->s1->cst->i); break;
-			case FLO_T: printf("%g", i->s1->cst->f); break;
-			case UND_T: printf("UND_T"); break;
-			default: printf("Gné??");
-		}
-	}
-
-	printf(" ");
-
-	switch (i->op_type) {
-		case I_ADD: printf("+");  break;
-		case I_SUB: printf("-");  break;
-		case I_MUL: printf("*");  break;
-		case I_DIV: printf("/");  break;
-		case I_OR:  printf("||"); break;
-		case I_AND: printf("&&"); break;
-		case I_GT:  printf(">");  break;
-		case I_LT:  printf("<");  break;
-		case I_GEQ: printf(">="); break;
-		case I_LEQ: printf("<="); break;
-		case I_EQ:  printf("=="); break;
-		case I_NEQ: printf("!="); break;
-	}
-
-	if (i->s2 == NULL) return;
-	printf(" ");
-
-	if (i->s2->cst->reg > 0) {
-		printf("reg%d", i->s2->cst->reg);
-	} else {
-		switch (i->s2->cst->type) {
-			case INT_T: printf("%d", i->s2->cst->i); break;
-			case FLO_T: printf("%g", i->s2->cst->f); break;
-			case UND_T: printf("UND_T"); break;
-			default: printf("Gné??");
-		}
-	}
-
-	printf("\n");
 }
 
 
