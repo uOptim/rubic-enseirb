@@ -171,24 +171,24 @@ endif			: ELSE
 {
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	size = snprintf(buf, BUFSZ, "br label %%EndIf%d\n", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
-	size = snprintf(buf, BUFSZ, "IfFalse%d:\n", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 }
 				stmts terms END
 {
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	size = snprintf(buf, BUFSZ, "br label %%EndIf%d\n", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
-	size = snprintf(buf, BUFSZ, "EndIf%d:\n", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 }
 				| END
@@ -196,19 +196,19 @@ endif			: ELSE
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated");
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 }
 				;
@@ -216,6 +216,22 @@ endif			: ELSE
 stmt 			: IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
+
+	struct cst *cr;
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+
+	cr = instr_get_result($2); // may need to cast cr into bool
+	size = snprintf(buf, BUFSZ,
+		"br i1 %%r%d, label %%IfTrue%d, label IfFalse%d",
+		cr->reg, lnum, lnum
+	);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
+	sprintf(buf, "IfTrue%d:", lnum);
+	stack_push(istack, iraw(buf));
+
+	cst_free(cr);
 }
 				stmts terms endif
 {
@@ -228,9 +244,48 @@ stmt 			: IF expr opt_terms THEN
                 | WHILE 
 {
 	stack_push(labels, new_label());
+
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+
+	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "loop%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
 }
-				expr term stmts terms END 
+				expr 
 {
+	struct cst *cr;
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	
+	cr = instr_get_result($3); // may need to cast cr into bool
+	size = snprintf(buf, BUFSZ,
+		"br i1 %%r%d, label %%cond%d, label %%endloop%d",
+		cr->reg, lnum, lnum
+	);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "cond%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
+	cst_free(cr);
+}
+				term stmts terms END 
+{
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+
+	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "endloop%d:", lnum);
+	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
 	free(stack_pop(labels));
 }
                 | lhs '=' expr
