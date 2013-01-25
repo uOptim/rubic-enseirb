@@ -12,8 +12,9 @@ struct elt {
 
 
 struct stack {
-	struct elt *head;
 	int size;
+	struct elt *head;
+	struct elt *cursor;
 };
 	
 
@@ -24,8 +25,9 @@ struct stack * stack_new()
 	if (s == NULL) {
 		perror("malloc");
 	} else {
-		s->head = NULL;
 		s->size = 0;
+		s->head = NULL;
+		s->cursor = NULL;
 	}
 
 	return s;
@@ -34,14 +36,7 @@ struct stack * stack_new()
 
 void stack_free(struct stack **s, void (*free_data)(void *))
 {
-	struct elt *tmp;
-	struct elt *e = (*s)->head;
-	while (e != NULL) {
-		if (free_data != NULL) free_data(e->data);
-		tmp = e->next;
-		free(e);
-		e = tmp;
-	}
+	stack_clear(*s, free_data);
 	free(*s);
 	*s = NULL;
 }
@@ -81,6 +76,10 @@ int stack_push(struct stack *s, void *d)
 		return -1;
 	}
 
+	if (s->head == NULL) {
+		s->cursor = e;
+	}
+
 	e->data = d;
 	e->next = s->head;
 	s->head = e;
@@ -89,6 +88,23 @@ int stack_push(struct stack *s, void *d)
 	return 0;
 }
 
+struct stack * stack_copy(struct stack *src, void (*cpy)(void*))
+{
+	void *d;
+	struct stack *dst;
+	struct elt *tmp_cursor;
+	
+	dst = stack_new();
+	tmp_cursor = src->cursor; // save cursor
+
+	stack_cursor_rewind(src);
+	while ((d = stack_next(src)) != NULL) {
+		stack_push(dst, cpy(d));
+	}
+	src->cursor = tmp_cursor; // restore cursor
+
+	return dst;
+}
 
 void * stack_peak(struct stack *s, unsigned int n)
 {
@@ -122,3 +138,24 @@ void stack_map(struct stack * s, void (*map_data)(void *, void *, void *),
 		e = e->next;
 	}
 }
+
+void * stack_next(struct stack *s)
+{
+	void *d = NULL;
+
+	if (s->cursor != NULL) {
+		d = s->cursor->data;
+		s->cursor = s->cursor->next;
+	} else {
+		stack_cursor_rewind(s);
+	}
+
+	return d;
+}
+	
+void stack_cursor_rewind(struct stack *s)
+{
+	s->cursor = s->head;
+}
+
+

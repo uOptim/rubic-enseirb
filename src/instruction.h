@@ -53,10 +53,10 @@ struct instr {
 };
 
 		
-struct instr * iret(struct cst *);
+struct instr * iret(const struct cst *);
 struct instr * iload(struct var *);
 struct instr * iraw(const char *s);
-struct instr * ialloca(struct var *);
+struct instr * ialloca(const struct var *);
 struct instr * istore(struct var *, struct cst *);
 struct instr * i3addr(char, struct cst *, struct cst *);
 
@@ -64,6 +64,6 @@ void * instr_copy(void *);
 void   instr_free(void *);
 void   instr_constrain(void *, void *, void *);
 
-struct cst * instr_get_result(const struct instr *);
+struct res * instr_get_result(const struct instr *);
 
 #endif

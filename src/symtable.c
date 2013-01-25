@@ -1,4 +1,5 @@
 #include "symtable.h"
+#include "types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,21 +12,15 @@ const char compatibility_table[3][3] =
   { -1   , -1   , -1 } };
 
 
-unsigned int new_reg() {
-	// register 0 reserved
-	static unsigned int reg = 1;
-	return reg++;
-}
-
-struct var * var_new(const char *name)
+struct var * var_new(const char *name, const struct stack *types)
 {
 	struct var * v = malloc(sizeof *v);
 
 	if (v == NULL) return NULL;
 
-	v->t = stack_new();
 	v->vn = strdup(name);
-	var_pushtype(v, UND_T);
+	v->t = stack_new();
+	type_init(v->t);
 
 	return v;
 }
@@ -39,20 +34,13 @@ void var_free(void *var)
 		v->vn = NULL;
 	}
 	if (v->t != NULL) {
-		stack_free(&v->t, free);
+		stack_free(&v->t, NULL);
 		v->t = NULL;
 	}
 
 	free(v);
 }
 
-void var_pushtype(struct var *v, type_t t)
-{
-	type_t * vt = malloc(sizeof *vt);
-	*vt = t;
-
-	stack_push(v->t, vt);
-}
 
 /* Returns the first possible variable type
 */
@@ -76,40 +64,144 @@ int var_isconst(const struct var *v)
 	return 0;
 }
 
-void var_dump(void * var)
+
+struct elt * elt_new(char elttype, void *eltptr)
 {
-	struct var * v = (struct var *)var;
+	struct elt *elt = malloc(sizeof *elt);
 
-	printf("var name: %s\n. Possible types", v->vn);
+	elt->elttype = elttype;
 
-	type_t * t;
-	struct stack *tmp = stack_new();
-	while ((t = (type_t *) stack_pop(v->t)) != NULL) {
-		printf("%c", *t);
-		stack_push(tmp, t);
-	}
+	switch (elttype) {
+		case E_CST:
+			elt->cst = eltptr;
+			break;
+		case E_REG:
+			elt->reg = eltptr;
+			break;
+		default:
+			free(elt);
+			elt = NULL;
+	};
 
-	stack_move(tmp, v->t);
-	stack_free(&tmp, free);
+	return elt;
 }
 
-struct cst * cst_new(type_t type, char cst_type)
+
+void elt_free(struct elt *e)
+{
+	switch (e->elttype) {
+		case E_CST:
+			cst_free(elt->cst);
+			break;
+		case E_REG:
+			reg_free(elt->reg);
+			break;
+		default:
+	}
+
+	free(e);
+}
+
+struct elt * elt_copy(struct elt *e)
+{
+	struct elt *copy;
+
+	switch (e->elttype) {
+		case E_CST:
+			copy = elt_new(E_CST, elt->cst);
+			break;
+		case E_REG:
+			copy = elt_new(E_REG, elt->reg);
+			break;
+		default:
+			copy = NULL;
+	}
+
+	return copy;
+}
+
+struct reg * reg_new(struct var *v)
+{
+	static unsigned int reg = 1;
+
+	struct reg *r = malloc(sizeof *r);
+
+	reg_bind(v);
+	r->num = num++;
+
+	return r;
+}
+
+void reg_bind(struct reg *r, struct var *v)
+{
+	if (r->bound) {
+		fprintf(stderr, "Warning: attempting to reuse a register
+				already bound to a variable");
+		return;
+	}
+
+	else if (r->types != NULL) {
+		stack_free(&r->types, NULL);
+	}
+
+	if (v != NULL) {
+		r->bound = 1;
+		r->types = v->types;
+	} else {
+		r->bound = 0;
+		r->types = stack_new();
+	}
+}
+
+
+void reg_free(struct reg *r)
+{
+	if (!r->bound) {
+		stack_free(r->types, NULL);
+	}
+
+	free(r);
+}
+
+struct reg * reg_copy(struct reg *r)
+{
+	struct reg *copy = malloc(sizeof *copy);
+
+	copy->reg = r->reg;
+	copy->bound = r->bound;
+
+	if (r->bound) {
+		copy->types = r->copy;
+	} else {
+		copy->types = stack_copy(r->copy);
+	}
+
+	return copy;
+}
+	
+
+struct cst * cst_new(type_t type, void *val)
 {
 	struct cst *c = malloc(sizeof *c);
 
 	c->type = type;
-	c->reg  = (cst_type == CST_PURECST) ? 0 : new_reg();
+
+	switch (type) {
+		case INT_T: c->i = *val; break;
+		case FLO_T: c->f = *val; break;
+		case BOO_T: c->c = *val; break;
+		case STR_T: c->s = *val; break;
+		default:    c->o = *val; break;
+	}
 
 	return c;
 }
 
+
 struct cst * cst_copy(struct cst *c)
 {
-	if (c == NULL) return NULL;
-
 	struct cst *copy = malloc(sizeof *copy);
 
-	copy->reg  = c->reg;
 	copy->type = c->type;
 
 	switch (c->type) {
@@ -117,10 +209,12 @@ struct cst * cst_copy(struct cst *c)
 		case FLO_T: copy->f = c->f; break;
 		case BOO_T: copy->c = c->c; break;
 		case STR_T: copy->s = strdup(c->s); break;
+		default: copy->o = c->o; break;
 	}
 
 	return copy;
 }
+
 
 void cst_free(void *cst)
 {
@@ -134,25 +228,8 @@ void cst_free(void *cst)
 	free(cst);
 }
 
-void cst_dump(void *cst)
-{
-	struct cst *c = (struct cst *) cst;
 
-	switch (c->type) {
-		case BOO_T:
-			printf("BOOL: %s\n", (c->c == 1) ? "true" : "false");
-			break;
-		case INT_T:
-			printf("INT: %d\n", c->i);
-			break;
-		case FLO_T:
-			printf("INT: %g\n", c->f);
-			break;
-	}
-}
-
-
-struct class * class_new()
+struct class * class_new(type_t t)
 {
 	struct class *c = malloc(sizeof *c);
 
@@ -161,6 +238,7 @@ struct class * class_new()
 
 	c->cn = NULL;
 	c->super = NULL;
+	c->typenum = type_new();
 	c->attrs = hashmap_new();
 	c->methods = hashmap_new();
 
@@ -234,6 +312,10 @@ void function_free(void *function)
 		// the scope block too
 		stack_free(&f->params, NULL);
 		f->params = NULL;
+	}
+
+	if (f->ret != NULL) {
+		stack_free(&f->ret, res_free);
 	}
 
 	free(f);

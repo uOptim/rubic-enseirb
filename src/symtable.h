@@ -4,12 +4,6 @@
 #include "stack.h"
 #include "hashmap.h"
 
-/* symbol type */
-#define FUN_T   0
-#define CLA_T   1
-#define VAR_T   2
-#define CST_T   3
-
 #define INT_T   0
 #define FLO_T   1
 #define BOO_T   2
@@ -18,66 +12,96 @@
 
 #define UND_T   127 // Undef
 
-typedef unsigned char type_t;
+/* symbol type */
+#define FUN_T   0
+#define CLA_T   1
+#define VAR_T   2
+#define CST_T   3
+
+
+typedef unsigned int type_t;
 
 extern const char compatibility_table[3][3];
 
 
 struct var {
 	char *vn;
-	struct stack *t; // types
+	struct stack *t; // possible types
 };
 
 
-#define CST_PURECST  0
-#define CST_OPRESULT 1
+struct var * var_new(const char *);
+void         var_free(void *);
+type_t       var_gettype(struct var *);
+int          var_type_card(struct var *);
+int          var_isconst(const struct var *);
+
+
+struct reg {
+	char bound;
+	unsigned int num;
+	struct stack *types; // NEVER FREE THE CONTENT!
+};
+
+struct reg * reg_new(struct var *);
+void         reg_free(struct reg *);
+struct reg * reg_copy(struct reg *);
+
 
 struct cst {
 	type_t type;
-	unsigned int reg;
 	union {
 		int i;
 		char c;
 		double f;
 		char *s;
+		type_t o;
 	};
 };
 
+struct cst * cst_new(char cst_type, void *);
+struct cst * cst_copy(struct cst *);
+void         cst_free(struct cst *);
+
+
+#define E_CST 0
+#define E_REG 1
+
+struct elt {
+	char elttype;
+	union {
+		struct reg reg;
+		struct purecst purecst;
+	};
+};
+
+struct elt * elt_new(char, void *);
+void         elt_free(void *);
+struct elt * elt_copy(struct elt *);
+
+
 struct function {
 	char *fn;
-	type_t ret;
+	struct reg *ret;
 	struct stack *params;
 };
+
+struct function * function_new(const char *);
+void              function_free(void *);
+void              function_dump(void *);
 
 
 struct class {
 	char *cn;
+	type_t typenum;
 	struct class *super;
 	struct hashmap *attrs;
 	struct hashmap *methods;
 };
 
-unsigned int new_reg();
-
-struct var * var_new(const char *);
-void         var_free(void *);
-void         var_dump(void *);
-void         var_pushtype(struct var *, type_t);
-type_t       var_gettype(struct var *);
-int          var_type_card(struct var *);
-int          var_isconst(const struct var *);
-
-struct cst * cst_new(type_t, char);
-struct cst * cst_copy(struct cst *);
-void         cst_free(void *);
-void         cst_dump(void *);
-
-struct class * class_new();
+struct class * class_new(type_t);
 void           class_free(void *);
 void           class_dump(void *);
 
-struct function * function_new(const char *);
-void              function_free(void *);
-void              function_dump(void *);
 
 #endif /* SYMTABLE_H */

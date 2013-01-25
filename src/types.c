@@ -77,43 +77,20 @@ void var_type_is_known(void *variable, void *params, void* dummy) {
  * types is an array of possibles types for the variable
  * n	 is the size of this array
  */
-void type_inter(struct var *v, const type_t types[], int n)
+struct stack * type_inter(struct stack *t1, struct stack *t2)
 {
-	int i = 0;
-	struct stack *stmp = stack_new();
-	type_t * cur_type = NULL;
+	type_t t, u;
+	struct stack *res = stack_new();
 
-	// the symbol type was undefined
-	// we have now some idea of its possible types
-	if (var_gettype(v) == UND_T) {
-		free(stack_pop(v->t));
-
-		for (i = 0; i < n; i++) {
-			var_pushtype(v, types[i]);
+	stack_rewind(t1);
+	stack_rewind(t2);
+	while ((t = *(type_t *) stack_next(t1)) != NULL) {
+		while ((u = *(type_t *) stack_next(t2)) != NULL) {
+			if (u == t) {
+				stack_push(res, v);
+			}
 		}
 	}
 
-	// we keep possible types of the symbol that are in the given
-	// set of types
-	else {
-		while ((cur_type = stack_pop(v->t)) != NULL) {
-			for (i = 0; i < n; i++) {
-				if (*cur_type == types[i]) {
-					stack_push(stmp, cur_type);
-					break;
-				}
-			}
-
-			if (i == n) {
-				// This type isn't possible anymore
-				free(cur_type);
-			}
-		}
-
-		// now stmp contains the new possible types for v
-		// let's update the actual symbol possible types
-		stack_move(stmp, v->t);
-	}
-
-	stack_free(&stmp, NULL);
+	return res;
 }

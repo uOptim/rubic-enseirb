@@ -24,7 +24,8 @@
 
 	struct stack *scopes; // variables scope
 	struct stack *labels; // labels for br`s
-	struct stack *istack; // instrstack
+	struct stack *istack; // instruction stack
+	struct stack *tstack; // types stack
 
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
@@ -44,6 +45,8 @@
 		stack_free(&scopes, block_free);
 		stack_free(&istack, instr_free);
 
+		stack_free(&tstack, NULL);
+
 		exit(code);
 	}
 
@@ -62,8 +65,7 @@
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
 %token FOR TO RETURN IN NEQ
-%token COMMENT
-%token <c> BOOL
+%token COMMENT %token <c> BOOL
 %token <s> STRING
 %token <f> FLOAT
 %token <n> INT
@@ -91,6 +93,7 @@ topstmt
 				: CLASS ID
 {
 	tmp_class = class_new();
+	stack_push(tstack, &tmp_class->typenum);
 
 	if (symbol_lookup(scopes, $2, CLA_T) != NULL) {
 		fprintf(stderr, "Class %s already exists\n", $2);
@@ -218,13 +221,13 @@ stmt 			: IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
 
-	struct cst *cr;
+	struct res *res;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	cr = instr_get_result($2); // may need to cast cr into bool
+	res = instr_get_result($2); // may need to cast cr into bool
 	size = snprintf(buf, BUFSZ,
 		"br i1 %%r%d, label %%IfTrue%d, label IfFalse%d",
-		cr->reg, lnum, lnum
+		res->reg, lnum, lnum
 	);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
@@ -232,7 +235,7 @@ stmt 			: IF expr opt_terms THEN
 	sprintf(buf, "IfTrue%d:", lnum);
 	stack_push(istack, iraw(buf));
 
-	cst_free(cr);
+	res_free(res);
 }
 				stmts terms endif
 {
@@ -258,13 +261,13 @@ stmt 			: IF expr opt_terms THEN
 }
 				expr 
 {
-	struct cst *cr;
+	struct res *res;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 	
-	cr = instr_get_result($3); // may need to cast cr into bool
+	res = instr_get_result($3); // may need to cast cr into bool
 	size = snprintf(buf, BUFSZ,
 		"br i1 %%r%d, label %%cond%d, label %%endloop%d",
-		cr->reg, lnum, lnum
+		res->reg, lnum, lnum
 	);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
@@ -273,7 +276,7 @@ stmt 			: IF expr opt_terms THEN
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
-	cst_free(cr);
+	res_free(res);
 }
 				term stmts terms END 
 {
@@ -326,8 +329,8 @@ stmt 			: IF expr opt_terms THEN
 	}
 	
 
-	struct cst *cres = instr_get_result($2);
-	tmp_function->ret = cres->type;
+	struct res *res = instr_get_result($2);
+	tmp_function->ret = res->types;
 	i = iret(cres);
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
@@ -447,17 +450,17 @@ primary         : lhs
 }
                 | FLOAT
 {
-	$$ = cst_new(FLO_T, CST_PURECST);
+	$$ = cst_new(FLO_T);
 	$$->f = $1;
 }
                 | BOOL
 {
-	$$ = cst_new(BOO_T, CST_PURECST);
+	$$ = cst_new(BOO_T);
 	$$->c = $1;
 }
                 | INT
 {
-	$$ = cst_new(INT_T, CST_PURECST);
+	$$ = cst_new(INT_T);
 	$$->i = $1;
 }
                 | '(' expr ')'
@@ -582,6 +585,9 @@ int main() {
 	scopes = stack_new();
 	labels = stack_new();
 	istack = stack_new();
+	tstack = stack_new();
+
+	types_init(tstack);
 
 	stack_push(scopes, block_new());
 
