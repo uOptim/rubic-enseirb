@@ -31,16 +31,18 @@ static struct instr * instr_new(
 	return i;
 }
 
+
 void * instr_copy(void * instruction) {
 	struct instr * i = (struct instr *)instruction;
 
 	return instr_new(i->optype,
-			i->vr,
+			var_copy(i->vr),
 			elt_copy(i->er),
 			elt_copy(i->e1),
 			elt_copy(i->e2)
 		);
 }
+
 
 void instr_free(void *instruction)
 {
@@ -99,7 +101,7 @@ static int type_vartype_constrain_ari(struct elt *e)
 	} 
 	
 	else {
-		if (e->cst->type != FLO_T || e->cst->type != INT_T) {
+		if (e->cst->type != FLO_T && e->cst->type != INT_T) {
 			fprintf(stderr, "Invalid type for arithmetic operation");
 		} else {
 			ret = 1;
@@ -170,6 +172,7 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	reg_settypes(reg, types);
 	i = instr_new(optype, NULL, elt_new(E_REG, reg), e1, e2);
 
+	stack_free(&types, NULL);
 	return i;
 }
 
@@ -206,7 +209,7 @@ struct instr * iret(struct elt *elt)
 struct instr * ialloca(struct var *vr)
 {
 	struct instr *i;
-	i = instr_new(I_ALO, vr, elt_new(E_REG, vr), NULL, NULL);
+	i = instr_new(I_ALO, vr, NULL, NULL, NULL);
 
 	return i;
 }
@@ -214,11 +217,12 @@ struct instr * ialloca(struct var *vr)
 struct instr * iload(struct var *vr)
 {
 	struct instr *i;
+	struct reg *reg = reg_new(vr);
 
 	i = instr_new(
 			I_LOA, 
 			vr,
-			elt_new(E_REG, vr),
+			elt_new(E_REG, reg),
 			NULL,
 			NULL
 		);

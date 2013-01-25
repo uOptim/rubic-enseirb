@@ -5,7 +5,6 @@
 type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T, STR_T};
 
 static void var_type_is_known(void *variable, void *params, void* dummy);
-static void * type_copy(void *);
 
 
 /********************************************************************/
@@ -30,7 +29,7 @@ void var_put_types(struct var *v, struct stack *types) {
 	v->t = stack_copy(types, type_copy);
 }
 
-static void * type_copy(void *type) {
+void * type_copy(void *type) {
 	return type;
 }
 

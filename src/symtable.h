@@ -31,6 +31,7 @@ struct var {
 
 
 struct var * var_new(const char *);
+struct var * var_copy(struct var *);
 void         var_free(void *);
 type_t       var_gettype(struct var *);
 int          var_type_card(struct var *);

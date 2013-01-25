@@ -612,6 +612,7 @@ int main() {
 
 	yyparse(); 
 
+	printf("Mega Pouet\n");
 	exit_cleanly(EXIT_SUCCESS);
 
 	return 0;
@@ -652,7 +653,6 @@ void * symbol_lookup(
 	}
 
 	stack_move(tmp, scopes);
-
 	stack_free(&tmp, block_free);
 
 	return sym;

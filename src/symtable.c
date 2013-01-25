@@ -25,6 +25,17 @@ struct var * var_new(const char *name)
 	return v;
 }
 
+struct var * var_copy(struct var *src)
+{
+	struct var *dst = malloc(sizeof *dst);
+
+	dst->vn = strdup(src->vn);
+	dst->t = stack_copy(src->t, type_copy);
+
+	return dst;
+}
+
+
 void var_free(void *var)
 {
 	struct var *v = (struct var *) var;
@@ -111,10 +122,10 @@ struct elt * elt_copy(struct elt *elt)
 
 	switch (elt->elttype) {
 		case E_CST:
-			copy = elt_new(E_CST, elt->cst);
+			copy = elt_new(E_CST, cst_copy(elt->cst));
 			break;
 		case E_REG:
-			copy = elt_new(E_REG, elt->reg);
+			copy = elt_new(E_REG, reg_copy(elt->reg));
 			break;
 		default:
 			copy = NULL;
@@ -138,8 +149,10 @@ struct reg * reg_new(struct var *v)
 
 	struct reg *r = malloc(sizeof *r);
 
-	reg_bind(r, v);
 	r->num = reg++;
+	r->bound = 0;
+	r->types = NULL;
+	reg_bind(r, v);
 
 	return r;
 }
@@ -192,7 +205,12 @@ struct reg * reg_copy(struct reg *r)
 
 	copy->num = r->num;
 	copy->bound = r->bound;
-	copy->types = r->types;
+
+	if (r->bound) {
+		copy->types = r->types;
+	} else {
+		copy->types = stack_copy(r->types, type_copy);
+	}
 
 	return copy;
 }

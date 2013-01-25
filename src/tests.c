@@ -9,7 +9,6 @@
 void stack_t()
 {
 	struct stack *s = stack_new();
-	struct stack *t = stack_new();
 
 	stack_push(s, "schtroumpf");
 	stack_push(s, "bidule");
@@ -21,20 +20,7 @@ void stack_t()
 	assert(0 == strcmp("machin", (char *) stack_pop(s)));
 	assert(0 == strcmp("truc", (char *) stack_pop(s)));
 
-	stack_clear(&s, NULL);
-
-	stack_push(s, "schtroumpf");
-	stack_push(s, "bidule");
-	stack_push(s, "truc");
-	stack_push(s, "machin");
-
-	stack_push(s, "pouet");
-	stack_push(s, "bidule");
-	stack_push(s, "chouette");
-	stack_push(s, "lapin");
-
 	stack_free(&s, NULL);
-	stack_free(&t, NULL);
 
 	assert(s == NULL);
 
