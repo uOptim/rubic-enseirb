@@ -87,7 +87,6 @@ static int type_vartype_constrain_ari(struct elt *e)
 	if (e->elttype == E_REG) {
 		inter = type_inter(tmp, e->reg->types);
 		if (stack_size(inter) == 0) {
-			stack_free(&inter, NULL);
 			fprintf(stderr, "Invalid type for arithmetic operation");
 		}
 		
@@ -96,6 +95,8 @@ static int type_vartype_constrain_ari(struct elt *e)
 			reg_settypes(e->reg, inter);
 			ret = stack_size(inter);
 		}
+
+		stack_free(&inter, NULL);
 	} 
 	
 	else {
@@ -107,7 +108,6 @@ static int type_vartype_constrain_ari(struct elt *e)
 	}
 
 	stack_free(&tmp, NULL);
-	stack_free(&inter, NULL);
 
 	return ret;
 }
