@@ -16,12 +16,19 @@ static struct stack * instr_stack_copy(struct stack *);
 
 #ifdef DEBUG
 static void print_type(void *type, void *dummy1, void *dummy2) {
+	if (dummy1 != NULL || dummy2 != NULL)
+		return;
+
 	type_t *t = (type_t *)type;
 	printf("%d\t", *t);
 }
 
 static void print_types(void *variable, void *dummy1, void *dummy2) {
 	struct var *v = (struct var *)variable;
+
+	if (dummy1 != NULL || dummy2 != NULL)
+		return;
+
 	stack_map(v->t, print_type, NULL, NULL);
 	printf("\n");
 }
@@ -83,7 +90,7 @@ void func_compute_var_type(struct function *f, struct stack *instructions)
 	gencode_func(f, i_copy);
 #endif /*DEBUG*/
 
-	stack_free(i_copy, instr_free);
+	stack_free(&i_copy, instr_free);
 }
 
 struct stack * instr_stack_copy(struct stack * instructions)

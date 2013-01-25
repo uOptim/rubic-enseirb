@@ -38,11 +38,11 @@ void * instr_copy(void * instruction) {
 	struct instr * i = (struct instr *)instruction;
 
 	return (void *)instr_new(
-			i->op_type;
-			i->vr;
-			i->cr;
-			i->c1;
-			i->c2;
+			i->op_type,
+			i->vr,
+			i->cr,
+			i->c1,
+			i->c2
 			);
 }
 

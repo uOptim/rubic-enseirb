@@ -3,7 +3,7 @@
 #include "stack.h"
 
 #define TYPE_NB	4
-static stack * possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T, STR_T};
+static type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T, STR_T};
 
 static void var_type_is_known(void *variable, void *params, void* dummy);
 static void * type_copy(void *);
@@ -16,7 +16,7 @@ static void * type_copy(void *);
 void types_init(struct stack *types) {
 	int i = 0;
 	for (; i < TYPE_NB; i++) {
-		var_pushtype(types, possible_types[i]);
+		stack_push(types, &possible_types[i]);
 	}
 }
 
@@ -27,7 +27,7 @@ type_t types_new(void) {
 }
 
 void var_put_types(struct var *v, const struct stack *types) {
-	stack_free(v->t, free);
+	stack_free(&v->t, free);
 
 	v->t = stack_copy(types, type_copy);
 }

@@ -60,9 +60,9 @@ struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct cst *);
 struct instr * i3addr(char, struct cst *, struct cst *);
 
-void instr_copy(void *);
-void instr_free(void *);
-void instr_constrain(void *, void *, void *);
+void * instr_copy(void *);
+void   instr_free(void *);
+void   instr_constrain(void *, void *, void *);
 
 struct cst * instr_get_result(const struct instr *);
 
