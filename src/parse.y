@@ -60,7 +60,6 @@
 	char *s;
 	double f;
 	
-	struct elt *elt;
 	struct instr *inst;
 };
 
@@ -73,8 +72,7 @@
 %token <s> ID 
 
 %type <s> lhs
-%type <elt> primary
-%type <inst> expr comp_expr additive_expr multiplicative_expr
+%type <inst> primary expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
 %left '/'
@@ -441,7 +439,6 @@ exprs           : exprs ',' expr
 ;
 primary         : lhs
 {
-	struct instr *i;
 	struct var *v = symbol_lookup(scopes, $1, VAR_T);
 
 	if (v == NULL) {
@@ -449,10 +446,9 @@ primary         : lhs
 		exit_cleanly(EXIT_FAILURE);
 	}
 
-	i = iload(v);
-	if (i == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, i);
-	$$ = instr_get_result(i);
+	$$ = iload(v);
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, $$);
 	
 	free($1);
 }
@@ -463,28 +459,49 @@ primary         : lhs
 }
                 | FLOAT
 {
-	struct cst *c = cst_new(FLO_T);
+	struct cst *c, *zero;
+	
+	c = cst_new(FLO_T);
 	c->f = $1;
 
-	$$ = elt_new(E_CST, c);
+	zero = cst_new(FLO_T);
+	zero->f = 0.0;
+
+	$$ = i3addr(I_ADD, elt_new(E_CST, c), elt_new(E_CST, zero));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, $$);
 }
                 | BOOL
 {
-	struct cst *c = cst_new(BOO_T);
+	struct cst *c, *zero;
+	
+	c = cst_new(BOO_T);
 	c->c = $1;
 
-	$$ = elt_new(E_CST, c);
+	zero = cst_new(BOO_T);
+	zero->c = 0;
+
+	$$ = i3addr(I_OR, elt_new(E_CST, c), elt_new(E_CST, zero));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, $$);
 }
                 | INT
 {
-	struct cst *c = cst_new(INT_T);
+	struct cst *c, *zero;
+	
+	c = cst_new(INT_T);
 	c->i = $1;
 
-	$$ = elt_new(E_CST, c);
+	zero = cst_new(INT_T);
+	zero->i = 0;
+
+	$$ = i3addr(I_ADD, elt_new(E_CST, c), elt_new(E_CST, zero));
+	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, $$);
 }
                 | '(' expr ')'
 {
-	$$ = instr_get_result($2);
+	$$ = $2;
 }
 ;
 expr            : expr AND comp_expr
@@ -565,24 +582,19 @@ additive_expr   : additive_expr '+' multiplicative_expr
 
 multiplicative_expr : multiplicative_expr '*' primary
 {
-	$$ = i3addr(I_MUL, instr_get_result($1), $3);
+	$$ = i3addr(I_MUL, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                     | multiplicative_expr '/' primary
 {
-	$$ = i3addr(I_DIV, instr_get_result($1), $3);
+	$$ = i3addr(I_DIV, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                     | primary
 {
-	struct cst *c = cst_new(INT_T);
-	c->i = 0;
-
-	$$ = i3addr(I_ADD, $1, elt_new(E_CST, c));
-	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	$$ = $1;
 }
 ;
 opt_terms	: /* none */

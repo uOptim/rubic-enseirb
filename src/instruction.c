@@ -155,11 +155,11 @@ static int type_vartype_constrain_cmp(struct elt *e)
 
 struct stack * type_constrain_cmp(struct elt *e1, struct elt *e2)
 {
-	if (0 == type_vartype_constrain_ari(e1)) {
+	if (0 == type_vartype_constrain_cmp(e1)) {
 		fprintf(stderr, "Invalid type for comparison operation.");
 		return NULL;
 	}
-	if (0 == type_vartype_constrain_ari(e2)) {
+	if (0 == type_vartype_constrain_cmp(e2)) {
 		fprintf(stderr, "Invalid type for comparison operation.");
 		return NULL;
 	}
@@ -169,6 +169,58 @@ struct stack * type_constrain_cmp(struct elt *e1, struct elt *e2)
 
 	return types;
 }
+
+static int type_vartype_constrain_boo(struct elt *e)
+{
+	int ret = 0;
+	struct stack *tmp, *inter;
+
+	// TODO: Init this only once at the begining
+	tmp = stack_new();
+	stack_push(tmp, &possible_types[BOO_T]);
+
+	if (e->elttype == E_REG) {
+		inter = type_inter(tmp, e->reg->types);
+		ret = stack_size(inter);
+
+		if (ret != 0) {
+			// replace old stack with the new one
+			reg_settypes(e->reg, inter);
+		}
+
+		stack_free(&inter, NULL);
+	} 
+	
+	else {
+		if (e->cst->type != BOO_T) {
+			ret = 0;
+		} else {
+			ret = 1;
+		}
+	}
+
+	stack_free(&tmp, NULL);
+
+	return ret;
+}
+
+struct stack * type_constrain_boo(struct elt *e1, struct elt *e2)
+{
+	if (0 == type_vartype_constrain_boo(e1)) {
+		fprintf(stderr, "Invalid type for boolean operation.");
+		return NULL;
+	}
+	if (0 == type_vartype_constrain_boo(e2)) {
+		fprintf(stderr, "Invalid type for boolean operation.");
+		return NULL;
+	}
+
+	struct stack *types = stack_new();
+	stack_push(types, &possible_types[BOO_T]);
+
+	return types;
+}
+
 
 struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 {
@@ -187,7 +239,8 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	}
 
 	else if (optype & I_BOO) {
-		;
+		types = type_constrain_boo(e1, e2);
+		if (types == NULL) { return NULL; }
 	}
 	
 	else {
