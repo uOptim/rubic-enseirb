@@ -32,10 +32,6 @@ static void print_types(void *variable, void *dummy1, void *dummy2) {
 // TODO: add a hashmap parameter for local variables
 void func_gen_codes(struct function *f, struct stack *instructions)
 {
-	// If some params type is UND_T then it should be put to
-	// the list of every possible type
-	stack_map(f->params, type_explicit, NULL, NULL);
-
 #ifdef DEBUG
 	//stack_map(f->params, print_types, NULL, NULL);
 #endif /*DEBUG*/

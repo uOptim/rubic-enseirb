@@ -3,9 +3,11 @@
 
 #include "symtable.h"
 
-void      type_inter(struct var *, const type_t types[], int);
+void      types_init(struct stack *);
+void      types_new(void);
+void      var_put_types(struct var *, const struct stack *);
 
 int       params_type_is_known(struct function *);
-void      type_explicit(void *, void *, void *);
+void      type_inter(struct var *, const type_t types[], int);
 
 #endif /* TYPES_H */
