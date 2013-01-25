@@ -7,6 +7,7 @@
 	#include "block.h"
 	#include "hashmap.h"
 	#include "gencode.h"
+	#include "genfunc.h"
 	#include "symtable.h"
 	#include "instruction.h"
 
@@ -354,7 +355,7 @@ stmt 			: IF expr opt_terms THEN
 }
 				opt_params term stmts terms END
 {
-	gencode_func(tmp_function, istack);
+	func_gen_codes(tmp_function, istack);
 	stack_free(&istack, instr_free);
 	istack = stack_new();
 
