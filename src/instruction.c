@@ -116,12 +116,12 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 	// these will modify the type of e1 and e2 to match arithmetic operations
 	// if possible.
 	if (0 == type_vartype_constrain_ari(e1)) {
-		fprintf(stderr, "Invalid type for arithmetic operation");
+		fprintf(stderr, "Invalid type for arithmetic operation.");
 		return NULL;
 	}
 
 	if (0 == type_vartype_constrain_ari(e2)) {
-		fprintf(stderr, "Invalid type for arithmetic operation");
+		fprintf(stderr, "Invalid type for arithmetic operation.");
 		return NULL;
 	}
 
@@ -156,11 +156,11 @@ static int type_vartype_constrain_cmp(struct elt *e)
 struct stack * type_constrain_cmp(struct elt *e1, struct elt *e2)
 {
 	if (0 == type_vartype_constrain_ari(e1)) {
-		fprintf(stderr, "Invalid type for comparison operation");
+		fprintf(stderr, "Invalid type for comparison operation.");
 		return NULL;
 	}
 	if (0 == type_vartype_constrain_ari(e2)) {
-		fprintf(stderr, "Invalid type for comparison operation");
+		fprintf(stderr, "Invalid type for comparison operation.");
 		return NULL;
 	}
 
@@ -191,7 +191,7 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	}
 	
 	else {
-		fprintf(stderr, "Unrecognized types.\n");
+		fprintf(stderr, "Unrecognized opcode.\n");
 		return NULL;
 	}
 
