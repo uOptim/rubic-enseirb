@@ -6,8 +6,7 @@
 #include <string.h>
 
 #define MAX_FN_SIZE 250
-#define TYPE_NB	5
-static char type2mangling[TYPE_NB] = { 'I', 'F', 'B', 'S', 'O' };
+static char type2mangling[TYPE_NB] = { 'I', 'F', 'B', 'S' };
 
 
 #define CMP_OFF 4 // first index of comp operations in the following array
@@ -25,18 +24,18 @@ static char * local2llvm_instr[10][2] = {
 	{"icmp sgt", "fcmp ogt"}
 };
 
-struct cst * craft_operation(
-	const struct cst *,
-	const struct cst *,
+struct elt * craft_operation(
+	const struct elt *,
+	const struct elt *,
 	const char *,
 	const char *);
 
-struct cst * craft_boolean_operation(
-	const struct cst *,
-	const struct cst *,
+struct elt * craft_boolean_operation(
+	const struct elt *,
+	const struct elt *,
 	const char *);
 
-int                 craft_store(struct var *, const struct cst *);
+int                 craft_store(struct var *, const struct elt *);
 static const char * local2llvm_type(char);
 // TODO: remove if unused in the end
 //static void         gencode_param(void *, void *, void *);
@@ -52,17 +51,17 @@ static unsigned int new_varid() {
 // TODO: use print_instr code when finished
 int gencode_instr(struct instr *i)
 {
-	if (i->op_type == I_RAW) {
+	if (i->optype == I_RAW) {
 		puts(i->rawllvm);
-	} else if (i->op_type & I_ARI || i->op_type & I_CMP) {
+	} else if (i->optype & I_ARI || i->optype & I_CMP) {
 		printf("%%r%d = %#x %s %%r%d, %%r%d\n",
-				i->cr->reg,
-				i->op_type,
+				i->er->reg->num,
+				i->optype,
 				"i32",
-				i->c1->reg,
-				i->c2->reg);
+				i->e1->reg->num,
+				i->e2->reg->num);
 	} else {
-		printf("optype = %#x\n", i->op_type);
+		printf("optype = %#x\n", i->optype);
 	}
 	return 0;
 }
@@ -79,7 +78,7 @@ int gencode_stack(struct stack *s)
 	 * reorders instructions in the correct order. */
 
 	while ((i = (struct instr *) stack_pop(s)) != NULL) {
-		if (i->op_type == I_ALO) {
+		if (i->optype == I_ALO) {
 			stack_push(alloc, i);
 		} else {
 			stack_push(other, i);
@@ -110,21 +109,20 @@ int gencode_stack(struct stack *s)
  * determined, the function code is generated.
  * The code is printed on stdout.
  */
-// TODO: add a hashmap parameter for local variables
 void gencode_func(struct function *f, struct stack *instructions)
 {
 	struct var *v;
 	struct stack *tmp = stack_new();
 
-	int is_first_param = 1;
+	//int is_first_param = 1;
 
 	//assert(params_type_is_known(f));
 
 	printf("define");
-	if (f->ret == UND_T) {
+	if (elt_type(f->ret) == UND_T) {
 		printf(" void ");
 	} else {
-		printf(" %s ", local2llvm_type(f->ret));
+		printf(" %s ", local2llvm_type(elt_type(f->ret)));
 	}
 	// @david: func mangling will be called before calling this function from
 	// the parser. Use f->fn instead.
@@ -175,15 +173,15 @@ void gencode_param(void *param, void *is_first_param, void *dummy) {
 }
 */
 
-char convert2bool(struct cst *c)
+char convert2bool(struct elt *c)
 {
 	char v;
 
-	if (c->type == INT_T) {
-		if (c->i > 0) v = 1;
+	if (elt_type(c) == INT_T) {
+		if (c->cst->i > 0) v = 1;
 		else v = 0;
-	} else if (c->type == FLO_T) {
-		if (c->f > 0) v = 1;
+	} else if (elt_type(c) == FLO_T) {
+		if (c->cst->f > 0) v = 1;
 		else v = 0;
 	} else {
 		fprintf(stderr, "Incompatible type for boolean conversion\n");
@@ -215,28 +213,28 @@ const char * local2llvm_type(char type)
 	return "UNKNOWN TYPE";
 }
 
-int craft_ret(const struct cst *c)
+int craft_ret(const struct elt *e)
 {
-	printf("ret %s %%r%d\n", local2llvm_type(c->type), c->reg);
+	printf("ret %s %%r%d\n", local2llvm_type(elt_type(e)), e->reg->num);
 
 	return 0;
 }
 
-int craft_store(struct var *var, const struct cst *c)
+int craft_store(struct var *var, const struct elt *e)
 {
 	printf("store %s ", local2llvm_type(var_gettype(var)));
-	if (c->reg > 0) {
-		printf("%%r%d, ", c->reg);
+	if (e->elttype == E_REG) {
+		printf("%%r%d, ", e->reg->num);
 	} else {
-		switch (c->type) {
+		switch (elt_type(e)) {
 			case INT_T:
-				printf("%d, ", c->i);
+				printf("%d, ", e->cst->i);
 				break;
 			case FLO_T:
-				printf("%g, ", c->f);
+				printf("%g, ", e->cst->f);
 				break;
 			case BOO_T:
-				printf("%s, ", (c->c == 0) ? "false" : "true");
+				printf("%s, ", (e->cst->c == 0) ? "false" : "true");
 				break;
 		}
 	}
@@ -244,9 +242,10 @@ int craft_store(struct var *var, const struct cst *c)
 	return 0;
 }
 
-int craft_load(struct var *var, const struct cst *c)
+int craft_load(struct var *var, const struct elt *e)
 {
-	printf("%%r%d = load %s %%%s\n", c->reg, local2llvm_type(var_gettype(var)),
+	printf("%%r%d = load %s %%%s\n", e->reg->num,
+			local2llvm_type(var_gettype(var)),
 			var->vn);
 
 	return 0;
@@ -259,95 +258,105 @@ int craft_alloca(struct var *var)
 	return 0;
 }
 
-struct cst * craft_operation(
-	const struct cst *c1,
-	const struct cst *c2,
+struct elt * craft_operation(
+	const struct elt *e1,
+	const struct elt *e2,
 	const char *op,
 	const char *fop)
 {
-	struct cst *result = NULL;
+	struct elt *result = NULL;
 
-	if (c1->type == INT_T && c2->type == INT_T) {
-		result = cst_new(INT_T, CST_OPRESULT);
-		printf("%%r%d = %s i32 ", result->reg, op);
-		if (c1->reg > 0) {
-			printf("%%r%d", c1->reg);
+	if (elt_type(e1) == INT_T && elt_type(e2) == INT_T) {
+		result = elt_new(E_REG, reg_new(NULL));
+		stack_push(result->reg->types, &possible_types[INT_T]);
+
+		printf("%%r%d = %s i32 ", result->reg->num, op);
+		if (e1->elttype == E_REG) {
+			printf("%%r%d", e1->reg->num);
 		} else {
-			printf("%d", c1->i);
+			printf("%d", e1->cst->i);
 		}
 		printf(", ");
-		if (c2->reg > 0) {
-			printf("%%r%d", c2->reg);
+		if (e2->elttype == E_REG) {
+			printf("%%r%d", e2->reg->num);
 		} else {
-			printf("%d", c2->i);
+			printf("%d", e2->cst->i);
 		}
 		puts("");
 	}
 
-	else if (c1->type == FLO_T && c2->type == FLO_T) {
-		result = cst_new(FLO_T, CST_OPRESULT);
-		printf("%%r%d = %s double ", result->reg, fop);
-		if (c1->reg > 0) {
-			printf("%%r%d", c1->reg);
+	else if (elt_type(e1) == FLO_T && elt_type(e2) == FLO_T) {
+		result = elt_new(E_REG, reg_new(NULL));
+		stack_push(result->reg->types, &possible_types[FLO_T]);
+
+		printf("%%r%d = %s double ", result->reg->num, fop);
+		if (e1->elttype == E_REG) {
+			printf("%%r%d", e1->reg->num);
 		} else {
-			printf("%#g", c1->f);
+			printf("%#g", e1->cst->f);
 		}
 		printf(", ");
-		if (c2->reg > 0) {
-			printf("%%r%d", c2->reg);
+		if (e2->elttype == E_REG) {
+			printf("%%r%d", e2->reg->num);
 		} else {
-			printf("%#g", c2->f);
+			printf("%#g", e2->cst->f);
 		}
 		puts("");
 	}
 
-	else if (c1->type == INT_T && c2->type == FLO_T) {
-		unsigned int r;
-		result = cst_new(FLO_T, CST_OPRESULT);
+	else if (elt_type(e1) == INT_T && elt_type(e2) == FLO_T) {
+		struct reg * r;
+		result = elt_new(E_REG, reg_new(NULL));
+		stack_push(result->reg->types, &possible_types[FLO_T]);
 
-		if (c1->reg > 0) {
+		if (e1->elttype == E_REG) {
 			// conversion needed
-			r = new_reg();
-			printf("%%r%d = sitofp i32 %%r%d to double\n", r, c1->reg);
+			r = reg_new(NULL);
+			printf("%%r%d = sitofp i32 %%r%d to double\n", 
+					r->num, e1->reg->num);
 		}
 
-		printf("%%r%d = %s double ", result->reg, fop);
+		printf("%%r%d = %s double ", result->reg->num, fop);
 
-		if (c1->reg > 0) {
-			printf("%%r%d", r);
+		if (e1->elttype == E_REG) {
+			printf("%%r%d", r->num);
+			reg_free(r);
 		} else {
-			printf("%d.0", c1->i);
+			printf("%d.0", e1->cst->i);
 		}
 		printf(", ");
-		if (c2->reg > 0) {
-			printf("%%r%d", c2->reg);
+		if (e2->elttype == E_REG) {
+			printf("%%r%d", e2->reg->num);
 		} else {
-			printf("%#g", c2->f);
+			printf("%#g", e2->cst->f);
 		}
 		puts("");
 	}
 
-	else if (c1->type == FLO_T && c2->type == INT_T) {
-		unsigned int r;
-		result = cst_new(FLO_T, CST_OPRESULT);
+	else if (elt_type(e1) == FLO_T && elt_type(e2) == INT_T) {
+		struct reg * r;
+		result = elt_new(E_REG, reg_new(NULL));
+		stack_push(result->reg->types, &possible_types[FLO_T]);
 
-		if (c2->reg > 0) {
+		if (e2->elttype == E_REG) {
 			// conversion
-			r = new_reg();
-			printf("%%r%d = sitofp i32 %%r%d to double\n", r, c2->reg);
+			r = reg_new(NULL);
+			printf("%%r%d = sitofp i32 %%r%d to double\n",
+					r->num, e2->reg->num);
 		}
-		printf("%%r%d = %s double ", result->reg, fop);
+		printf("%%r%d = %s double ", result->reg->num, fop);
 		
-		if (c1->reg > 0) {
-			printf("%%r%d", c1->reg);
+		if (e1->elttype == E_REG) {
+			printf("%%r%d", e1->reg->num);
 		} else {
-			printf("%#g", c1->f);
+			printf("%#g", e1->cst->f);
 		}
 		printf(", ");
-		if (c2->reg > 0) {
-			printf("%%r%d", r);
+		if (e2->elttype == E_REG) {
+			printf("%%r%d", r->num);
+			reg_free(r);
 		} else {
-			printf("%d.0", c2->i);
+			printf("%d.0", e2->cst->i);
 		}
 		puts("");
 	}
@@ -355,28 +364,32 @@ struct cst * craft_operation(
 	return result;
 }
 
-struct cst * craft_boolean_conversion(const struct cst *c1)
+struct elt * craft_boolean_conversion(const struct elt *e1)
 {
-	struct cst *c = NULL;
+	struct elt *c = NULL;
 
-	switch (c1->type) {
+	switch (elt_type(e1)) {
 		case INT_T:
-			c = cst_new(BOO_T, CST_OPRESULT);
-			printf("%%r%d = icmp sgt i32 ", c->reg);
-			if (c1->reg > 0) {
-				printf("%%r%d ", c1->reg);
+			c = elt_new(E_REG, reg_new(NULL));
+			stack_push(c->reg->types, &possible_types[BOO_T]);
+
+			printf("%%r%d = icmp sgt i32 ", c->reg->num);
+			if (e1->elttype == E_REG) {
+				printf("%%r%d ", e1->reg->num);
 			} else {
-				printf("%d ", c1->i);
+				printf("%d ", e1->cst->i);
 			}
 			printf(", 0\n");
 			break;
 		case FLO_T:
-			c = cst_new(BOO_T, CST_OPRESULT);
-			printf("%%r%d = fcmp sgt double ", c->reg);
-			if (c1->reg > 0) {
-				printf("%%r%d ", c1->reg);
+			c = elt_new(E_REG, reg_new(NULL));
+			stack_push(c->reg->types, &possible_types[BOO_T]);
+
+			printf("%%r%d = fcmp sgt double ", c->reg->num);
+			if (e1->elttype == E_REG) {
+				printf("%%r%d ", e1->reg->num);
 			} else {
-				printf("%#g ", c1->f);
+				printf("%#g ", e1->cst->f);
 			}
 			printf(", 0.0\n");
 			break;
@@ -387,33 +400,34 @@ struct cst * craft_boolean_conversion(const struct cst *c1)
 	return c;
 }
 
-struct cst * craft_boolean_operation(
-	const struct cst *c1,
-	const struct cst *c2,
+struct elt * craft_boolean_operation(
+	const struct elt *e1,
+	const struct elt *e2,
 	const char *op)
 {
-	struct cst *c = cst_new(BOO_T, CST_OPRESULT);
+	struct elt *c = elt_new(E_REG, reg_new(NULL));
+	stack_push(c->reg->types, &possible_types[BOO_T]);
 
-	if (c1->type != BOO_T) {
-		c1 = craft_boolean_conversion(c1);
-		if (c1 == NULL) return NULL;
+	if (elt_type(e1) != BOO_T) {
+		e1 = craft_boolean_conversion(e1);
+		if (e1 == NULL) return NULL;
 	}
-	if (c2->type != BOO_T) {
-		c2 = craft_boolean_conversion(c2);
-		if (c2 == NULL) return NULL;
+	if (elt_type(e2) != BOO_T) {
+		e2 = craft_boolean_conversion(e2);
+		if (e2 == NULL) return NULL;
 	}
 	
-	printf("%%r%d = icmp %s i1 ", c->reg, op);
-	if (c1->reg > 0) {
-		printf("%%r%d", c1->reg);
+	printf("%%r%d = icmp %s i1 ", c->reg->num, op);
+	if (e1->elttype == E_REG) {
+		printf("%%r%d", e1->reg->num);
 	} else {
-		printf("%s", (c1->c > 0) ? "true" : "false");
+		printf("%s", (e1->cst->c > 0) ? "true" : "false");
 	}
 	printf(", ");
-	if (c2->reg > 0) {
-		printf("%%r%d", c2->reg);
+	if (e2->elttype == E_REG) {
+		printf("%%r%d", e2->reg->num);
 	} else {
-		printf("%s", (c2->c > 0) ? "true" : "false");
+		printf("%s", (e2->cst->c > 0) ? "true" : "false");
 	}
 	puts("");
 
@@ -423,43 +437,43 @@ struct cst * craft_boolean_operation(
 // TODO finish him!
 void print_instr(struct instr *i)
 {
-	if (i->op_type & I_ARI) {
+	if (i->optype & I_ARI) {
 		craft_operation(
-				i->c1,
-				i->c2,
-				local2llvm_instr[i->op_type - I_ARI - 1][0],
-				local2llvm_instr[i->op_type - I_ARI - 1][1]
+				i->e1,
+				i->e2,
+				local2llvm_instr[i->optype - I_ARI - 1][0],
+				local2llvm_instr[i->optype - I_ARI - 1][1]
 				);
 	}
-	else if (i->op_type & I_BOO) {
-		if (i->op_type == I_AND) {
-			craft_boolean_operation(i->c2, i->c2, "and");
+	else if (i->optype & I_BOO) {
+		if (i->optype == I_AND) {
+			craft_boolean_operation(i->e2, i->e2, "and");
 		}
-		else if (i->op_type == I_OR) {
-			craft_boolean_operation(i->c2, i->c2, "or");
+		else if (i->optype == I_OR) {
+			craft_boolean_operation(i->e2, i->e2, "or");
 		}
 	}
-	else if (i->op_type & I_CMP) {
+	else if (i->optype & I_CMP) {
 		craft_operation(
-				i->c1,
-				i->c2,
-				local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][0],
-				local2llvm_instr[i->op_type - I_CMP - 1 + CMP_OFF][1]
+				i->e1,
+				i->e2,
+				local2llvm_instr[i->optype - I_CMP - 1 + CMP_OFF][0],
+				local2llvm_instr[i->optype - I_CMP - 1 + CMP_OFF][1]
 				);
 	}
-	else if (i->op_type == I_STO) {
-		craft_store(i->vr, i->cr);
+	else if (i->optype == I_STO) {
+		craft_store(i->vr, i->er);
 	}
-	else if (i->op_type == I_LOA) {
-		craft_load(i->vr, i->cr);
+	else if (i->optype == I_LOA) {
+		craft_load(i->vr, i->er);
 	}
-	else if (i->op_type == I_ALO) {
+	else if (i->optype == I_ALO) {
 		craft_alloca(i->vr);
 	}
-	else if (i->op_type == I_RET) {
-		craft_ret(i->cr);
+	else if (i->optype == I_RET) {
+		craft_ret(i->er);
 	}
-	else if (i->op_type == I_RAW) {
+	else if (i->optype == I_RAW) {
 		puts(i->rawllvm);
 	}
 	else {

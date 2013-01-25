@@ -38,7 +38,6 @@ static void print_types(void *variable, void *dummy1, void *dummy2) {
  * generates every possible function code to fit with every possible
  * parameters type.
  */
-// TODO: add a hashmap parameter for local variables
 void func_gen_codes(struct function *f, struct stack *instructions)
 {
 #ifdef DEBUG
@@ -48,7 +47,6 @@ void func_gen_codes(struct function *f, struct stack *instructions)
 	func_gen_codes_rec(f, instructions, 0);
 }
 
-// TODO: add a hashmap parameter for local variables
 void func_gen_codes_rec(struct function *f, struct stack *instructions, int i)
 {
 	struct var *cur_param = stack_peak(f->params, i);
@@ -76,7 +74,6 @@ void func_gen_codes_rec(struct function *f, struct stack *instructions, int i)
  * code is generated.
  * Otherwise, no generation is performed.
  */
-// TODO: add a hashmap parameter for local variables
 void func_compute_var_type(struct function *f, struct stack *instructions)
 {
 	struct stack * i_copy = instr_stack_copy(instructions);

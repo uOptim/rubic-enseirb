@@ -123,6 +123,15 @@ struct elt * elt_copy(struct elt *elt)
 	return copy;
 }
 
+type_t elt_type(const struct elt * e) {
+	if (e->elttype == E_CST) {
+		return e->cst->type;
+	}
+	else {
+		return *(type_t *)stack_peak(e->reg->types, 0);
+	}
+}
+
 struct reg * reg_new(struct var *v)
 {
 	static unsigned int reg = 1;

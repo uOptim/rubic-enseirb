@@ -30,7 +30,6 @@ static struct instr * instr_new(
 	return i;
 }
 
-/*
 void * instr_copy(void * instruction) {
 	struct instr * i = (struct instr *)instruction;
 
@@ -41,7 +40,6 @@ void * instr_copy(void * instruction) {
 			elt_copy(i->e2)
 		);
 }
-*/
 
 void instr_free(void *instruction)
 {
@@ -75,9 +73,10 @@ void instr_free(void *instruction)
 
 /* Set possible symbol types according to the operation they appear in
 */
-	/*
+// TODO
 void instr_constrain(void *instruction, void *dummy1, void *dummy2)
 {
+	/*
 	struct instr *i = (struct instr *)instruction;
 	if (dummy1 != NULL || dummy2 != NULL) {
 		return;
@@ -99,8 +98,8 @@ void instr_constrain(void *instruction, void *dummy1, void *dummy2)
 			type_inter(i->er->var, types, 2);
 		}
 	}
-}
 	*/
+}
 
 struct instr * iraw(const char *s)
 {
@@ -128,7 +127,7 @@ static int verif_type(struct elt *e, type_t type)
 {
 	if (e->elttype == E_CST && e->cst->type == type) {
 		return E_CST;
-	} else if (type_ispresent(e->reg, FLO_T)) {
+	} else if (type_ispresent(e->reg->types, FLO_T)) {
 		return E_REG;
 	}
 
@@ -164,31 +163,31 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 
 		reg = reg_new(NULL);
 		if (nbfloat > 0) {
-			stack_push(reg->types, possible_types[FLO_T]);
+			stack_push(reg->types, &possible_types[FLO_T]);
 
 			if (e1->elttype == E_REG) {
 				stack_clear(e1->reg->types, NULL);
-				stack_push(e1->reg->types, possible_types[FLO_T]);
+				stack_push(e1->reg->types, &possible_types[FLO_T]);
 			}
 
 			if (e2->elttype == E_REG) {
 				stack_clear(e2->reg->types, NULL);
-				stack_push(e2->reg->types, possible_types[FLO_T]);
+				stack_push(e2->reg->types, &possible_types[FLO_T]);
 			}
 		} else {
-			stack_push(reg->types, possible_types[FLO_T]);
-			stack_push(reg->types, possible_types[INT_T]);
+			stack_push(reg->types, &possible_types[FLO_T]);
+			stack_push(reg->types, &possible_types[INT_T]);
 
 			if (e1->elttype == E_REG) {
 				stack_clear(e1->reg->types, NULL);
-				stack_push(e1->reg->types, possible_types[FLO_T]);
-				stack_push(e1->reg->types, possible_types[INT_T]);
+				stack_push(e1->reg->types, &possible_types[FLO_T]);
+				stack_push(e1->reg->types, &possible_types[INT_T]);
 			}
 
 			if (e2->elttype == E_REG) {
 				stack_clear(e2->reg->types, NULL);
-				stack_push(e2->reg->types, possible_types[FLO_T]);
-				stack_push(e2->reg->types, possible_types[INT_T]);
+				stack_push(e2->reg->types, &possible_types[FLO_T]);
+				stack_push(e2->reg->types, &possible_types[INT_T]);
 			}
 		}
 

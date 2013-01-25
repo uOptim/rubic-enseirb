@@ -79,6 +79,7 @@ struct elt {
 struct elt * elt_new(char, void *);
 void         elt_free(void *);
 struct elt * elt_copy(struct elt *);
+type_t       elt_type(const struct elt *);
 
 
 struct function {

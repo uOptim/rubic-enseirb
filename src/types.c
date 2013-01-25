@@ -2,8 +2,7 @@
 #include "types.h"
 #include "stack.h"
 
-#define TYPE_NB	4
-static type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T, STR_T};
+type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T, STR_T};
 
 static void var_type_is_known(void *variable, void *params, void* dummy);
 static void * type_copy(void *);
@@ -66,11 +65,8 @@ void var_type_is_known(void *variable, void *params, void* dummy) {
 /*                        Type computation                          */
 /********************************************************************/
 
-/* Restrict a variable type with a set of possible types given in an array
- *
- * v	 is a variable whose type may not be known
- * types is an array of possibles types for the variable
- * n	 is the size of this array
+/* Returns the intersection of two sets of types given in stacks.
+ * A stack containing the intersection is returned.
  */
 struct stack * type_inter(struct stack *t1, struct stack *t2)
 {
