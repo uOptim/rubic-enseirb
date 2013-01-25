@@ -88,10 +88,9 @@ static int type_vartype_constrain_ari(struct elt *e)
 		inter = type_inter(tmp, e->reg->types);
 		ret = stack_size(inter);
 
-		if (ret == 0) {
-			fprintf(stderr, "Invalid type for arithmetic operation");
-		} else {
-			reg_settypes(e->reg, inter); // replace old stack with the new one
+		if (ret != 0) {
+			// replace old stack with the new one
+			reg_settypes(e->reg, inter);
 		}
 
 		stack_free(&inter, NULL);
@@ -99,7 +98,7 @@ static int type_vartype_constrain_ari(struct elt *e)
 	
 	else {
 		if (e->cst->type != FLO_T && e->cst->type != INT_T) {
-			fprintf(stderr, "Invalid type for arithmetic operation");
+			ret = 0;
 		} else {
 			ret = 1;
 		}
@@ -116,8 +115,15 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 
 	// these will modify the type of e1 and e2 to match arithmetic operations
 	// if possible.
-	if (0 == type_vartype_constrain_ari(e1)) { return NULL; }
-	if (0 == type_vartype_constrain_ari(e2)) { return NULL; }
+	if (0 == type_vartype_constrain_ari(e1)) {
+		fprintf(stderr, "Invalid type for arithmetic operation");
+		return NULL;
+	}
+
+	if (0 == type_vartype_constrain_ari(e2)) {
+		fprintf(stderr, "Invalid type for arithmetic operation");
+		return NULL;
+	}
 
 	if (e1->elttype == E_REG) {
 		tmp1 = e1->reg->types;
@@ -141,6 +147,29 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 	return types;
 }
 
+static int type_vartype_constrain_cmp(struct elt *e)
+{
+	// same thing
+	return type_vartype_constrain_ari(e);
+}
+
+struct stack * type_constrain_cmp(struct elt *e1, struct elt *e2)
+{
+	if (0 == type_vartype_constrain_ari(e1)) {
+		fprintf(stderr, "Invalid type for comparison operation");
+		return NULL;
+	}
+	if (0 == type_vartype_constrain_ari(e2)) {
+		fprintf(stderr, "Invalid type for comparison operation");
+		return NULL;
+	}
+
+	struct stack *types = stack_new();
+	stack_push(types, &possible_types[BOO_T]);
+
+	return types;
+}
+
 struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 {
 	struct reg *reg;
@@ -153,7 +182,8 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	}
 	
 	else if (optype & I_CMP) {
-		;
+		types = type_constrain_cmp(e1, e2);
+		if (types == NULL) { return NULL; }
 	}
 
 	else if (optype & I_BOO) {
