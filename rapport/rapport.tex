@@ -175,6 +175,18 @@ de LLVM à cause d'allocations soumises à condition.
 
 \section{Typage}
 
+Afin de pouvoir gérer au mieux une quantité variable de types lors de l'introduction de classes, nous avons développé un jeu de fonctions décrivant un langage intermédiaire proche de l'assembleur LLVM. Ce jeu d'instructions permet de manipuler le code à générer en faisant abstraction des types des variables qui portent alors un ensemble de types possibles. Cet ensemble de types sera réduit au fur et à mesure de la lecture du code source. Par exemple, l'emploi d'une variable aver l'opérateur '+' permet de réduire cet ensemble aux types entier et flotant.
+
+Ce jeu d'instruction manipule trois structures différentes :
+\begin{itemize}
+	\item Les constantes obtenues via les tokens STRING, FLOAT, BOOL, INT
+	\item Les registres qui correspondent à un registre dans LLVM.
+	\item Les variables repérées par le token ID de certaines règles (affectation, paramètres, etc).
+\end{itemize}
+
+Les registres peuvent être liés une unique fois à une variable lors d'un 'store' ou d'un 'load'. Ils partagent alors avec la variable l'ensemble des types possible et les déductions sur le type de l'un affectera dans le même temps celui de l'autre.
+
+
 \section{Génération de code}
 
 \section{Conclusion}
