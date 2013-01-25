@@ -93,9 +93,7 @@ static int type_vartype_constrain_ari(struct elt *e)
 		
 		else {
 			// replace old stack with the new one
-			stack_free(&e->reg->types, NULL);
-			e->reg->types = inter;
-
+			reg_settypes(e->reg, inter);
 			ret = stack_size(inter);
 		}
 	} 
@@ -109,6 +107,7 @@ static int type_vartype_constrain_ari(struct elt *e)
 	}
 
 	stack_free(&tmp, NULL);
+	stack_free(&inter, NULL);
 
 	return ret;
 }
