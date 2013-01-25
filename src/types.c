@@ -13,14 +13,14 @@ static void * type_copy(void *);
 /*                         Type operations                          */
 /********************************************************************/
 
-void types_init(struct stack *types) {
+void type_init(struct stack *types) {
 	int i = 0;
 	for (; i < TYPE_NB; i++) {
 		stack_push(types, &possible_types[i]);
 	}
 }
 
-type_t types_new(void) {
+type_t type_new(void) {
 	static type_t id = TYPE_NB;
 
 	return id++;

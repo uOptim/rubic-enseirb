@@ -3,8 +3,8 @@
 
 #include "symtable.h"
 
-void      types_init(struct stack *);
-type_t    types_new(void);
+void      type_init(struct stack *);
+type_t    type_new(void);
 void      var_put_types(struct var *, const struct stack *);
 
 int       params_type_is_known(struct function *);
