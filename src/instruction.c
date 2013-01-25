@@ -124,14 +124,14 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 		tmp1 = e1->reg->types;
 	} else {
 		tmp1 = stack_new();
-		stack_push(tmp1, possible_types[(int)e1->cst->type]);
+		stack_push(tmp1, &possible_types[(int)e1->cst->type]);
 	}
 
 	if (e2->elttype == E_REG) {
 		tmp2 = e2->reg->types;
 	} else {
 		tmp2 = stack_new();
-		stack_push(tmp2, possible_types[(int)e2->cst->type]);
+		stack_push(tmp2, &possible_types[(int)e2->cst->type]);
 	}
 
 	types = type_inter(tmp1, tmp2);
@@ -149,63 +149,8 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	struct stack *types;
 
 	if (optype & I_ARI) {
-		char nbfloat = 0;
-
-		if (verif_type(e1, FLO_T) != -1) {
-			nbfloat++;
-		} else if (verif_type(e1, INT_T) != -1) {
-			;
-		} else {
-			fprintf(stderr, "Invalid type for arithmetic operation\n");
-			return NULL;
-		}
-
-		if (verif_type(e2, FLO_T) != -1) {
-			nbfloat++;
-		} else if (verif_type(e2, INT_T) != -1) {
-			;
-		} else {
-			fprintf(stderr, "Invalid type for arithmetic operation\n");
-			return NULL;
-		}
-
-		reg = reg_new(NULL);
-		if (nbfloat > 0) {
-			stack_push(reg->types, &possible_types[FLO_T]);
-
-			if (e1->elttype == E_REG) {
-				stack_clear(e1->reg->types, NULL);
-				stack_push(e1->reg->types, &possible_types[FLO_T]);
-			}
-
-			if (e2->elttype == E_REG) {
-				stack_clear(e2->reg->types, NULL);
-				stack_push(e2->reg->types, &possible_types[FLO_T]);
-			}
-		} else {
-			stack_push(reg->types, &possible_types[FLO_T]);
-			stack_push(reg->types, &possible_types[INT_T]);
-
-			if (e1->elttype == E_REG) {
-				stack_clear(e1->reg->types, NULL);
-				stack_push(e1->reg->types, &possible_types[FLO_T]);
-				stack_push(e1->reg->types, &possible_types[INT_T]);
-			}
-
-			if (e2->elttype == E_REG) {
-				stack_clear(e2->reg->types, NULL);
-				stack_push(e2->reg->types, &possible_types[FLO_T]);
-				stack_push(e2->reg->types, &possible_types[INT_T]);
-			}
-		}
-
-		elt = elt_new(E_REG, reg);
-=======
-
-	if (optype & I_ARI) {
 		types = type_constrain_ari(e1, e2);
 		if (types == NULL) { return NULL; }
->>>>>>> Type constrain ari
 	}
 	
 	else if (optype & I_CMP) {

@@ -78,7 +78,7 @@ void func_compute_var_type(struct function *f, struct stack *instructions)
 {
 	struct stack * i_copy = instr_stack_copy(instructions);
 
-	stack_map(i_copy, instr_constrain, NULL, NULL);
+	//stack_map(i_copy, instr_constrain, NULL, NULL);
 
 #ifdef DEBUG
 	stack_map(f->params, print_types, NULL, NULL);
