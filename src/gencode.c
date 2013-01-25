@@ -42,7 +42,7 @@ static const char * local2llvm_type(char);
 //static void         gencode_param(void *, void *, void *);
 static const char * func_mangling(struct function *);
 static void         fn_append(void *, void *, void *);
-void                print_instr(struct instr *);
+static void         print_instr(struct instr *);
 
 static unsigned int new_varid() {
 	static unsigned int varid = 0;

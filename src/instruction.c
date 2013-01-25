@@ -34,6 +34,17 @@ static struct instr* instr_new(
 	return i;
 }
 
+void * instr_copy(void * instruction) {
+	struct instr * i = (struct instr *)instruction;
+
+	return (void *)instr_new(
+			i->op_type;
+			i->vr;
+			i->cr;
+			i->c1;
+			i->c2;
+			);
+}
 
 void instr_free(void *instruction)
 {
@@ -67,8 +78,12 @@ void instr_free(void *instruction)
 
 /* Set possible symbol types according to the operation they appear in
 */
-void type_constrain(struct instr *i)
+void instr_constrain(void *instruction, void *dummy1, void *dummy2)
 {
+	struct instr *i = (struct instr *)instruction;
+	if (dummy1 != NULL || dummy2 != NULL) {
+		return;
+	}
 	/*
 	if (i->op_type & I_ARI) {
 		type_t types[2] = {INT_T, FLO_T};

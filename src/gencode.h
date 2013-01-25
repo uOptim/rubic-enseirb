@@ -10,6 +10,4 @@ int gencode_instr(struct instr *);
 int gencode_stack(struct stack *);
 void gencode_func(struct function *, struct stack *);
 
-void print_instr(struct instr *);
-
 #endif

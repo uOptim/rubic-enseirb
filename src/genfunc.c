@@ -7,8 +7,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void func_gen_codes_rec(struct function *, struct stack *, int);
-static void func_compute_var_type(struct function *, struct stack *);
+static void    func_gen_codes_rec(struct function *, struct stack *, int);
+static void    func_compute_var_type(struct function *, struct stack *);
+
+static struct stack * instr_stack_copy(struct stack *);
 
 #define DEBUG
 
@@ -70,13 +72,23 @@ void func_gen_codes_rec(struct function *f, struct stack *instructions, int i)
 // TODO: add a hashmap parameter for local variables
 void func_compute_var_type(struct function *f, struct stack *instructions)
 {
-	// TODO: use type_constrain on variable hashmap
+	struct stack * i_copy = instr_stack_copy(instructions);
+
+	stack_map(i_copy, instr_constrain, NULL, NULL);
 
 #ifdef DEBUG
 	stack_map(f->params, print_types, NULL, NULL);
 	printf("\n");
 #else
-	gencode_func(f, instructions);
+	gencode_func(f, i_copy);
 #endif /*DEBUG*/
+
+	stack_free(i_copy, instr_free);
 }
 
+struct stack * instr_stack_copy(struct stack * instructions)
+{
+	struct stack * s = stack_copy(instructions, instr_copy);
+
+	return s;
+}
