@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 
+
 static struct instr * instr_new(
 		int optype,
 		struct var * vr,
@@ -71,74 +72,81 @@ void instr_free(void *instruction)
 	free(i);
 }
 
-/* Set possible symbol types according to the operation they appear in
-*/
-// TODO
-void instr_constrain(void *instruction, void *dummy1, void *dummy2)
+static int type_vartype_constrain_ari(struct elt *e)
 {
-	/*
-	struct instr *i = (struct instr *)instruction;
-	if (dummy1 != NULL || dummy2 != NULL) {
-		return;
-	}
-	if (i->optype & I_ARI) {
-		type_t types[2] = {INT_T, FLO_T};
+	int ret = 0;
+	struct stack *tmp, *inter;
 
-		type_inter(i->e1->var, types, 2);
-		type_inter(i->e2->var, types, 2);
-		if (var_type_card((struct var*)i->e1->var) == 1
-				&& var_type_card((struct var*)i->e2->var) == 1) {
-			// Common type for variables stored in e1 and e2
-			types[0] = compatibility_table
-				[var_gettype((struct var *)i->e1->var)]
-				[var_gettype((struct var *)i->e2->var)];
-			type_inter(i->er->var, types, 1);
+	// TODO: Init this only once at the begining
+	tmp = stack_new();
+	stack_push(tmp, &possible_types[FLO_T]);
+	stack_push(tmp, &possible_types[INT_T]);
+
+	if (e->elttype == E_REG) {
+		inter = type_inter(tmp, e->reg->types);
+		if (stack_size(inter) == 0) {
+			stack_free(&inter, NULL);
+			fprintf(stderr, "Invalid type for arithmetic operation");
 		}
+		
 		else {
-			type_inter(i->er->var, types, 2);
+			// replace old stack with the new one
+			stack_free(&e->reg->types, NULL);
+			e->reg->types = inter;
+
+			ret = stack_size(inter);
+		}
+	} 
+	
+	else {
+		if (e->cst->type != FLO_T || e->cst->type != INT_T) {
+			fprintf(stderr, "Invalid type for arithmetic operation");
+		} else {
+			ret = 1;
 		}
 	}
-	*/
+
+	stack_free(&tmp, NULL);
+
+	return ret;
 }
 
-struct instr * iraw(const char *s)
+struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 {
-	struct instr *i = malloc(sizeof *i);
+	struct stack *types, *tmp1, *tmp2;
 
-	if (i == NULL) {
-		perror("malloc");
-		return NULL;
+	// these will modify the type of e1 and e2 to match arithmetic operations
+	// if possible.
+	if (0 == type_vartype_constrain_ari(e1)) { return NULL; }
+	if (0 == type_vartype_constrain_ari(e2)) { return NULL; }
+
+	if (e1->elttype == E_REG) {
+		tmp1 = e1->reg->types;
+	} else {
+		tmp1 = stack_new();
+		stack_push(tmp1, possible_types[(int)e1->cst->type]);
 	}
 
-	i->optype = I_RAW;
-	i->rawllvm = strdup(s);
-
-	if (i->rawllvm == NULL) {
-		perror("strdup");
-		free(i);
-		i = NULL;
+	if (e2->elttype == E_REG) {
+		tmp2 = e2->reg->types;
+	} else {
+		tmp2 = stack_new();
+		stack_push(tmp2, possible_types[(int)e2->cst->type]);
 	}
 
-	return i;
-}
+	types = type_inter(tmp1, tmp2);
 
+	if (e1->elttype == E_CST) { stack_free(&tmp1, NULL); }
+	if (e2->elttype == E_CST) { stack_free(&tmp2, NULL); }
 
-static int verif_type(struct elt *e, type_t type)
-{
-	if (e->elttype == E_CST && e->cst->type == type) {
-		return E_CST;
-	} else if (type_ispresent(e->reg->types, FLO_T)) {
-		return E_REG;
-	}
-
-	return -1;
+	return types;
 }
 
 struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 {
-	struct instr *i;
-	struct elt *elt;
 	struct reg *reg;
+	struct instr *i;
+	struct stack *types;
 
 	if (optype & I_ARI) {
 		char nbfloat = 0;
@@ -192,6 +200,12 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 		}
 
 		elt = elt_new(E_REG, reg);
+=======
+
+	if (optype & I_ARI) {
+		types = type_constrain_ari(e1, e2);
+		if (types == NULL) { return NULL; }
+>>>>>>> Type constrain ari
 	}
 	
 	else if (optype & I_CMP) {
@@ -207,10 +221,34 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 		return NULL;
 	}
 
-	i = instr_new(optype, NULL, elt, e1, e2);
+	reg = reg_new(NULL);
+	reg_settypes(reg, types);
+	i = instr_new(optype, NULL, elt_new(E_REG, reg), e1, e2);
 
 	return i;
 }
+
+struct instr * iraw(const char *s)
+{
+	struct instr *i = malloc(sizeof *i);
+
+	if (i == NULL) {
+		perror("malloc");
+		return NULL;
+	}
+
+	i->optype = I_RAW;
+	i->rawllvm = strdup(s);
+
+	if (i->rawllvm == NULL) {
+		perror("strdup");
+		free(i);
+		i = NULL;
+	}
+
+	return i;
+}
+
 
 struct instr * iret(struct elt *elt)
 {

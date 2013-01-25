@@ -46,6 +46,7 @@ struct reg {
 struct reg * reg_new(struct var *);
 void         reg_free(struct reg *);
 void         reg_bind(struct reg *, struct var *);
+void         reg_settypes(struct reg *, struct stack *);
 struct reg * reg_copy(struct reg *);
 
 

@@ -165,6 +165,17 @@ void reg_bind(struct reg *r, struct var *v)
 	}
 }
 
+void reg_settypes(struct reg *r, struct stack *types)
+{
+	type_t *t;
+
+	stack_clear(r->types, NULL);
+
+	stack_rewind(types);
+	while ((t = stack_next(types)) != NULL) {
+		stack_push(r->types, t);
+	}
+}
 
 void reg_free(struct reg *r)
 {
