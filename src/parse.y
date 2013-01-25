@@ -5,6 +5,7 @@
 
 	#include "stack.h"
 	#include "block.h"
+	#include "types.h"
 	#include "hashmap.h"
 	#include "gencode.h"
 	#include "genfunc.h"
@@ -59,7 +60,7 @@
 	char *s;
 	double f;
 	
-	struct cst *cst;
+	struct elt *elt;
 	struct instr *inst;
 };
 
@@ -72,7 +73,7 @@
 %token <s> ID 
 
 %type <s> lhs
-%type <cst> primary
+%type <elt> primary
 %type <inst> expr comp_expr additive_expr multiplicative_expr
 
 %left '*' 
@@ -92,15 +93,14 @@ topstmt
 /* CLASS ID term stmts terms END */
 				: CLASS ID
 {
-	tmp_class = class_new();
+	tmp_class = class_new($2);
 	stack_push(tstack, &tmp_class->typenum);
 
 	if (symbol_lookup(scopes, $2, CLA_T) != NULL) {
+		class_free(tmp_class);
 		fprintf(stderr, "Class %s already exists\n", $2);
 		exit_cleanly(EXIT_FAILURE);
 	}
-
-	tmp_class->cn = strdup($2);
 
 	hashmap_set(
 		((struct block *) stack_peak(scopes, 0))->classes,
@@ -126,7 +126,7 @@ topstmt
                 | CLASS ID '<' ID 
 {
 	struct class *super;
-	tmp_class = class_new();
+	tmp_class = class_new($2);
 
 	// error checking
 	if ((super = symbol_lookup(scopes, $4, CLA_T)) == NULL) {
@@ -139,7 +139,6 @@ topstmt
 		exit_cleanly(EXIT_FAILURE);
 	}
 
-	tmp_class->cn = strdup($2);
 	tmp_class->super = super;
 
 	hashmap_set(
@@ -221,21 +220,28 @@ stmt 			: IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
 
-	struct res *res;
+	struct elt *elt;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	res = instr_get_result($2); // may need to cast cr into bool
-	size = snprintf(buf, BUFSZ,
-		"br i1 %%r%d, label %%IfTrue%d, label IfFalse%d",
-		res->reg, lnum, lnum
-	);
+	elt = instr_get_result($2); // may need to cast into bool
+	if (elt->elttype == E_REG) {
+		size = snprintf(buf, BUFSZ,
+			"br i1 %%r%d, label %%IfTrue%d, label IfFalse%d",
+			elt->reg->num, lnum, lnum
+		);
+	} else {
+		size = snprintf(buf, BUFSZ,
+			"br i1 %s, label %%IfTrue%d, label IfFalse%d",
+			(elt->cst->c == 0) ? "false": "true", lnum, lnum
+		);
+	}
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	sprintf(buf, "IfTrue%d:", lnum);
 	stack_push(istack, iraw(buf));
 
-	res_free(res);
+	elt_free(elt);
 }
 				stmts terms endif
 {
@@ -261,14 +267,21 @@ stmt 			: IF expr opt_terms THEN
 }
 				expr 
 {
-	struct res *res;
+	struct elt *elt;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 	
-	res = instr_get_result($3); // may need to cast cr into bool
-	size = snprintf(buf, BUFSZ,
-		"br i1 %%r%d, label %%cond%d, label %%endloop%d",
-		res->reg, lnum, lnum
-	);
+	elt = instr_get_result($3); // may need to cast cr into bool
+	if (elt->elttype == E_REG) {
+		size = snprintf(buf, BUFSZ,
+			"br i1 %%r%d, label %%cond%d, label %%endloop%d",
+			elt->reg->num, lnum, lnum
+		);
+	} else {
+		size = snprintf(buf, BUFSZ,
+			"br i1 %s, label %%cond%d, label %%endloop%d",
+			(elt->cst->c == 0) ? "false" : "true", lnum, lnum
+		);
+	}
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
@@ -276,7 +289,7 @@ stmt 			: IF expr opt_terms THEN
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
-	res_free(res);
+	elt_free(elt);
 }
 				term stmts terms END 
 {
@@ -329,9 +342,9 @@ stmt 			: IF expr opt_terms THEN
 	}
 	
 
-	struct res *res = instr_get_result($2);
-	tmp_function->ret = res->types;
-	i = iret(cres);
+	struct elt *elt = instr_get_result($2);
+	tmp_function->ret = elt;
+	i = iret(elt);
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
 }
@@ -412,7 +425,7 @@ lhs             : ID
                 | ID '.' primary
 {
 	$$ = $1;
-	cst_free($3);
+	elt_free($3);
 }
                 | ID '(' exprs ')'
 {
@@ -450,18 +463,24 @@ primary         : lhs
 }
                 | FLOAT
 {
-	$$ = cst_new(FLO_T);
-	$$->f = $1;
+	struct cst *c = cst_new(FLO_T);
+	c->f = $1;
+
+	$$ = elt_new(E_CST, c);
 }
                 | BOOL
 {
-	$$ = cst_new(BOO_T);
-	$$->c = $1;
+	struct cst *c = cst_new(BOO_T);
+	c->c = $1;
+
+	$$ = elt_new(E_CST, c);
 }
                 | INT
 {
-	$$ = cst_new(INT_T);
-	$$->i = $1;
+	struct cst *c = cst_new(INT_T);
+	c->i = $1;
+
+	$$ = elt_new(E_CST, c);
 }
                 | '(' expr ')'
 {
@@ -558,10 +577,10 @@ multiplicative_expr : multiplicative_expr '*' primary
 }
                     | primary
 {
-	struct cst *c = cst_new(INT_T, CST_PURECST);
+	struct cst *c = cst_new(INT_T);
 	c->i = 0;
 
-	$$ = i3addr(I_ADD, $1, c);
+	$$ = i3addr(I_ADD, $1, elt_new(E_CST, c));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
@@ -587,7 +606,7 @@ int main() {
 	istack = stack_new();
 	tstack = stack_new();
 
-	types_init(tstack);
+	type_init(tstack);
 
 	stack_push(scopes, block_new());
 

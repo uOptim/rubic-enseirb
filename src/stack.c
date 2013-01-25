@@ -88,7 +88,7 @@ int stack_push(struct stack *s, void *d)
 	return 0;
 }
 
-struct stack * stack_copy(struct stack *src, void (*cpy)(void*))
+struct stack * stack_copy(struct stack *src, void * (*cpy)(void*))
 {
 	void *d;
 	struct stack *dst;
@@ -97,7 +97,7 @@ struct stack * stack_copy(struct stack *src, void (*cpy)(void*))
 	dst = stack_new();
 	tmp_cursor = src->cursor; // save cursor
 
-	stack_cursor_rewind(src);
+	stack_rewind(src);
 	while ((d = stack_next(src)) != NULL) {
 		stack_push(dst, cpy(d));
 	}
@@ -147,15 +147,14 @@ void * stack_next(struct stack *s)
 		d = s->cursor->data;
 		s->cursor = s->cursor->next;
 	} else {
-		stack_cursor_rewind(s);
+		stack_rewind(s);
 	}
 
 	return d;
 }
 	
-void stack_cursor_rewind(struct stack *s)
+void stack_rewind(struct stack *s)
 {
 	s->cursor = s->head;
 }
-
 

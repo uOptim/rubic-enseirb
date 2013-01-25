@@ -34,36 +34,33 @@
 #define I_RAW	0x80
 
 
-struct symbol {
-	unsigned char type;
+struct instr {
+	unsigned char optype;
+
 	union {
-		struct cst *cst;
-		struct var *var;
+		char *rawllvm;
+
+		struct {
+			struct var * vr;
+			struct elt * er; // returned symbol
+			struct elt * e1;
+			struct elt * e2; // might be unused for some instruction
+		};
 	};
 };
 
-struct instr {
-	unsigned char op_type;
-
-	char *rawllvm;
-	struct var * vr;
-	struct cst * cr; // returned symbol
-	struct cst * c1;
-	struct cst * c2; // might be unused for some instruction
-};
-
 		
-struct instr * iret(const struct cst *);
+struct instr * iret(struct elt *);
 struct instr * iload(struct var *);
 struct instr * iraw(const char *s);
-struct instr * ialloca(const struct var *);
-struct instr * istore(struct var *, struct cst *);
-struct instr * i3addr(char, struct cst *, struct cst *);
+struct instr * ialloca(struct var *);
+struct instr * istore(struct var *, struct elt *);
+struct instr * i3addr(char, struct elt *, struct elt *);
 
 void * instr_copy(void *);
 void   instr_free(void *);
 void   instr_constrain(void *, void *, void *);
 
-struct res * instr_get_result(const struct instr *);
+struct elt * instr_get_result(const struct instr *);
 
 #endif

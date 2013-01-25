@@ -16,7 +16,8 @@ void   stack_map(struct stack *, void (*)(void*, void*, void*), void*, void*);
 
 void * stack_next(struct stack *);
 void * stack_peak(struct stack *, unsigned int);
-void   stack_cursor_rewind(struct stack *);
+void   stack_rewind(struct stack *);
+struct stack * stack_copy(struct stack *src, void * (*cpy)(void*));
 
 
 #endif

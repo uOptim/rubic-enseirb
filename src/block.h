@@ -12,7 +12,6 @@ struct block {
 
 struct block * block_new();
 void           block_free(void *);
-void           block_dump(struct block *);
 
 #endif
 

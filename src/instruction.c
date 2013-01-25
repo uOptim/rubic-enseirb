@@ -7,69 +7,66 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static struct symbol * sym_new(char, void *);
-static void            sym_free(struct symbol **);
 
-
-
-static struct instr* instr_new(
-		int op_type,
+static struct instr * instr_new(
+		int optype,
 		struct var * vr,
-		struct res * res,
-		struct cst * c1,
-		struct cst * c2)
+		struct elt * er,
+		struct elt * e1,
+		struct elt * e2)
 {
-	if (op_type == I_RAW) {
+	if (optype == I_RAW) {
 		return NULL;
 	}
 
 	struct instr *i = malloc(sizeof *i);
 
 	i->vr = vr;
-	i->res = res;
-	i->c1 = c1;
-	i->c2 = c2;
-	i->op_type = op_type;
+	i->er = er;
+	i->e1 = e1;
+	i->e2 = e2;
+	i->optype = optype;
 
 	return i;
 }
 
+/*
 void * instr_copy(void * instruction) {
 	struct instr * i = (struct instr *)instruction;
 
-	return (void *)instr_new(
-			i->op_type,
+	return instr_new(i->optype,
 			i->vr,
-			i->cr,
-			i->c1,
-			i->c2
-			);
+			elt_copy(i->er),
+			elt_copy(i->e1),
+			elt_copy(i->e2)
+		);
 }
+*/
 
 void instr_free(void *instruction)
 {
 	struct instr *i = (struct instr *) instruction;
 
-	if (i->op_type == I_RAW) {
+	if (i->optype == I_RAW) {
 		free(i->rawllvm);
 		i->rawllvm = NULL;
 	}
 
 	else {
-		// do not free symbols of type VAR_T, they are used elsewhere.
-		if (i->res != NULL) {
-			res_free(i->res);
-			i->res = NULL;
+		// do not free vr it is used in the global hashmap.
+		if (i->er != NULL) {
+			elt_free(i->er);
+			i->er = NULL;
 		}
 
-		if (i->c1 != NULL) {
-			cst_free(i->c1);
-			i->c1 = NULL;
+		if (i->e1 != NULL) {
+			elt_free(i->e1);
+			i->e1 = NULL;
 		}
 		
-		if (i->c2 != NULL) {
-			cst_free(i->c2);
-			i->c2 = NULL;
+		if (i->e2 != NULL) {
+			elt_free(i->e2);
+			i->e2 = NULL;
 		}
 	}
 
@@ -78,32 +75,32 @@ void instr_free(void *instruction)
 
 /* Set possible symbol types according to the operation they appear in
 */
+	/*
 void instr_constrain(void *instruction, void *dummy1, void *dummy2)
 {
 	struct instr *i = (struct instr *)instruction;
 	if (dummy1 != NULL || dummy2 != NULL) {
 		return;
 	}
-	/*
-	if (i->op_type & I_ARI) {
+	if (i->optype & I_ARI) {
 		type_t types[2] = {INT_T, FLO_T};
 
-		type_inter(i->c1->var, types, 2);
-		type_inter(i->c2->var, types, 2);
-		if (var_type_card((struct var*)i->c1->var) == 1
-				&& var_type_card((struct var*)i->c2->var) == 1) {
-			// Common type for variables stored in c1 and c2
+		type_inter(i->e1->var, types, 2);
+		type_inter(i->e2->var, types, 2);
+		if (var_type_card((struct var*)i->e1->var) == 1
+				&& var_type_card((struct var*)i->e2->var) == 1) {
+			// Common type for variables stored in e1 and e2
 			types[0] = compatibility_table
-				[var_gettype((struct var *)i->c1->var)]
-				[var_gettype((struct var *)i->c2->var)];
-			type_inter(i->cr->var, types, 1);
+				[var_gettype((struct var *)i->e1->var)]
+				[var_gettype((struct var *)i->e2->var)];
+			type_inter(i->er->var, types, 1);
 		}
 		else {
-			type_inter(i->cr->var, types, 2);
+			type_inter(i->er->var, types, 2);
 		}
 	}
-	*/
 }
+	*/
 
 struct instr * iraw(const char *s)
 {
@@ -114,62 +111,96 @@ struct instr * iraw(const char *s)
 		return NULL;
 	}
 
-	i->op_type = I_RAW;
+	i->optype = I_RAW;
 	i->rawllvm = strdup(s);
 
 	if (i->rawllvm == NULL) {
 		perror("strdup");
 		free(i);
-		return NULL;
+		i = NULL;
 	}
 
 	return i;
 }
 
 
-struct instr * i3addr(char optype, struct cst *c1, struct cst *c2)
+static int verif_type(struct elt *e, type_t type)
 {
-	struct res *res;
-	struct instr *i;
-
-
-	if (c1->type == UND_T || c2->type == UND_T) {
-		// we are in a function
+	if (e->elttype == E_CST && e->cst->type == type) {
+		return E_CST;
+	} else if (type_ispresent(e->reg, FLO_T)) {
+		return E_REG;
 	}
 
-	else if (optype & I_ARI) {
-		res = res_new(NULL);
-		if (   (c1->type != FLO_T && c1->type != INT_T)
-			|| (c2->type != FLO_T && c2->type != INT_T)) {
-			fprintf(stderr, "Incompatible types for arithmetic operation.\n");
+	return -1;
+}
+
+struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
+{
+	struct instr *i;
+	struct elt *elt;
+	struct reg *reg;
+
+	if (optype & I_ARI) {
+		char nbfloat = 0;
+
+		if (verif_type(e1, FLO_T) != -1) {
+			nbfloat++;
+		} else if (verif_type(e1, INT_T) != -1) {
+			;
+		} else {
+			fprintf(stderr, "Invalid type for arithmetic operation\n");
 			return NULL;
 		}
 
-		res_pushtype(res, FLO_T);
-		if (c1->type == INT_T || c2->types == INT_T) {
-			res_pushtype(res, INT_T);
+		if (verif_type(e2, FLO_T) != -1) {
+			nbfloat++;
+		} else if (verif_type(e2, INT_T) != -1) {
+			;
+		} else {
+			fprintf(stderr, "Invalid type for arithmetic operation\n");
+			return NULL;
 		}
-	} 
+
+		reg = reg_new(NULL);
+		if (nbfloat > 0) {
+			stack_push(reg->types, possible_types[FLO_T]);
+
+			if (e1->elttype == E_REG) {
+				stack_clear(e1->reg->types, NULL);
+				stack_push(e1->reg->types, possible_types[FLO_T]);
+			}
+
+			if (e2->elttype == E_REG) {
+				stack_clear(e2->reg->types, NULL);
+				stack_push(e2->reg->types, possible_types[FLO_T]);
+			}
+		} else {
+			stack_push(reg->types, possible_types[FLO_T]);
+			stack_push(reg->types, possible_types[INT_T]);
+
+			if (e1->elttype == E_REG) {
+				stack_clear(e1->reg->types, NULL);
+				stack_push(e1->reg->types, possible_types[FLO_T]);
+				stack_push(e1->reg->types, possible_types[INT_T]);
+			}
+
+			if (e2->elttype == E_REG) {
+				stack_clear(e2->reg->types, NULL);
+				stack_push(e2->reg->types, possible_types[FLO_T]);
+				stack_push(e2->reg->types, possible_types[INT_T]);
+			}
+		}
+
+		elt = elt_new(E_REG, reg);
+	}
 	
 	else if (optype & I_CMP) {
-		res = res_new(NULL);
-		if (   (c1->type != FLO_T && c1->type != INT_T)
-			|| (c2->type != FLO_T && c2->type != INT_T)) {
-			fprintf(stderr, "Incompatible types for comparison operation.\n");
-			return NULL;
-		}
-
-		res_pushtype(res, BOO_T);
+		;
 	}
 
 	else if (optype & I_BOO) {
-		res = res_new(NULL);
-		if (c1->type != BOO_T || c2->type != BOO_T) {
-			fprintf(stderr, "Incompatible types for boolean operation.\n");
-			return NULL;
-		}
-
-		res_pushtype(res, BOO_T);
+		;
 	}
 	
 	else {
@@ -177,23 +208,23 @@ struct instr * i3addr(char optype, struct cst *c1, struct cst *c2)
 		return NULL;
 	}
 
-	i = instr_new(optype, NULL, res, c1, c2);
+	i = instr_new(optype, NULL, elt, e1, e2);
 
 	return i;
 }
 
-struct instr * iret(const struct res *res)
+struct instr * iret(struct elt *elt)
 {
 	struct instr *i;
-	i = instr_new(I_RET, NULL, res, NULL, NULL);
+	i = instr_new(I_RET, NULL, elt, NULL, NULL);
 
 	return i;
 }
 
-struct instr * ialloca(const struct var *vr)
+struct instr * ialloca(struct var *vr)
 {
 	struct instr *i;
-	i = instr_new(I_ALO, vr, res_new(vr), NULL, NULL);
+	i = instr_new(I_ALO, vr, elt_new(E_REG, vr), NULL, NULL);
 
 	return i;
 }
@@ -205,7 +236,7 @@ struct instr * iload(struct var *vr)
 	i = instr_new(
 			I_LOA, 
 			vr,
-			res_new(vr),
+			elt_new(E_REG, vr),
 			NULL,
 			NULL
 		);
@@ -213,29 +244,36 @@ struct instr * iload(struct var *vr)
 	return i;
 }
 
-struct instr * istore(struct var *vr, struct res *res)
+struct instr * istore(struct var *vr, struct elt *elt)
 {
 	struct instr *i;
 	struct stack *typeinter;
 
-	typeinter = type_inter(vr->t, res->types);
+	if (elt->elttype == E_REG) {
+		typeinter = type_inter(vr->t, elt->reg->types);
 
-	if (stack_size(tmp) == 0) {
-		fprintf(stderr, "Error: Incompatible types in assignment\n");
-		return NULL;
+		if (stack_size(typeinter) == 0) {
+			fprintf(stderr, "Error: Incompatible types in assignment\n");
+			return NULL;
+		}
+
+		stack_free(&vr->t, NULL);
+		vr->t = typeinter;
+		reg_bind(elt->reg, vr);
+
+		i = instr_new(I_STO, vr, elt, NULL, NULL);
 	}
 
-	stack_free(&vr->t, NULL);
-	vr->t = typeinter;
-	res_bind(vr);
-
-	i = instr_new(I_STO, vr, res, NULL, NULL);
+	else {
+		fprintf(stderr, "Impossible error :)\n");
+		return NULL;
+	}
 
 	return i;
 }
 
 
-struct cst * instr_get_result(const struct instr * i)
+struct elt * instr_get_result(const struct instr * i)
 {
-	return res_copy(i->res);
+	return elt_copy(i->er);
 }

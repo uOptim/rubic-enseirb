@@ -28,13 +28,3 @@ void block_free(void *block)
 	free(b);
 }
 
-void block_dump(struct block *b)
-{
-	puts("Dumping block:");
-	puts("* variables:");
-	hashmap_dump(b->variables, var_dump);
-	puts("* functions:");
-	hashmap_dump(b->functions, function_dump);
-	puts("* classes:");
-	hashmap_dump(b->classes, class_dump);
-}

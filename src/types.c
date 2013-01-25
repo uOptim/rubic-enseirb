@@ -26,18 +26,13 @@ type_t type_new(void) {
 	return id++;
 }
 
-void var_put_types(struct var *v, const struct stack *types) {
-	stack_free(&v->t, free);
-
+void var_put_types(struct var *v, struct stack *types) {
+	stack_free(&v->t, NULL);
 	v->t = stack_copy(types, type_copy);
 }
 
 static void * type_copy(void *type) {
-	type_t * t = malloc(sizeof *t);
-
-	*t = *(type_t *)type;
-
-	return (void *)t;
+	return type;
 }
 
 /* Returns 1 if every parameters type is determined for f
@@ -79,18 +74,34 @@ void var_type_is_known(void *variable, void *params, void* dummy) {
  */
 struct stack * type_inter(struct stack *t1, struct stack *t2)
 {
-	type_t t, u;
+	type_t *t, *u;
 	struct stack *res = stack_new();
 
 	stack_rewind(t1);
 	stack_rewind(t2);
-	while ((t = *(type_t *) stack_next(t1)) != NULL) {
-		while ((u = *(type_t *) stack_next(t2)) != NULL) {
-			if (u == t) {
-				stack_push(res, v);
+	while ((t = (type_t *) stack_next(t1)) != NULL) {
+		while ((u = (type_t *) stack_next(t2)) != NULL) {
+			if (*u == *t) {
+				stack_push(res, t);
 			}
 		}
 	}
 
 	return res;
 }
+
+int type_ispresent(struct stack *types, type_t type)
+{
+	type_t *t;
+
+	stack_rewind(types);
+	while ((t = (type_t *) stack_next(types)) != NULL) {
+		if (*t == type) {
+			stack_rewind(types);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+

@@ -12,7 +12,7 @@ const char compatibility_table[3][3] =
   { -1   , -1   , -1 } };
 
 
-struct var * var_new(const char *name, const struct stack *types)
+struct var * var_new(const char *name)
 {
 	struct var * v = malloc(sizeof *v);
 
@@ -87,9 +87,11 @@ struct elt * elt_new(char elttype, void *eltptr)
 }
 
 
-void elt_free(struct elt *e)
+void elt_free(void *e)
 {
-	switch (e->elttype) {
+	struct elt *elt = (struct elt *) e;
+
+	switch (elt->elttype) {
 		case E_CST:
 			cst_free(elt->cst);
 			break;
@@ -97,16 +99,17 @@ void elt_free(struct elt *e)
 			reg_free(elt->reg);
 			break;
 		default:
+			break;
 	}
 
-	free(e);
+	free(elt);
 }
 
-struct elt * elt_copy(struct elt *e)
+struct elt * elt_copy(struct elt *elt)
 {
 	struct elt *copy;
 
-	switch (e->elttype) {
+	switch (elt->elttype) {
 		case E_CST:
 			copy = elt_new(E_CST, elt->cst);
 			break;
@@ -126,8 +129,8 @@ struct reg * reg_new(struct var *v)
 
 	struct reg *r = malloc(sizeof *r);
 
-	reg_bind(v);
-	r->num = num++;
+	reg_bind(r, v);
+	r->num = reg++;
 
 	return r;
 }
@@ -135,8 +138,8 @@ struct reg * reg_new(struct var *v)
 void reg_bind(struct reg *r, struct var *v)
 {
 	if (r->bound) {
-		fprintf(stderr, "Warning: attempting to reuse a register
-				already bound to a variable");
+		fprintf(stderr, "Warning: attempting to reuse a register"
+		                "already bound to a variable");
 		return;
 	}
 
@@ -146,7 +149,7 @@ void reg_bind(struct reg *r, struct var *v)
 
 	if (v != NULL) {
 		r->bound = 1;
-		r->types = v->types;
+		r->types = v->t;
 	} else {
 		r->bound = 0;
 		r->types = stack_new();
@@ -157,7 +160,7 @@ void reg_bind(struct reg *r, struct var *v)
 void reg_free(struct reg *r)
 {
 	if (!r->bound) {
-		stack_free(r->types, NULL);
+		stack_free(&r->types, NULL);
 	}
 
 	free(r);
@@ -167,33 +170,18 @@ struct reg * reg_copy(struct reg *r)
 {
 	struct reg *copy = malloc(sizeof *copy);
 
-	copy->reg = r->reg;
+	copy->num = r->num;
 	copy->bound = r->bound;
-
-	if (r->bound) {
-		copy->types = r->copy;
-	} else {
-		copy->types = stack_copy(r->copy);
-	}
+	copy->types = r->types;
 
 	return copy;
 }
 	
 
-struct cst * cst_new(type_t type, void *val)
+struct cst * cst_new(type_t type)
 {
 	struct cst *c = malloc(sizeof *c);
-
 	c->type = type;
-
-	switch (type) {
-		case INT_T: c->i = *val; break;
-		case FLO_T: c->f = *val; break;
-		case BOO_T: c->c = *val; break;
-		case STR_T: c->s = *val; break;
-		default:    c->o = *val; break;
-	}
-
 	return c;
 }
 
@@ -229,14 +217,14 @@ void cst_free(void *cst)
 }
 
 
-struct class * class_new(type_t t)
+struct class * class_new(const char *name)
 {
 	struct class *c = malloc(sizeof *c);
 
 	if (c == NULL)
 		return NULL;
 
-	c->cn = NULL;
+	c->cn = strdup(name);
 	c->super = NULL;
 	c->typenum = type_new();
 	c->attrs = hashmap_new();
@@ -290,7 +278,7 @@ struct function * function_new(const char *name)
 	if (f == NULL)
 		return NULL;
 
-	f->ret = UND_T;
+	f->ret = NULL;
 	f->fn = strdup(name);
 	f->params = stack_new();
 
@@ -315,33 +303,9 @@ void function_free(void *function)
 	}
 
 	if (f->ret != NULL) {
-		stack_free(&f->ret, res_free);
+		elt_free(f->ret);
 	}
 
 	free(f);
-}
-
-
-void function_dump(void *function) 
-{
-	struct var *param;
-	struct function *f = (struct function *) function;
-
-	printf("Function: %s\n", f->fn);
-
-	unsigned int i = 0;
-	if (f->params != NULL) {
-		printf("* Params:\n");
-		while (NULL != (param = stack_peak(f->params, i))) {
-			var_dump(param);
-			i++;
-		}
-	} else {
-		printf("No params");
-	}
-
-	printf("* Returns: type %c\n", f->ret);
-
-	puts("");
 }
 

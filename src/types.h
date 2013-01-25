@@ -5,9 +5,9 @@
 
 void      type_init(struct stack *);
 type_t    type_new(void);
-void      var_put_types(struct var *, const struct stack *);
+void      var_put_types(struct var *, struct stack *);
 
 int       params_type_is_known(struct function *);
-void      type_inter(struct var *, const type_t types[], int);
+struct stack * type_inter(struct stack *, struct stack *);
 
 #endif /* TYPES_H */

@@ -45,6 +45,7 @@ struct reg {
 
 struct reg * reg_new(struct var *);
 void         reg_free(struct reg *);
+void         reg_bind(struct reg *, struct var *);
 struct reg * reg_copy(struct reg *);
 
 
@@ -59,9 +60,9 @@ struct cst {
 	};
 };
 
-struct cst * cst_new(char cst_type, void *);
+struct cst * cst_new(type_t);
 struct cst * cst_copy(struct cst *);
-void         cst_free(struct cst *);
+void         cst_free(void *);
 
 
 #define E_CST 0
@@ -70,8 +71,8 @@ void         cst_free(struct cst *);
 struct elt {
 	char elttype;
 	union {
-		struct reg reg;
-		struct purecst purecst;
+		struct reg *reg;
+		struct cst *cst;
 	};
 };
 
@@ -82,7 +83,7 @@ struct elt * elt_copy(struct elt *);
 
 struct function {
 	char *fn;
-	struct reg *ret;
+	struct elt *ret;
 	struct stack *params;
 };
 
@@ -99,7 +100,7 @@ struct class {
 	struct hashmap *methods;
 };
 
-struct class * class_new(type_t);
+struct class * class_new(const char *name);
 void           class_free(void *);
 void           class_dump(void *);
 
