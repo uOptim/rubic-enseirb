@@ -25,7 +25,9 @@
 
 	struct stack *scopes; // variables scope
 	struct stack *labels; // labels for br`s
-	struct stack *istack; // instruction stack
+	struct stack **istack; // current instruction stack
+	struct stack *gistack; // global instruction stack
+	struct stack *fistack; // function instruction stack
 	struct stack *tstack; // types stack
 
 	struct var * param_lookup(struct function *, const char *);
@@ -44,7 +46,8 @@
 	{
 		stack_free(&labels, free);
 		stack_free(&scopes, block_free);
-		stack_free(&istack, instr_free);
+		stack_free(&gistack, instr_free);
+		stack_free(&fistack, instr_free);
 
 		stack_free(&tstack, NULL);
 
@@ -174,11 +177,11 @@ endif			: ELSE
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 }
 				stmts terms END
 {
@@ -186,11 +189,11 @@ endif			: ELSE
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 }
 				| END
 {
@@ -198,19 +201,19 @@ endif			: ELSE
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 }
 				;
 
@@ -234,10 +237,10 @@ stmt 			: IF expr opt_terms THEN
 		);
 	}
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	sprintf(buf, "IfTrue%d:", lnum);
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	elt_free(elt);
 }
@@ -257,11 +260,11 @@ stmt 			: IF expr opt_terms THEN
 
 	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "loop%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 }
 				expr 
 {
@@ -281,11 +284,11 @@ stmt 			: IF expr opt_terms THEN
 		);
 	}
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "cond%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	elt_free(elt);
 }
@@ -295,11 +298,11 @@ stmt 			: IF expr opt_terms THEN
 
 	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "endloop%d:", lnum);
 	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
-	stack_push(istack, iraw(buf));
+	stack_push(*istack, iraw(buf));
 
 	free(stack_pop(labels));
 }
@@ -321,12 +324,12 @@ stmt 			: IF expr opt_terms THEN
 
 		i = ialloca(var);
 		if (i == NULL) exit_cleanly(EXIT_FAILURE);
-		stack_push(istack, i);
+		stack_push(*istack, i);
 	}
 	
 	i = istore(var, instr_get_result($3));
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, i);
+	stack_push(*istack, i);
 
 	free($1);
 }
@@ -344,7 +347,7 @@ stmt 			: IF expr opt_terms THEN
 	tmp_function->ret = elt;
 	i = iret(elt);
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, i);
+	stack_push(*istack, i);
 }
 
 /* DEF ID opt_params term stmts terms END */
@@ -366,13 +369,17 @@ stmt 			: IF expr opt_terms THEN
 
 	// create new scope block
 	stack_push(scopes, block_new());
+	// change instruction scope
+	istack = &fistack;
 }
 				opt_params term stmts terms END
 {
-	func_gen_codes(tmp_function, istack);
-	stack_free(&istack, instr_free);
-	istack = stack_new();
+	func_gen_codes(tmp_function, fistack);
+	stack_free(&fistack, instr_free);
+	fistack = stack_new();
 
+	// change instruction scope
+	istack = &gistack;
 	// delete scope block
 	struct block *b = stack_pop(scopes);
 	block_free(b);
@@ -448,8 +455,8 @@ primary         : lhs
 
 	$$ = iload(v);
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
-	
+	stack_push(*istack, $$);
+
 	free($1);
 }
                 | STRING 
@@ -469,7 +476,7 @@ primary         : lhs
 
 	$$ = i3addr(I_ADD, elt_new(E_CST, c), elt_new(E_CST, zero));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | BOOL
 {
@@ -483,7 +490,7 @@ primary         : lhs
 
 	$$ = i3addr(I_OR, elt_new(E_CST, c), elt_new(E_CST, zero));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | INT
 {
@@ -497,7 +504,7 @@ primary         : lhs
 
 	$$ = i3addr(I_ADD, elt_new(E_CST, c), elt_new(E_CST, zero));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | '(' expr ')'
 {
@@ -508,13 +515,13 @@ expr            : expr AND comp_expr
 {
 	$$ = i3addr(I_AND, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | expr OR comp_expr
 {
 	$$ = i3addr(I_OR, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | comp_expr
 {
@@ -525,37 +532,37 @@ comp_expr       : additive_expr '<' additive_expr
 {
 	$$ = i3addr(I_LT, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr '>' additive_expr
 {
 	$$ = i3addr(I_GT, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr LEQ additive_expr
 {
 	$$ = i3addr(I_LEQ, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr GEQ additive_expr
 {
 	$$ = i3addr(I_GEQ, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr EQ additive_expr
 {
 	$$ = i3addr(I_EQ, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr NEQ additive_expr
 {
 	$$ = i3addr(I_NEQ, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr
 {
@@ -566,13 +573,13 @@ additive_expr   : additive_expr '+' multiplicative_expr
 {
 	$$ = i3addr(I_ADD, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                 | additive_expr '-' multiplicative_expr
 {
 	$$ = i3addr(I_SUB, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
 				| multiplicative_expr
 {
@@ -584,13 +591,13 @@ multiplicative_expr : multiplicative_expr '*' primary
 {
 	$$ = i3addr(I_MUL, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                     | multiplicative_expr '/' primary
 {
 	$$ = i3addr(I_DIV, instr_get_result($1), instr_get_result($3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
+	stack_push(*istack, $$);
 }
                     | primary
 {
@@ -615,14 +622,18 @@ int main() {
 
 	scopes = stack_new();
 	labels = stack_new();
-	istack = stack_new();
 	tstack = stack_new();
+	fistack = stack_new();
+	gistack = stack_new();
+	istack = &gistack;
 
 	type_init(tstack);
 
 	stack_push(scopes, block_new());
 
 	yyparse(); 
+
+	gencode_stack(gistack);
 
 	printf("Mega Pouet\n");
 	exit_cleanly(EXIT_SUCCESS);
