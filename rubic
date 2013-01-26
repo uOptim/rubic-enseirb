@@ -5,7 +5,7 @@ lldest="z.ll"
 
 pgrm=rubic2llvm
 
-function usage {
+usage() {
 	echo "Usage: $0 [-o dest] file"
 	exit
 }
