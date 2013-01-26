@@ -24,13 +24,15 @@ static char * local2llvm_instr[10][2] = {
 	{"icmp sgt", "fcmp ogt"}
 };
 
-struct elt * craft_operation(
+void craft_operation(
+	const struct elt *,
 	const struct elt *,
 	const struct elt *,
 	const char *,
 	const char *);
 
-struct elt * craft_boolean_operation(
+void craft_boolean_operation(
+	const struct elt *,
 	const struct elt *,
 	const struct elt *,
 	const char *);
@@ -303,18 +305,14 @@ int craft_alloca(struct var *var)
 	return 0;
 }
 
-struct elt * craft_operation(
+void craft_operation(
+	const struct elt *result,
 	const struct elt *e1,
 	const struct elt *e2,
 	const char *op,
 	const char *fop)
 {
-	struct elt *result = NULL;
-
 	if (elt_type(e1) == INT_T && elt_type(e2) == INT_T) {
-		result = elt_new(E_REG, reg_new(NULL));
-		stack_push(result->reg->types, &possible_types[INT_T]);
-
 		printf("%%r%d = %s i32 ", result->reg->num, op);
 		if (e1->elttype == E_REG) {
 			printf("%%r%d", e1->reg->num);
@@ -331,9 +329,6 @@ struct elt * craft_operation(
 	}
 
 	else if (elt_type(e1) == FLO_T && elt_type(e2) == FLO_T) {
-		result = elt_new(E_REG, reg_new(NULL));
-		stack_push(result->reg->types, &possible_types[FLO_T]);
-
 		printf("%%r%d = %s double ", result->reg->num, fop);
 		if (e1->elttype == E_REG) {
 			printf("%%r%d", e1->reg->num);
@@ -351,9 +346,6 @@ struct elt * craft_operation(
 
 	else if (elt_type(e1) == INT_T && elt_type(e2) == FLO_T) {
 		struct reg * r;
-		result = elt_new(E_REG, reg_new(NULL));
-		stack_push(result->reg->types, &possible_types[FLO_T]);
-
 		if (e1->elttype == E_REG) {
 			// conversion needed
 			r = reg_new(NULL);
@@ -380,8 +372,6 @@ struct elt * craft_operation(
 
 	else if (elt_type(e1) == FLO_T && elt_type(e2) == INT_T) {
 		struct reg * r;
-		result = elt_new(E_REG, reg_new(NULL));
-		stack_push(result->reg->types, &possible_types[FLO_T]);
 
 		if (e2->elttype == E_REG) {
 			// conversion
@@ -405,8 +395,6 @@ struct elt * craft_operation(
 		}
 		puts("");
 	}
-
-	return result;
 }
 
 struct elt * craft_boolean_conversion(const struct elt *e1)
@@ -445,14 +433,12 @@ struct elt * craft_boolean_conversion(const struct elt *e1)
 	return c;
 }
 
-struct elt * craft_boolean_operation(
+void craft_boolean_operation(
+	const struct elt *er,
 	const struct elt *e1,
 	const struct elt *e2,
 	const char *op)
 {
-	struct elt *c = elt_new(E_REG, reg_new(NULL));
-	stack_push(c->reg->types, &possible_types[BOO_T]);
-
 	if (elt_type(e1) != BOO_T) {
 		e1 = craft_boolean_conversion(e1);
 		if (e1 == NULL) return NULL;
@@ -462,7 +448,7 @@ struct elt * craft_boolean_operation(
 		if (e2 == NULL) return NULL;
 	}
 	
-	printf("%%r%d = icmp %s i1 ", c->reg->num, op);
+	printf("%%r%d = icmp %s i1 ", er->reg->num, op);
 	if (e1->elttype == E_REG) {
 		printf("%%r%d", e1->reg->num);
 	} else {
@@ -475,8 +461,6 @@ struct elt * craft_boolean_operation(
 		printf("%s", (e2->cst->c > 0) ? "true" : "false");
 	}
 	puts("");
-
-	return c;
 }
 
 // TODO finish him!
@@ -484,6 +468,7 @@ void print_instr(struct instr *i)
 {
 	if (i->optype & I_ARI) {
 		craft_operation(
+				i->er,
 				i->e1,
 				i->e2,
 				local2llvm_instr[i->optype - I_ARI - 1][0],
@@ -492,14 +477,15 @@ void print_instr(struct instr *i)
 	}
 	else if (i->optype & I_BOO) {
 		if (i->optype == I_AND) {
-			craft_boolean_operation(i->e2, i->e2, "and");
+			craft_boolean_operation(i->er, i->e2, i->e2, "and");
 		}
 		else if (i->optype == I_OR) {
-			craft_boolean_operation(i->e2, i->e2, "or");
+			craft_boolean_operation(i->er, i->e2, i->e2, "or");
 		}
 	}
 	else if (i->optype & I_CMP) {
 		craft_operation(
+				i->er,
 				i->e1,
 				i->e2,
 				local2llvm_instr[i->optype - I_CMP - 1 + CMP_OFF][0],

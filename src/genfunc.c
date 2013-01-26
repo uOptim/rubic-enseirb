@@ -12,7 +12,7 @@ static void    func_compute_var_type(struct function *, struct stack *);
 
 static struct stack * instr_stack_copy(struct stack *);
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 static void print_type(void *type, void *dummy1, void *dummy2) {

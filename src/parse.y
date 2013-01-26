@@ -343,8 +343,8 @@ stmt 			: IF expr opt_terms THEN
 	}
 	
 	i = iret(instr_get_result($2));
-	tmp_function->ret = instr_get_result($2);
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	tmp_function->ret = instr_get_result($2);
 	stack_push(istack, i);
 }
 
@@ -372,7 +372,8 @@ stmt 			: IF expr opt_terms THEN
 }
 				opt_params term stmts terms END
 {
-	func_gen_codes(tmp_function, fistack);
+	gencode_stack(fistack);
+	//func_gen_codes(tmp_function, fistack);
 	stack_clear(fistack, instr_free);
 
 	// change instruction scope
