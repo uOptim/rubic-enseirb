@@ -13,4 +13,6 @@ void gencode_func(struct function *, const char *, struct stack *);
 
 const char * func_mangling(struct function *);
 
+void casttobool(struct elt *, struct elt **);
+
 #endif

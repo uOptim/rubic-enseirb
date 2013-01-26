@@ -169,6 +169,9 @@ type_t elt_type(const struct elt * e) {
 		return e->cst->type;
 	}
 	else {
+		if (stack_size(e->reg->types) > 1) {
+			fprintf(stderr, "Warning, multiple types found! Using the first one by default.\n");
+		}
 		return *(type_t *)stack_peak(e->reg->types, 0);
 	}
 }

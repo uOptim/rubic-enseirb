@@ -189,21 +189,38 @@ void gencode_param(void *param, void *is_first_param, void *dummy) {
 }
 */
 
-char convert2bool(struct elt *c)
+void casttobool(struct elt *tocast, struct elt **res)
 {
-	char v;
+	stack_clear((*res)->reg->types, NULL);
+	stack_push((*res)->reg->types, &possible_types[BOO_T]);
 
-	if (elt_type(c) == INT_T) {
-		if (c->cst->i > 0) v = 1;
-		else v = 0;
-	} else if (elt_type(c) == FLO_T) {
-		if (c->cst->f > 0) v = 1;
-		else v = 0;
-	} else {
-		fprintf(stderr, "Incompatible type for boolean conversion\n");
+	switch (elt_type(tocast)) {
+		case BOO_T:
+			elt_free(*res);
+			*res = elt_copy(tocast);
+			break;
+		case INT_T:
+			printf("%%r%d = icmp ne i32 ", (*res)->reg->num);
+			if (tocast->elttype == E_REG) {
+				printf("%%r%d", tocast->reg->num);
+			} else {
+				printf("%d", tocast->cst->i);
+			}
+			printf(", 0\n");
+			break;
+		case FLO_T:
+			printf("%%r%d = fcmp ne double ", (*res)->reg->num);
+			if (tocast->elttype == E_REG) {
+				printf("%%r%d", tocast->reg->num);
+			} else {
+				printf("%#g", tocast->cst->f);
+			}
+			printf(", 0.0\n");
+			break;
+		default:
+			elt_free(*res);
+			*res = NULL;
 	}
-
-	return v;
 }
 
 
@@ -290,7 +307,7 @@ int craft_store(struct var *var, const struct elt *e)
 
 int craft_load(struct var *var, const struct elt *e)
 {
-	printf("%%r%d = load %s %%%s\n", e->reg->num,
+	printf("%%r%d = load %s* %%%s\n", e->reg->num,
 			local2llvm_type(var_gettype(var)),
 			var->vn);
 
@@ -396,20 +413,20 @@ void craft_operation(
 	}
 }
 
-struct elt * craft_boolean_conversion(const struct elt *e1)
+struct elt * craft_boolean_conversion(struct elt *e1)
 {
 	struct elt *c = NULL;
 
 	switch (elt_type(e1)) {
 		case INT_T:
-			c = elt_new(E_REG, reg_new(NULL));
+			c = elt_copy(e1);
 			stack_push(c->reg->types, &possible_types[BOO_T]);
 
-			printf("%%r%d = icmp sgt i32 ", c->reg->num);
+			printf("%%r%d = icmp ne i32 ", c->reg->num);
 			if (e1->elttype == E_REG) {
-				printf("%%r%d ", e1->reg->num);
+				printf("%%r%d", e1->reg->num);
 			} else {
-				printf("%d ", e1->cst->i);
+				printf("%d", e1->cst->i);
 			}
 			printf(", 0\n");
 			break;
@@ -417,11 +434,11 @@ struct elt * craft_boolean_conversion(const struct elt *e1)
 			c = elt_new(E_REG, reg_new(NULL));
 			stack_push(c->reg->types, &possible_types[BOO_T]);
 
-			printf("%%r%d = fcmp sgt double ", c->reg->num);
+			printf("%%r%d = fcmp ne double ", c->reg->num);
 			if (e1->elttype == E_REG) {
-				printf("%%r%d ", e1->reg->num);
+				printf("%%r%d", e1->reg->num);
 			} else {
-				printf("%#g ", e1->cst->f);
+				printf("%#g", e1->cst->f);
 			}
 			printf(", 0.0\n");
 			break;
@@ -432,6 +449,7 @@ struct elt * craft_boolean_conversion(const struct elt *e1)
 	return c;
 }
 
+
 void craft_boolean_operation(
 	const struct elt *er,
 	const struct elt *e1,
@@ -439,11 +457,11 @@ void craft_boolean_operation(
 	const char *op)
 {
 	if (elt_type(e1) != BOO_T) {
-		e1 = craft_boolean_conversion(e1);
+		fprintf(stderr, "ERROR: incompatible types for boolean operation\n");
 		return;
 	}
 	if (elt_type(e2) != BOO_T) {
-		e2 = craft_boolean_conversion(e2);
+		fprintf(stderr, "ERROR: incompatible types for boolean operation\n");
 		return;
 	}
 	
@@ -476,10 +494,10 @@ void print_instr(struct instr *i)
 	}
 	else if (i->optype & I_BOO) {
 		if (i->optype == I_AND) {
-			craft_boolean_operation(i->er, i->e2, i->e2, "and");
+			craft_boolean_operation(i->er, i->e1, i->e2, "and");
 		}
 		else if (i->optype == I_OR) {
-			craft_boolean_operation(i->er, i->e2, i->e2, "or");
+			craft_boolean_operation(i->er, i->e1, i->e2, "or");
 		}
 	}
 	else if (i->optype & I_CMP) {

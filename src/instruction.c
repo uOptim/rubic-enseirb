@@ -32,15 +32,33 @@ static struct instr * instr_new(
 }
 
 
-void * instr_copy(void * instruction) {
+void * instr_copy(void * instruction)
+{
+	struct instr *copy;
 	struct instr * i = (struct instr *)instruction;
 
-	return instr_new(i->optype,
+	if (i->optype == I_RAW) { 
+		copy = malloc(sizeof *copy);
+		copy->rawllvm = strdup(i->rawllvm);
+	}
+
+	else if (i->optype == I_CAST) {
+		copy = malloc(sizeof *copy);
+		copy->cast_func = i->cast_func;
+		copy->tocast = elt_copy(i->tocast);
+		copy->res = elt_copy(i->res);
+	}
+
+	else {
+		copy = instr_new(i->optype,
 			i->vr,
 			elt_copy(i->er),
 			elt_copy(i->e1),
 			elt_copy(i->e2)
 		);
+	}
+
+	return copy;
 }
 
 
@@ -49,6 +67,11 @@ void instr_free(void *instruction)
 	struct instr *i = (struct instr *) instruction;
 
 	if (i->optype == I_RAW) { free(i->rawllvm); }
+
+	else if (i->optype == I_CAST) {
+		elt_free(i->res);
+		elt_free(i->tocast);
+	}
 
 	else {
 		// do not free vr it is used in the global hashmap.
@@ -240,6 +263,21 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	return i;
 }
 
+
+struct instr * icast(
+	void (*cast_func)(struct elt *, struct elt **),
+	struct elt *tocast)
+{
+	struct instr *i = malloc(sizeof *i);
+
+	i->optype = I_CAST;
+	i->cast_func = cast_func;
+	i->tocast = tocast;
+	i->res = elt_new(E_REG, reg_new(NULL));
+	 
+	return i;
+}
+
 struct instr * iraw(const char *s)
 {
 	struct instr *i = malloc(sizeof *i);
@@ -333,5 +371,18 @@ struct instr * istore(struct var *vr, struct elt *elt)
 
 struct elt * instr_get_result(const struct instr * i)
 {
-	return elt_copy(i->er);
+	struct elt *e;
+
+	switch (i->optype) {
+		case I_RAW:
+			e = NULL;
+			break;
+		case I_CAST:
+			e = elt_copy(i->res);
+			break;
+		default:
+			e = elt_copy(i->er);
+	}
+	
+	return e;
 }

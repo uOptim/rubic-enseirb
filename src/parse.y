@@ -224,10 +224,12 @@ stmt 			: IF expr opt_terms THEN
 	struct elt *elt;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	elt = instr_get_result($2); // may need to cast into bool
+	struct instr *cast = icast(casttobool, instr_get_result($2));
+	elt = instr_get_result(cast); 
+
 	if (elt->elttype == E_REG) {
 		size = snprintf(buf, BUFSZ,
-			"br i1 %%r%d, label %%IfTrue%d, label IfFalse%d",
+			"br i1 %%r%d, label %%IfTrue%d, label %%IfFalse%d",
 			elt->reg->num, lnum, lnum
 		);
 	} else {
@@ -469,7 +471,8 @@ primary         : lhs
 }
                 | STRING 
 {
-	fprintf(stderr, "WARNING: SEGFAULT HAZARD\n");
+	fprintf(stderr, "Strings are not supported.");
+	exit_cleanly(EXIT_FAILURE);
 	$$ = NULL;
 }
                 | FLOAT
@@ -488,15 +491,15 @@ primary         : lhs
 }
                 | BOOL
 {
-	struct cst *c, *zero;
+	struct cst *c, *nottrue;
 	
 	c = cst_new(BOO_T);
 	c->c = $1;
 
-	zero = cst_new(BOO_T);
-	zero->c = 0;
+	nottrue = cst_new(BOO_T);
+	nottrue->c = 0;
 
-	$$ = i3addr(I_OR, elt_new(E_CST, c), elt_new(E_CST, zero));
+	$$ = i3addr(I_OR, elt_new(E_CST, c), elt_new(E_CST, nottrue));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
