@@ -6,7 +6,7 @@ HEADERS=block.h gencode.h genfunc.h hashmap.h instruction.h stack.h symtable.h t
 
 all: rubic
 
-rubic: y.tab.o lex.yy.o hashmap.o symtable.o stack.o block.o instruction.o gencode.o gencode.h types.o genfunc.o builtins.o
+rubic: y.tab.o block.o builtins.o gencode.o genfunc.o hashmap.o instruction.o lex.yy.o stack.o symtable.o types.o 
 	gcc $^ -o rubic2llvm $(LDFLAGS) 
 
 lex.yy.c: scanner.l 
