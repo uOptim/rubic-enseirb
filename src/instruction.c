@@ -99,17 +99,10 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 {
 	struct stack *types, *tmp1, *tmp2;
 
-	// these will modify the type of e1 and e2 to match arithmetic operations
+	// these will modify the type of e1 and e2 to match arithmetic operation.
 	// if possible.
-	if (0 == type_vartype_constrain_ari(e1)) {
-		fprintf(stderr, "Invalid type for arithmetic operation.");
-		return NULL;
-	}
-
-	if (0 == type_vartype_constrain_ari(e2)) {
-		fprintf(stderr, "Invalid type for arithmetic operation.");
-		return NULL;
-	}
+	if (type_vartype_constrain_ari(e1) == 0) { return NULL; }
+	if (type_vartype_constrain_ari(e2) == 0) { return NULL; }
 
 	if (e1->elttype == E_REG) {
 		tmp1 = e1->reg->types;
@@ -126,6 +119,9 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 	}
 
 	types = type_inter(tmp1, tmp2);
+	if (stack_size(types) == 0) { // float + int
+		stack_push(types, &possible_types[FLO_T]);
+	}
 
 	if (e1->elttype == E_CST) { stack_free(&tmp1, NULL); }
 	if (e2->elttype == E_CST) { stack_free(&tmp2, NULL); }
@@ -141,14 +137,8 @@ static int type_vartype_constrain_cmp(struct elt *e)
 
 struct stack * type_constrain_cmp(struct elt *e1, struct elt *e2)
 {
-	if (0 == type_vartype_constrain_cmp(e1)) {
-		fprintf(stderr, "Invalid type for comparison operation.");
-		return NULL;
-	}
-	if (0 == type_vartype_constrain_cmp(e2)) {
-		fprintf(stderr, "Invalid type for comparison operation.");
-		return NULL;
-	}
+	if (0 == type_vartype_constrain_cmp(e1)) { return NULL; }
+	if (0 == type_vartype_constrain_cmp(e2)) { return NULL; }
 
 	struct stack *types = stack_new();
 	stack_push(types, &possible_types[BOO_T]);
@@ -192,14 +182,8 @@ static int type_vartype_constrain_boo(struct elt *e)
 
 struct stack * type_constrain_boo(struct elt *e1, struct elt *e2)
 {
-	if (0 == type_vartype_constrain_boo(e1)) {
-		fprintf(stderr, "Invalid type for boolean operation.");
-		return NULL;
-	}
-	if (0 == type_vartype_constrain_boo(e2)) {
-		fprintf(stderr, "Invalid type for boolean operation.");
-		return NULL;
-	}
+	if (0 == type_vartype_constrain_boo(e1)) { return NULL; }
+	if (0 == type_vartype_constrain_boo(e2)) { return NULL; }
 
 	struct stack *types = stack_new();
 	stack_push(types, &possible_types[BOO_T]);
@@ -213,19 +197,34 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	struct instr *i;
 	struct stack *types;
 
+	/* Debug stuff
+	printf("Opcode: %d\n", optype);
+	elt_dump(e1);
+	elt_dump(e2);
+	*/
+
 	if (optype & I_ARI) {
 		types = type_constrain_ari(e1, e2);
-		if (types == NULL) { return NULL; }
+		if (types == NULL) { 
+			fprintf(stderr, "Invalid type for arithmetic operation.\n");
+			return NULL;
+		}
 	}
 	
 	else if (optype & I_CMP) {
 		types = type_constrain_cmp(e1, e2);
-		if (types == NULL) { return NULL; }
+		if (types == NULL) { 
+			fprintf(stderr, "Invalid type for comparison operation.\n");
+			return NULL;
+		}
 	}
 
 	else if (optype & I_BOO) {
 		types = type_constrain_boo(e1, e2);
-		if (types == NULL) { return NULL; }
+		if (types == NULL) { 
+			fprintf(stderr, "Invalid type for boolean operation.\n");
+			return NULL;
+		}
 	}
 	
 	else {
@@ -311,12 +310,13 @@ struct instr * istore(struct var *vr, struct elt *elt)
 		typeinter = type_inter(vr->t, elt->reg->types);
 
 		if (stack_size(typeinter) == 0) {
-			fprintf(stderr, "Error: Incompatible types in assignment\n");
+			fprintf(stderr, "Error: Incompatible types in assignment.\n");
 			return NULL;
 		}
 
 		reg_bind(elt->reg, vr);
 		reg_settypes(elt->reg, typeinter);
+		stack_free(&typeinter, NULL);
 
 		i = instr_new(I_STO, vr, elt, NULL, NULL);
 	}

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "types.h"
 #include "stack.h"
@@ -86,6 +87,19 @@ struct stack * type_inter(struct stack *t1, struct stack *t2)
 	type_t *t, *u;
 	struct stack *res = stack_new();
 
+	/* DEBUG STUFF
+	stack_rewind(t1);
+	stack_rewind(t2);
+	fprintf(stderr, "Intersectig types: ");
+	while ((t = (type_t *) stack_next(t1)) != NULL) {
+		fprintf(stderr, "%d ", *t);
+	}
+	fprintf(stderr, "\nWith types: ");
+	while ((t = (type_t *) stack_next(t2)) != NULL) {
+		fprintf(stderr, "%d ", *t);
+	}
+	*/
+
 	stack_rewind(t1);
 	stack_rewind(t2);
 	while ((t = (type_t *) stack_next(t1)) != NULL) {
@@ -95,6 +109,15 @@ struct stack * type_inter(struct stack *t1, struct stack *t2)
 			}
 		}
 	}
+
+	/* DEBUG STUFF
+	stack_rewind(res);
+	fprintf(stderr, "\nResult: ");
+	while ((t = (type_t *) stack_next(res)) != NULL) {
+		fprintf(stderr, "%d ", *t);
+	}
+	fprintf(stderr, "\n");
+	*/
 
 	return res;
 }

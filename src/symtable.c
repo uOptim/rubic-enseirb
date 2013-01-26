@@ -145,6 +145,25 @@ struct elt * elt_copy(struct elt *elt)
 	return copy;
 }
 
+void elt_dump(const struct elt *e)
+{
+	if (e == NULL) {
+		puts("Element is NULL!");
+	} else {
+		switch (e->elttype) {
+			case E_CST:
+				cst_dump(e->cst);
+				break;
+			case E_REG:
+				reg_dump(e->reg);
+				break;
+			default:
+				puts("Element type unknown.");
+		}
+	}
+}
+
+
 type_t elt_type(const struct elt * e) {
 	if (e->elttype == E_CST) {
 		return e->cst->type;
@@ -232,6 +251,20 @@ struct reg * reg_copy(struct reg *r)
 	return copy;
 }
 	
+void reg_dump(const struct reg *r)
+{
+	type_t *t;
+
+	puts("Register:");
+	printf("* regnum: %d\n", r->num);
+	printf("* types: ");
+
+	stack_rewind(r->types);
+	while ((t = stack_next(r->types)) != NULL) {
+		printf("%d ", *t);
+	}
+	puts("");
+}
 
 struct cst * cst_new(type_t type)
 {
@@ -258,7 +291,6 @@ struct cst * cst_copy(struct cst *c)
 	return copy;
 }
 
-
 void cst_free(void *cst)
 {
 	struct cst *c = (struct cst *) cst;
@@ -271,6 +303,24 @@ void cst_free(void *cst)
 	free(cst);
 }
 
+void cst_dump(const struct cst *c)
+{
+	puts("Constant:");
+
+	switch (c->type) {
+		case INT_T:
+			printf("* type: int, value: %d\n", c->i);
+			break;
+		case FLO_T:
+			printf("* type: float, value: %g\n", c->f);
+			break;
+		case BOO_T:
+			printf("* type: bool, value: %i\n", c->c);
+			break;
+		default:
+			printf("Type Unknown\n");
+	}
+}
 
 struct class * class_new(const char *name)
 {

@@ -372,8 +372,8 @@ stmt 			: IF expr opt_terms THEN
 }
 				opt_params term stmts terms END
 {
-	gencode_stack(fistack);
-	//func_gen_codes(tmp_function, fistack);
+	//gencode_stack(fistack);
+	func_gen_codes(tmp_function, fistack);
 	stack_clear(fistack, instr_free);
 
 	// change instruction scope

@@ -49,6 +49,7 @@ void         reg_free(struct reg *);
 void         reg_bind(struct reg *, struct var *);
 void         reg_settypes(struct reg *, struct stack *);
 struct reg * reg_copy(struct reg *);
+void         reg_dump(const struct reg *);
 
 
 struct cst {
@@ -65,6 +66,7 @@ struct cst {
 struct cst * cst_new(type_t);
 struct cst * cst_copy(struct cst *);
 void         cst_free(void *);
+void         cst_dump(const struct cst *);
 
 
 #define E_CST 0
@@ -82,6 +84,7 @@ struct elt * elt_new(char, void *);
 void         elt_free(void *);
 struct elt * elt_copy(struct elt *);
 type_t       elt_type(const struct elt *);
+void         elt_dump(const struct elt *);
 
 
 struct function {

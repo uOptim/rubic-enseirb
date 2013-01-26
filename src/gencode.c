@@ -441,11 +441,11 @@ void craft_boolean_operation(
 {
 	if (elt_type(e1) != BOO_T) {
 		e1 = craft_boolean_conversion(e1);
-		if (e1 == NULL) return NULL;
+		return;
 	}
 	if (elt_type(e2) != BOO_T) {
 		e2 = craft_boolean_conversion(e2);
-		if (e2 == NULL) return NULL;
+		return;
 	}
 	
 	printf("%%r%d = icmp %s i1 ", er->reg->num, op);
