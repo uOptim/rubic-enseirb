@@ -373,7 +373,9 @@ stmt 			: IF expr opt_terms THEN
 				opt_params term stmts terms END
 {
 	//gencode_stack(fistack);
-	func_gen_codes(tmp_function, fistack);
+	func_gen_codes(tmp_function,
+                   fistack,
+                   ((struct block *)stack_peak(scopes, 0))->functions);
 	stack_clear(fistack, instr_free);
 
 	// change instruction scope

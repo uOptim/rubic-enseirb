@@ -41,7 +41,6 @@ int                 craft_store(struct var *, const struct elt *);
 static const char * local2llvm_type(char);
 // TODO: remove if unused in the end
 //static void         gencode_param(void *, void *, void *);
-static const char * func_mangling(struct function *);
 static void         fn_append(void *, void *, void *);
 static void         print_instr(struct instr *);
 
@@ -126,7 +125,8 @@ void gencode_main(struct stack *instructions) {
  * determined, the function code is generated.
  * The code is printed on stdout.
  */
-void gencode_func(struct function *f, struct stack *instructions)
+void gencode_func(struct function *f, const char * fnm,
+		struct stack *instructions)
 {
 	struct var *v;
 	struct stack *tmp = stack_new();
@@ -141,9 +141,8 @@ void gencode_func(struct function *f, struct stack *instructions)
 	} else {
 		printf(" %s ", local2llvm_type(elt_type(f->ret)));
 	}
-	// @david: func mangling will be called before calling this function from
-	// the parser. Use f->fn instead.
-	printf("@%s(", f->fn);
+
+	printf("@%s(", fnm);
 
 	// TODO: add something here to allocate space for the object passed as
 	// implicit argument if needed.
@@ -168,7 +167,7 @@ void gencode_func(struct function *f, struct stack *instructions)
 
 	printf(") {\n");
 	gencode_stack(instructions);
-	printf("ret void\n}");
+	printf("ret void\n}\n\n");
 }
 
 /*

@@ -18,6 +18,7 @@
 #define VAR_T   2
 #define CST_T   3
 
+#define DUMMY_FUNC ((void *)0x01)
 
 typedef unsigned int type_t;
 

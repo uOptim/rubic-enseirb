@@ -390,10 +390,13 @@ struct function * function_new(const char *name)
 	return f;
 }
 
-
 void function_free(void *function)
 {
 	struct function *f = (struct function *) function;
+
+	if (f == DUMMY_FUNC) {
+		return;
+	}
 
 	if (f->fn != NULL) {
 		free(f->fn);
