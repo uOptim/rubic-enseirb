@@ -33,6 +33,6 @@ if [ ! $1 ]; then
 	exit
 fi
 
-./rubic2llvm < "$1" > $lldest
-llc $lldest
-gcc -o $dest z.s
+./rubic2llvm < "$1" > $lldest \
+	&& llc $lldest \
+	&& gcc bin/builtins.o z.s -o $dest

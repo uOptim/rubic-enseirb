@@ -7,6 +7,7 @@ BINDIR=bin
 all:
 	make -C ${SRCDIR}
 	cp ${SRCDIR}/rubic2llvm ./rubic2llvm
+	cp ${SRCDIR}/builtins.o bin/builtins.o
 
 tests: all
 	make -C ${SRCDIR} tests
