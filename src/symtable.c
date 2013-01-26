@@ -27,10 +27,15 @@ struct var * var_new(const char *name)
 
 struct var * var_copy(struct var *src)
 {
-	struct var *dst = malloc(sizeof *dst);
-
-	dst->vn = strdup(src->vn);
-	dst->t = stack_copy(src->t, type_copy);
+	struct var *dst;
+	
+	if (src == NULL) {
+		dst = NULL;
+	} else {
+		dst = malloc(sizeof *dst);
+		dst->vn = strdup(src->vn);
+		dst->t = stack_copy(src->t, type_copy);
+	}
 
 	return dst;
 }
@@ -120,15 +125,21 @@ struct elt * elt_copy(struct elt *elt)
 {
 	struct elt *copy;
 
-	switch (elt->elttype) {
-		case E_CST:
-			copy = elt_new(E_CST, cst_copy(elt->cst));
-			break;
-		case E_REG:
-			copy = elt_new(E_REG, reg_copy(elt->reg));
-			break;
-		default:
-			copy = NULL;
+	if (elt == NULL) {
+		copy = NULL;
+	}
+
+	else {
+		switch (elt->elttype) {
+			case E_CST:
+				copy = elt_new(E_CST, cst_copy(elt->cst));
+				break;
+			case E_REG:
+				copy = elt_new(E_REG, reg_copy(elt->reg));
+				break;
+			default:
+				copy = NULL;
+		}
 	}
 
 	return copy;
@@ -201,15 +212,21 @@ void reg_free(struct reg *r)
 
 struct reg * reg_copy(struct reg *r)
 {
-	struct reg *copy = malloc(sizeof *copy);
-
-	copy->num = r->num;
-	copy->bound = r->bound;
-
-	if (r->bound) {
-		copy->types = r->types;
+	struct reg *copy;
+	
+	if (r == NULL) {
+		copy = NULL;
 	} else {
-		copy->types = stack_copy(r->types, type_copy);
+		copy = malloc(sizeof *copy);
+
+		copy->num = r->num;
+		copy->bound = r->bound;
+
+		if (r->bound) {
+			copy->types = r->types;
+		} else {
+			copy->types = stack_copy(r->types, type_copy);
+		}
 	}
 
 	return copy;

@@ -48,27 +48,13 @@ void instr_free(void *instruction)
 {
 	struct instr *i = (struct instr *) instruction;
 
-	if (i->optype == I_RAW) {
-		free(i->rawllvm);
-		i->rawllvm = NULL;
-	}
+	if (i->optype == I_RAW) { free(i->rawllvm); }
 
 	else {
 		// do not free vr it is used in the global hashmap.
-		if (i->er != NULL) {
-			elt_free(i->er);
-			i->er = NULL;
-		}
-
-		if (i->e1 != NULL) {
-			elt_free(i->e1);
-			i->e1 = NULL;
-		}
-		
-		if (i->e2 != NULL) {
-			elt_free(i->e2);
-			i->e2 = NULL;
-		}
+		if (i->er != NULL) { elt_free(i->er); }
+		if (i->e1 != NULL) { elt_free(i->e1); }
+		if (i->e2 != NULL) { elt_free(i->e2); }
 	}
 
 	free(i);
@@ -329,16 +315,16 @@ struct instr * istore(struct var *vr, struct elt *elt)
 			return NULL;
 		}
 
-		stack_free(&vr->t, NULL);
-		vr->t = typeinter;
 		reg_bind(elt->reg, vr);
+		reg_settypes(elt->reg, typeinter);
 
 		i = instr_new(I_STO, vr, elt, NULL, NULL);
 	}
 
 	else {
-		fprintf(stderr, "Impossible error :)\n");
-		return NULL;
+		stack_clear(vr->t, NULL);
+		stack_push(vr->t, &possible_types[(int)elt->cst->type]);
+		i = instr_new(I_STO, vr, elt, NULL, NULL);
 	}
 
 	return i;
