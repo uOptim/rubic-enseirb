@@ -2,7 +2,7 @@ CFLAGS=-Wall -Wextra -g # -O0
 LDFLAGS=-lfl #-ly # les bibliotheques necessaires
 CC=gcc
 
-all: rubic
+all: rubic builtins.o
 
 lex.yy.c: scanner.l
 	lex $<
@@ -42,6 +42,11 @@ instruction.o: instruction.c instruction.h symtable.h
 
 gencode.o: gencode.c gencode.h symtable.h stack.h instruction.h
 	$(CC) $(CFLAGS) -c $< -o $@
+
+
+builtins.o: builtins.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 tests: tests.c stack.o hashmap.o
 	$(CC) $(CFLAGS) $^ -o $@

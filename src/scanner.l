@@ -45,6 +45,7 @@ COM (#[^\n]*)
 "def"     { count(); return(DEF); }
 "in"      { count(); return(IN); }
 "end"     { count(); return(END); }
+"puts"    { count(); return(PUTS); }
 ".."      { count(); return(TO); }
 "<="      { count(); return(LEQ); }
 ">="      { count(); return(GEQ); }

@@ -8,6 +8,7 @@
 #define I_LOA	0x02	// load
 #define I_ALO	0x03	// allocate
 #define I_CAL	0x04	// call function
+#define I_PUT	0x05	// puts
 
 /* Arithmetic operation, be careful if changing this */
 #define I_ARI	0x10
@@ -50,6 +51,7 @@ struct instr {
 };
 
 		
+struct instr * iputs(struct elt *);
 struct instr * iret(struct elt *);
 struct instr * iload(struct var *);
 struct instr * iraw(const char *s);

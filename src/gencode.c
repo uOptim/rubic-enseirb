@@ -105,6 +105,21 @@ int gencode_stack(struct stack *s)
 	return 0;
 }
 
+void gencode_main(struct stack *instructions) {
+	int i = 0;
+	for (; i < TYPE_NB; i++) {
+		printf("declare i32 @puts%c(%s)\n",
+				type2mangling[i], 
+				local2llvm_type(i));
+	}
+	puts("");
+
+	printf( "define i32 @main() {\n");
+
+	gencode_stack(instructions);
+	printf("ret i32 0\n}\n");
+}
+
 /* Given a function with parameters, local variables and return type 
  * determined, the function code is generated.
  * The code is printed on stdout.
@@ -204,7 +219,7 @@ const char * local2llvm_type(char type)
 			return "i1";
 			break;
 		case STR_T:
-			// TODO
+			return "i8*";
 			break;
 		default:
 			break;
@@ -213,8 +228,35 @@ const char * local2llvm_type(char type)
 	return "UNKNOWN TYPE";
 }
 
-int craft_ret(const struct elt *e)
-{
+int craft_puts(const struct elt *e) {
+	printf("call i32 @puts%c(%s ",
+			type2mangling[elt_type(e)], 
+			local2llvm_type(elt_type(e)));
+
+	if (e->elttype == E_REG) {
+		printf("%%r%d", e->reg->num);
+	} else {
+		switch (elt_type(e)) {
+			case INT_T:
+				printf("%d", e->cst->i);
+				break;
+			case FLO_T:
+				printf("%g", e->cst->f);
+				break;
+			case BOO_T:
+				printf("%s", (e->cst->c == 0) ? "false" : "true");
+				break;
+			case STR_T:
+				// TODO
+				break;
+		}
+	}
+
+	printf(")\n");
+	return 0;
+}
+
+int craft_ret(const struct elt *e) {
 	printf("ret %s %%r%d\n", local2llvm_type(elt_type(e)), e->reg->num);
 
 	return 0;
@@ -235,6 +277,9 @@ int craft_store(struct var *var, const struct elt *e)
 				break;
 			case BOO_T:
 				printf("%s, ", (e->cst->c == 0) ? "false" : "true");
+				break;
+			case STR_T:
+				// TODO
 				break;
 		}
 	}
@@ -472,6 +517,9 @@ void print_instr(struct instr *i)
 	}
 	else if (i->optype == I_RET) {
 		craft_ret(i->er);
+	}
+	else if (i->optype == I_PUT) {
+		craft_puts(i->er);
 	}
 	else if (i->optype == I_RAW) {
 		puts(i->rawllvm);

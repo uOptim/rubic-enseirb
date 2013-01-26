@@ -67,7 +67,7 @@
 };
 
 %token AND OR CLASS IF THEN ELSE END WHILE DO DEF LEQ GEQ 
-%token FOR TO RETURN IN NEQ
+%token FOR TO RETURN IN NEQ PUTS
 %token COMMENT %token <c> BOOL
 %token <s> STRING
 %token <f> FLOAT
@@ -388,6 +388,14 @@ stmt 			: IF expr opt_terms THEN
 
 	free($2);
 }
+                | PUTS expr
+{
+	struct instr *i;
+	struct elt *elt = instr_get_result($2);
+	i = iputs(elt);
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(*istack, i);
+}
 ; 
 
 opt_params      : /* none */
@@ -633,7 +641,7 @@ int main() {
 
 	yyparse(); 
 
-	gencode_stack(gistack);
+	gencode_main(gistack);
 
 	printf("Mega Pouet\n");
 	exit_cleanly(EXIT_SUCCESS);

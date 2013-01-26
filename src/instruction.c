@@ -221,7 +221,6 @@ struct stack * type_constrain_boo(struct elt *e1, struct elt *e2)
 	return types;
 }
 
-
 struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 {
 	struct reg *reg;
@@ -277,6 +276,13 @@ struct instr * iraw(const char *s)
 	return i;
 }
 
+struct instr * iputs(struct elt *elt)
+{
+	struct instr *i;
+	i = instr_new(I_PUT, NULL, elt, NULL, NULL);
+
+	return i;
+}
 
 struct instr * iret(struct elt *elt)
 {
