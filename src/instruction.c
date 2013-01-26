@@ -36,7 +36,7 @@ void * instr_copy(void * instruction) {
 	struct instr * i = (struct instr *)instruction;
 
 	return instr_new(i->optype,
-			var_copy(i->vr),
+			i->vr,
 			elt_copy(i->er),
 			elt_copy(i->e1),
 			elt_copy(i->e2)

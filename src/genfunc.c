@@ -50,11 +50,12 @@ void func_gen_codes(struct function *f, struct stack *instructions)
 void func_gen_codes_rec(struct function *f, struct stack *instructions, int i)
 {
 	struct var *cur_param = stack_peak(f->params, i);
-	struct stack *tmp = stack_new();
 
 	if (cur_param == NULL) {
 		return;
 	}
+
+	struct stack *tmp = stack_new();
 
 	// for each type of current parameter
 	while (stack_peak(cur_param->t, 0) != NULL) {
