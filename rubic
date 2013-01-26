@@ -10,7 +10,7 @@ usage() {
 	exit
 }
 
-if [[ ! -e "rubic2llvm" ]]; then
+if [ ! -e "rubic2llvm" ]; then
 	echo "Please run 'make' first."
 	exit
 fi
