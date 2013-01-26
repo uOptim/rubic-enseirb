@@ -23,7 +23,14 @@ void func_gen_codes(
 		struct stack *instructions, 
 		struct hashmap * h)
 {
-	func_gen_codes_rec(f, instructions, h, 0);
+	// function without parameter
+	if (stack_peak(f->params, 0) == NULL) {
+		gencode_func(f, f->fn, instructions);
+	}
+	// function with parameters, generate every combinaison
+	else {
+		func_gen_codes_rec(f, instructions, h, 0);
+	}
 }
 
 void func_gen_codes_rec(

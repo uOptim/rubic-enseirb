@@ -39,8 +39,6 @@ void craft_boolean_operation(
 
 int                 craft_store(struct var *, const struct elt *);
 static const char * local2llvm_type(char);
-// TODO: remove if unused in the end
-//static void         gencode_param(void *, void *, void *);
 static void         fn_append(void *, void *, void *);
 static void         print_instr(struct instr *);
 
@@ -136,7 +134,7 @@ void gencode_func(struct function *f, const char * fnm,
 	//assert(params_type_is_known(f));
 
 	printf("define");
-	if (elt_type(f->ret) == UND_T) {
+	if (f->ret == NULL) {
 		printf(" void ");
 	} else {
 		printf(" %s ", local2llvm_type(elt_type(f->ret)));
@@ -162,32 +160,10 @@ void gencode_func(struct function *f, const char * fnm,
 	}
 	stack_free(&tmp, NULL);
 
-	// @david: uncomment when stack_map works again
-	//stack_map(f->params, gencode_param, &is_first_param, NULL);
-
 	printf(") {\n");
 	gencode_stack(instructions);
 	printf("ret void\n}\n\n");
 }
-
-/*
-void gencode_param(void *param, void *is_first_param, void *dummy) {
-	struct var * p = (struct var *)param;
-	int * is_fp = (int *)is_first_param;
-
-	if (dummy == NULL) {
-		return;
-	}
-
-	if (*is_fp) {
-		printf("%s %%%s", local2llvm_type(var_gettype(p)), p->vn);
-	}
-	else {
-		printf(", %s %%%s", local2llvm_type(var_gettype(p)), p->vn);
-	}
-	*is_fp = 0;
-}
-*/
 
 char convert2bool(struct elt *c)
 {
@@ -290,7 +266,7 @@ int craft_store(struct var *var, const struct elt *e)
 
 int craft_load(struct var *var, const struct elt *e)
 {
-	printf("%%r%d = load %s %%%s\n", e->reg->num,
+	printf("%%r%d = load %s* %%%s\n", e->reg->num,
 			local2llvm_type(var_gettype(var)),
 			var->vn);
 
