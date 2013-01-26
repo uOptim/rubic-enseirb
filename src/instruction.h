@@ -33,6 +33,7 @@
 
 /* raw llvm instruction */
 #define I_RAW	0x80
+#define I_CAST	0x81
 
 
 struct instr {
@@ -40,6 +41,17 @@ struct instr {
 
 	union {
 		char *rawllvm;
+
+		struct {
+			char *fn;
+			struct stack *args;
+		};
+
+		struct {
+			struct elt *res;
+			struct elt *tocast;
+			void (*cast_func)(struct elt *, struct elt **);
+		};
 
 		struct {
 			struct var * vr;
@@ -58,6 +70,11 @@ struct instr * iraw(const char *s);
 struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct elt *);
 struct instr * i3addr(char, struct elt *, struct elt *);
+
+struct instr * icast(
+	void (*cast_func)(struct elt *, struct elt **),
+	struct elt *tocast
+);
 
 void * instr_copy(void *);
 void   instr_free(void *);

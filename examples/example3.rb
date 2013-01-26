@@ -1,10 +1,6 @@
-def main(a, b)
-	if (3 && 5) then
-		a = 1
-	else
-		a = 5
-	end
-	while(2 > 1)
-		b = 7
-	end
+b = 0
+if (b) then
+	puts 1
+else
+	puts 0
 end
