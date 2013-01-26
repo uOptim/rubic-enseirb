@@ -1,0 +1,38 @@
+#!/bin/sh
+
+dest="z.out"
+lldest="z.ll"
+
+pgrm=rubic2llvm
+
+function usage {
+	echo "Usage: $0 [-o dest] file"
+	exit
+}
+
+if [[ ! -e "rubic2llvm" ]]; then
+	echo "Please run 'make' first."
+	exit
+fi
+
+while getopts "o:" opt; do
+	case $opt in
+		o)
+			dest=$OPTARG;
+			;;
+		*)
+			usage
+			;;
+	esac
+done
+
+shift $(( $OPTIND-1 ))
+
+if [ ! $1 ]; then
+	usage
+	exit
+fi
+
+./rubic2llvm < "$1" > $lldest
+llc $lldest
+gcc -o $dest z.s
