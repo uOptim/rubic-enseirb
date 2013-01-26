@@ -335,6 +335,10 @@ stmt 			: IF expr opt_terms THEN
 
 	free($1);
 }
+                | lhs
+{
+	// if lhs is a fonction then call it
+}
                 | RETURN expr
 {
 	struct instr *i;
@@ -646,6 +650,7 @@ int main() {
 
 	gencode_main(gistack);
 
+	yylex_destroy();
 	exit_cleanly(EXIT_SUCCESS);
 
 	return 0;

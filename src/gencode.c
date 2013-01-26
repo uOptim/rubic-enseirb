@@ -39,8 +39,6 @@ void craft_boolean_operation(
 
 int                 craft_store(struct var *, const struct elt *);
 static const char * local2llvm_type(char);
-// TODO: remove if unused in the end
-//static void         gencode_param(void *, void *, void *);
 static void         fn_append(void *, void *, void *);
 static void         print_instr(struct instr *);
 
@@ -136,7 +134,7 @@ void gencode_func(struct function *f, const char * fnm,
 	//assert(params_type_is_known(f));
 
 	printf("define");
-	if (elt_type(f->ret) == UND_T) {
+	if (f->ret == NULL) {
 		printf(" void ");
 	} else {
 		printf(" %s ", local2llvm_type(elt_type(f->ret)));
@@ -161,9 +159,6 @@ void gencode_func(struct function *f, const char * fnm,
 		if (stack_peak(tmp, 0) != NULL) printf(", ");
 	}
 	stack_free(&tmp, NULL);
-
-	// @david: uncomment when stack_map works again
-	//stack_map(f->params, gencode_param, &is_first_param, NULL);
 
 	printf(") {\n");
 	gencode_stack(instructions);
