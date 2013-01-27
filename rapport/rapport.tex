@@ -48,7 +48,7 @@
 
 Ce projet a pour but de créer un compilateur pour le langage Rubic, un dérivé
 simplifié du langage Ruby. Le code généré est un code assembleur intermédiaire
-portable pour LLVM.
+portable pour LLVM. Pour ce projet, une grande attention a été portée à la flexibilité de manière à pouvoir améliorer facilement le compilateur sans nous limiter aux seules fonctionnalités citées sur la page du sujet.
 
 \section{Langage Rubic}
 
@@ -59,7 +59,7 @@ vérifié si l'appel de méthode fonctionne pour l'objet traité. Une même
 variable peut donc contenir des objets de types différents au cours de sa vie.
 
 En Rubic, le typage n'est pas dynamique mais il est implicite. Une des
-difficultés du projet est de savoir reconaître le type des variables et de
+difficultés du projet est de savoir reconnaître le type des variables et de
 générer le code statique correspondant.
 
 \paragraph{} En Rubic il existe différents types de variables :
@@ -94,9 +94,14 @@ Enfin, par convention, les variables dont le nom commence par une majuscule sont
 
 \section{Analyse sémantique}
 
-La grammaire nous étant fournie, la mojorité du travail fut de rajouter des
+La grammaire nous étant fournie, la majorité du travail fut de rajouter des
 actions sémantique dans le parser. Nous avons tout de même complété la
 grammaire pour inclure les booléens par exemple.
+
+\subsection{Piles}
+
+La grande majorité des éléments manipulés sont stockés dans des piles. Des opération d'union, d'intersection, d'itération sur des ensembles stockés dans les piles ont été implémentées. Dans le projet, elles ont servie notamment à représenter les portées des variables, une liste de type par chaque variable ou bien une liste d'instruction à trier puis à générer.
+
 
 \subsection{Tables de hashage}
 
@@ -129,26 +134,6 @@ La recherche d'un symbole se fait en parcourant la pile pour
 tester sa présence dans la table de hashage du type correspondant dans chaque
 bloc.
 
-%\begin{verbatim}
-%IF
-%    { nouveau bloc pour IF afin de stocker les éléments de expr
-%      qui doit rester visible dans le THEN et dans le ELSE }
-%expr
-%THEN
-%    { nouveau bloc pour stocker les éléments du bloc IF }
-%stmts
-%terms
-%ELSE
-%    { dépiler le bloc THEN et créer un nouveau bloc pour le ELSE.
-%      ici le bloc du IF contenant les éléments de expr est toujours
-%      visible. }
-%stmts
-%terms
-%END
-%    { dépiler le bloc ELSE et celui du IF }
-%\end{verbatim}
-
-
 \subsection{Reconnaissance et calculs sur les types}
 
 \paragraph{} Nous avons développé un jeu de fonctions décrivant un langage intermédiaire
@@ -166,11 +151,11 @@ Ce jeu d'instruction manipule trois structures différentes :
 \end{itemize}
 
 \paragraph{} Les types possibles pour chaque variables sont calculés au fur et à mesure que
-le code est lu en se basant sur les opérations dans léquelles elles
-apparaîssent. Ansi, un pointeur vers une variable apparaît dans une série
-d'instructions. Parmis elles, certaines nous permettent de réaliser des
-calculs sur les types. Par exemple, l'emploi d'une variable aver l'opérateur
-'+' permet de réduire cet ensemble aux types entier et flotant. Nous avons défini plusieurs sortes d'instruction:
+le code est lu en se basant sur les opérations dans lesquelles elles
+apparaissent. Ainsi, un pointeur vers une variable apparaît dans une série
+d'instructions. Parmi elles, certaines nous permettent de réaliser des
+calculs sur les types. Par exemple, l'emploi d'une variable avec l'opérateur
+'+' permet de réduire cet ensemble aux types entier et flottant. Nous avons défini plusieurs sortes d'instruction:
 \begin{itemize}
 	\item Celles définissant des opérations sur des variables ou des registres
 		telles que les additions ou les comparaisons.
@@ -193,9 +178,9 @@ affectées et l'ensemble des variations du code final à générer est réduit.
 
 \subsection{Structures de contrôle}
 
-\paragraph{} En ruby, les structures de controles de definissent pas un bloc séparé de la fonction et il est donc nécessaire de repérer les variables introduites dans ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace necessaire en début de fonction sous peine de créer une erreur de compilation de LLVM à cause d'allocations soumises à condition.
+\paragraph{} En Ruby, les structures de contrôles de définissent pas un bloc séparé de la fonction et il est donc nécessaire de repérer les variables introduites dans ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace nécessaire en début de fonction sous peine de créer une erreur de compilation de LLVM à cause d'allocations soumises à condition.
 
-\paragraph{} Dans une première version du compilateur, nous avons tenté de gérer proprement le problème en forçant la déclaration des variables en dehors des structures de contrôle à l'aide de blocs définissant une nouvelle portée. Cependant, après l'introduction de notre jeu d'instruction intermédiaire nous pouvions désormais réordonner les actions à loisir. Ainsi, nous avons rendu possible la déclaration de variables dans une structure de contrôle. Il suffit pour cela de stocker dans l'ordre les instructions rencontrées dans une fonction et de mettre au début toutes celles faisant des allocations lors de la génération de l'assembleur llvm.
+\paragraph{} Dans une première version du compilateur, nous avons tenté de gérer proprement le problème en forçant la déclaration des variables en dehors des structures de contrôle à l'aide de blocs définissant une nouvelle portée. Cependant, après l'introduction de notre jeu d'instruction intermédiaire nous pouvions désormais réordonner les actions à loisir. Ainsi, nous avons rendu possible la déclaration de variables dans une structure de contrôle. Il suffit pour cela de stocker dans l'ordre les instructions rencontrées dans une fonction et de mettre au début toutes celles faisant des allocations lors de la génération de l'assembleur LLVM.
 
 \paragraph{Exemple} Code original et code généré
 
@@ -230,11 +215,11 @@ EndIf1:
 
 \vspace{0.5cm}
 
-En testant la valeur de \verb!a! et de \verb!b!, \verb!a! vaut \verb!1! et \verb!b! vaut \verb!0!. LLVM semble initiliser la memoire à 0 lors d'allocations.
+En testant la valeur de \verb!a! et de \verb!b!, \verb!a! vaut \verb!1! et \verb!b! vaut \verb!0!. LLVM semble initialiser la mémoire à 0 lors d'allocations.
 
 \subsection{Conversion vers les booléens}
 
-Lors de l'utilisation de variables ou de constantes dans une expression servant de condition à une structure de contrôle, il peut être nécessaire de convertir un entier ou un flotant en booléen. Nous voulions qu'un nombre valant 0 soit assimilé à faux et tous les autres (y compris les nombres négatifs) à vrai. La détection du besoin de réaliser une conversion se fait en fonction du type d'expression recontrée : une opération booléenne bit à bit ou une comparaison de nombres garantit de retourner un booléen. En revanche une expression retournant un nombre nécessite une conversion explicite et une opération de conversion est insérée. Cette dernière entraîne la création d'un nouveau registre dans l'assembleur llvm qui est substitué au registre de l'expression initiale lors du test de la structure de contrôle.
+Lors de l'utilisation de variables ou de constantes dans une expression servant de condition à une structure de contrôle, il peut être nécessaire de convertir un entier ou un flottant en booléen. Nous voulions qu'un nombre valant 0 soit assimilé à faux et tous les autres (y compris les nombres négatifs) à vrai. La détection du besoin de réaliser une conversion se fait en fonction du type d'expression rencontrée : une opération booléenne bit à bit ou une comparaison de nombres garantit de retourner un booléen. En revanche une expression retournant un nombre nécessite une conversion explicite et une opération de conversion est insérée. Cette dernière entraîne la création d'un nouveau registre dans l'assembleur LLVM qui est substitué au registre de l'expression initiale lors du test de la structure de contrôle.
 
 \paragraph{Exemple} Code original et code généré
 
@@ -287,15 +272,51 @@ call i32 @putsI(i32 %r11)
 
 Ce code affiche le nombre $120$ correspondant bien à $5!$ .
 
+\paragraph{} De même, ces instructions sont correctement prises en compte:
+
+\vspace{0.5cm}
+
+\begin{minipage}{0.48\textwidth}
+\begin{verbatim}
+b = 5.2
+
+if b then
+...
+end
+
+if (b && false) then
+...
+end
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+\begin{verbatim}
+if (0 || true) then
+...
+end
+\end{verbatim}
+\end{minipage}
+
+\vspace{0.5cm}
+
 \section{Génération de code}
 
-\section{Limitations}
+\section{Utilisation}
+
+Un makefile à la racine permet de compiler le projet et de placer les binaires aux bons endroit. Une invocation du script \verb!rubic -o dest fichier.rb! permet de compiler \verb!fichier.rb! et de générer l'exécutable \verb!dest! correspondant.
+
+
+\section{Tests et limitations}
+
+\subsection{Tests}
+
+Plusieurs fichiers de tests illustrant les fonctionnalités sur compilateur se trouvent dans le répertoire 'tests'. L'ensemble des tests sont compilés sans fuite de mémoire d'après valgrind.
 
 \subsection{Non supporté}
 \begin{itemize}
 	\item Pas de variables globales avec le préfixe \verb!$!.
 	\item Pas de gestion de classes mais une base solide pour l'implémenter.
-	\item Pas de prise en charge des chaines de caractères. Nous savons cependant qu'elles devront être déclarées commes des constantes globales dans l'assembleur llvm.
+	\item Pas de prise en charge des chaines de caractères. Nous savons cependant qu'elles devront être déclarées comme des constantes globales dans l'assembleur LLVM.
 \end{itemize}
 
 \subsection{Améliorations envisagées}
@@ -306,7 +327,7 @@ Ce code affiche le nombre $120$ correspondant bien à $5!$ .
 
 \section{Conclusion}
 
-Les objectifs du projet n'ont pas tous été remplis mais nous avons concentré nos efforts sur une représentation simple et flexible des instructions pour fournir les fondations du support des classes.
+Les objectifs du projet n'ont pas tous été remplis mais nous avons concentré nos efforts sur une représentation simple et flexible des instructions pour fournir les fondations du support des classes. Il en ressort que certains éléments simples n'ont pas été implémentés et beaucoup de temps a été consacré au développement de manipulations puissantes pas explicitement demandées dans le sujet mais qui nous ont tout de même beaucoup intéressé.
 
 Ce projet a permis le développement et la mise en œuvre de nombreuses
 compétences intéressantes telles que l'utilisation des outils Flex et Yacc, la

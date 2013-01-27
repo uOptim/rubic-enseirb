@@ -15,7 +15,7 @@ else
 	puts 2
 end
 
-if (b && true) then
+if (0 || true) then
 	puts 1
 else
 	puts 2
