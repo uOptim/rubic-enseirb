@@ -308,7 +308,7 @@ Une classe définit un nouveau type qui est alors ajouté à la liste des types 
 
 \section{Génération de code}
 
-Le l'objectif principal était de produire du code assembleur LLVM à partir de code Rubic. Cependant, les variables n'étant pas explicitement typées, la génération de code à la volée\footnote{c'est-à-dire, au moment où le code Rubic est parsé} n'est possible que dans les cas très simple où le type des variables est connu au moment où on rencontre l'instruction.
+Le l'objectif principal était de produire du code assembleur LLVM à partir de code Rubic. Cependant, les variables n'étant pas explicitement typées, la génération de code à la volée\footnote{C'est-à-dire, au moment où le code Rubic est parsé.} n'est possible que dans les cas très simple où le type des variables est connu au moment où on rencontre l'instruction.
 
 \paragraph{Exemple} Code dont le type des variables peut être déterminé à la volée
 \begin{verbatim}
@@ -324,7 +324,7 @@ def f(a)
 end 
 \end{verbatim}
 
-La solution employée consistant à stocker une représentation abstraite des instructions permet de résoudre ce problème.
+La solution employée consistant à stocker une représentation abstraite de chaque instruction et à les empiler permet de résoudre ce problème.
 
 \subsection{Les fonctions}
 
@@ -365,13 +365,13 @@ stockées dans des structures afin d'être représentées indépendamment des ty
 des variables. En même temps, des calculs sur les types sont effectués. Afin
 de restreindre les types possibles pour les paramètres de la fonction.
 
-Dans l'exemple précédent, c'est donc lors de ce premier passage que l'on
+Dans l'exemple précédent, c'est donc lors de cette première passe que l'on
 détermine que les paramètres \verb!a! et \verb!b! sont de type entier ou
 flottant.
 
-Une fois ce premier passage effectué, les diverses implémentations de la
-fonction peuvent être générées. Il est donc nécessaire de déterminer
-l'ensemble des combinaisons possibles des types des paramètres.
+C'est également lors de cette première passe que sont détectées les erreurs dans l'écriture du code de la fonction. Lorsqu'une erreur est détectée, notre compilateur affiche l'erreur et arrête le processus de compilation.
+
+Une fois cette première passe effectuée sans erreur, les diverses implémentations de la fonction peuvent être générées. Il est donc nécessaire de déterminer l'ensemble des combinaisons possibles des types des paramètres.
 
 \subsubsection{Calcul des combinaisons de types}
 
@@ -392,7 +392,7 @@ Le nombre de combinaisons générées correspond au produit des nombres possible
 \subsubsection{Mangling}
 
 En C++, comme dans d'autres langages de programmation, des informations telles
-que le types des paramètres, sont stockées dans nom des fonctions. Ce procédé
+que le types des paramètres, sont stockées dans le nom des fonctions. Ce procédé
 permet la surcharge de fonctions et, de manière similaire, nous avons encodé dans le nom des fonctions le types de ses paramètres afin de l'identifier de manière unique. Pour une fonction dont le type des paramètres est fixé, le type de retour est également fixé, donc il n'est pas nécessaire d'ajouter celui-ci au codage.
 
 Le principe du codage est le suivant :
@@ -402,7 +402,7 @@ Le principe du codage est le suivant :
 	\item Ce caractère est I pour un entier, F pour un flottant, B pour un booléen, S pour une chaîne de caractère et, pour un objet, le nom de sa classe.
 \end{itemize}
 
-Par exemple, une méthode m, d'une classe A, ayant pour paramètres deux flottants et un entier se verra attribuer le nom : AmFFI\footnote{on remarquera que la présence d'une fonction sans paramètre et ayant pour nom AmFFI entrainerait un conflit}.
+Par exemple, une méthode m, d'une classe A, ayant pour paramètres deux flottants et un entier se verra attribuer le nom : AmFFI\footnote{On remarquera que la présence d'une fonction sans paramètre et ayant pour nom AmFFI entrainerait un conflit.}.
 
 Cependant, la prise en charge des classes n'ayant pas été terminée, seul le suffixe est utilisé avec les types de base.
 
@@ -410,15 +410,26 @@ Cependant, la prise en charge des classes n'ayant pas été terminée, seul le s
 
 \subsubsection{Calcul complémentaire sur les types}
 
-Pour générer le code d'une implémentation donnée d'une fonction, un deuxième passage est nécessaire, pour chaque combinaison, afin de déterminer complètement le type de retour et des variables locales. Par exemple pour la fonction d'addition précédente et pour l'implémentation prenant en premier paramètre un entier et en deuxième paramètre un flottant, c'est en "examinant" l'opération d'addition entre les deux variables de type fixé qu'il peut-être décidé que le type de retour doit être flottant.
+Pour générer le code d'une implémentation donnée d'une fonction, une deuxième passe est nécessaire, pour chaque combinaison, afin de déterminer complètement le type de retour et des variables locales. Par exemple pour la fonction d'addition précédente et pour l'implémentation prenant en premier paramètre un entier et en deuxième paramètre un flottant, c'est en "examinant" l'opération d'addition entre les deux variables de type fixé qu'il peut-être décidé que le type de retour doit être flottant.
 
+\subsection{Hors de tout fonction}
 
-\subsection{Détection erreur de type}
+Une distinction est faite entre les instructions rencontrées à l'intérieur de la définition d'une fonction et hors de celle-ci. En temps d'implémentation, cela ce traduit par l'utilisation de deux piles différentes pour y stocker les instructions rencontrées. Lorsqu'on entre dans la définition d'une fonction, on définit que les instructions doivent être empilées dans la pile correspondante. Autrement celles-ci sont stockées dans la pile des instructions "globales".
 
-si le mec file des types qui vont pas, on lui gueule dessus
-ex : "CONNARD, tu vas pas additionner des patates et des carottes"
+La pile correspondant aux fonctions est vidée en même temps que le code de la fonction est écrit, lorsque le compilateur quitte la définition de la fonction. Ainsi, à chaque nouvelle fonction définie, les instructions sont empilées en partant d'une pile vide. Dans un même temps, les autres instructions sont empilées dans la pile "globale" qui n'est vidée que fois la fin du fichier rencontrée.
+À ce moment là, le \emph{main} LLVM est créé et les instructions correspondantes sont générées.
+
+Ainsi, le code de définition de toutes les fonctions est écrit avant le \emph{main}.
 
 \subsection{Appel de fonction}
+
+De même que pour toutes les autres instructions, lorsqu'un appel de fonction est rencontré, des vérifications sont faites sur la présence d'erreur, notamment sur les types des arguments passés à la fonction. Notre compilateur effectue la vérification de la manière suivante : 
+\begin{itemize}
+	\item Il génère le nom de la fonction à appeler, suivant le principe du mangling, en fonction des types des arguments.
+	\item Il cherche dans la table des fonctions s'il trouve la correspondance.
+	\item S'il ne trouve pas, alors c'est que les types passés en paramètres ne sont pas compatibles avec la définition de la fonction et dans ce cas, une erreur de compilation est déclenchée.
+	\item Sinon l'instruction d'appel à la fonction est générée correctement.
+\end{itemize}
 
 
 \section{Utilisation}
