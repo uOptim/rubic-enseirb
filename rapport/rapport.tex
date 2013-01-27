@@ -299,6 +299,13 @@ end
 
 \vspace{0.5cm}
 
+
+\section{Les classes}
+
+Les classes ne sont pas prises en compte bien qu'elles soient reconnues et mémorisées dans le parser. Leur introduction aurait été réalisée selon les idées suivantes.
+
+Une classe définit un nouveau type qui est alors ajouté à la liste des types possibles pour les paramètres d'une fonction. Une fonction faisant partie d'une classe aurait vu son nom altéré par un préfixe lors de l'opération de mangling (voir ci après) et celle-ci aurait eu un paramètre implicite ajouté du type de la classe. Ansi, si la variable \verb!a! est du type \verb!A!, \verb!a.f(p1, p2)! provoquerait l'appel à la fonction \verb!f_apres_mangling(a, p1, p2)!.
+
 \section{Génération de code}
 
 \section{Utilisation}
@@ -310,7 +317,7 @@ Un makefile à la racine permet de compiler le projet et de placer les binaires 
 
 \subsection{Tests}
 
-Plusieurs fichiers de tests illustrant les fonctionnalités sur compilateur se trouvent dans le répertoire 'tests'. L'ensemble des tests sont compilés sans fuite de mémoire d'après valgrind.
+Plusieurs fichiers de tests illustrant les fonctionnalités sur compilateur se trouvent dans le répertoire 'tests'. L'ensemble des tests sont compilés sans fuite de mémoire d'après valgrind (excepté pour les tests préliminaires sur les appels de fonction).
 
 \subsection{Non supporté}
 \begin{itemize}
@@ -327,13 +334,12 @@ Plusieurs fichiers de tests illustrant les fonctionnalités sur compilateur se t
 
 \section{Conclusion}
 
+Ce projet a permis le développement et la mise en œuvre de nombreuses compétences intéressantes telles que l'utilisation des outils Lex et Yacc, la découverte du langage Ruby, la découverte de LLVM et l'utilisation de structures de données adaptées au typage des données, à la gestion des tables de symboles et de la mémoire.
+
 Les objectifs du projet n'ont pas tous été remplis mais nous avons concentré nos efforts sur une représentation simple et flexible des instructions pour fournir les fondations du support des classes. Il en ressort que certains éléments simples n'ont pas été implémentés et beaucoup de temps a été consacré au développement de manipulations puissantes pas explicitement demandées dans le sujet mais qui nous ont tout de même beaucoup intéressé.
 
-Ce projet a permis le développement et la mise en œuvre de nombreuses
-compétences intéressantes telles que l'utilisation des outils Flex et Yacc, la
-découverte du langage Ruby, l'initiation au langage LLVM et l'utilisation de
-structures de données adaptées au typage des données, à la gestion des tables
-de symboles et de la mémoire.
+Ce projet a également mis en lumière les problèmes que l'on peut rencontrer lors de la génération d'un code statique pour un langage à types implicites et nous a aidé à comprendre les choix pour la syntaxe d'autres langages ou l'intérêt qu'ont les interpréteurs dans certaines situations. En résumé, ces premiers pas dans la création d’un compilateur nous ont beaucoup plu même si l'on regrettera d'avoir manqué de temps pour construire d'avantage de fonctionnalités sur les bases mises en place.
+
 
 
 \end{document}
