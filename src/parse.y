@@ -177,11 +177,9 @@ endif			: ELSE
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 }
 				stmts terms END
@@ -189,11 +187,9 @@ endif			: ELSE
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 }
 				| END
@@ -201,19 +197,15 @@ endif			: ELSE
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "IfFalse%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "br label %%EndIf%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "EndIf%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 }
 				;
@@ -224,11 +216,18 @@ stmt 			: COMMENT
 	stack_push(labels, new_label());
 
 	struct elt *elt;
+	struct instr *cast;
+
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	struct instr *cast = icast(casttobool, instr_get_result($2), BOO_T);
-	stack_push(istack, cast);
-	elt = instr_get_result(cast); 
+	// cast expr into bool if necessary
+	if ( ! ($2->optype & I_BOO || $2->optype & I_CMP)) {
+		cast = icast(casttobool, instr_get_result($2), BOO_T);
+		stack_push(istack, cast);
+		elt = instr_get_result(cast); 
+	} else {
+		elt = instr_get_result($2); 
+	}
 
 	if (elt->elttype == E_REG) {
 		size = snprintf(buf, BUFSZ,
@@ -241,7 +240,6 @@ stmt 			: COMMENT
 			(elt->cst->c == 0) ? "false": "true", lnum, lnum
 		);
 	}
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	sprintf(buf, "IfTrue%d:", lnum);
@@ -253,30 +251,55 @@ stmt 			: COMMENT
 {
 	free(stack_pop(labels));
 }
-                | FOR ID IN expr TO expr term stmts terms END
-{
-	free($2); // free ID
-}
-                | WHILE 
+                | FOR ID IN expr
 {
 	stack_push(labels, new_label());
 
+	struct var *var;
+	struct instr *i;
+	
+	var = symbol_lookup(scopes, $2, VAR_T);
+
+	if (var == NULL) {
+		var = var_new($2);
+
+		hashmap_set(
+			((struct block *) stack_peak(scopes, 0))->variables,
+			$2,
+			var
+		);
+
+		i = ialloca(var);
+		if (i == NULL) exit_cleanly(EXIT_FAILURE);
+		stack_push(istack, i);
+	}
+	
+	i = istore(var, instr_get_result($4));
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, i);
+}
+				TO expr
+{
+	struct var *v;
+	struct instr *i;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
 	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "loop%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
-}
-				expr 
-{
-	struct elt *elt;
-	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
-	
-	elt = instr_get_result($3); // may need to cast cr into bool
+
+	v = symbol_lookup(scopes, $2, VAR_T);
+	i = iload(v);
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, i);
+
+	i = i3addr(I_LEQ, instr_get_result(i), instr_get_result($7));
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, i);
+
+	struct elt *elt = instr_get_result(i);
 	if (elt->elttype == E_REG) {
 		size = snprintf(buf, BUFSZ,
 			"br i1 %%r%d, label %%cond%d, label %%endloop%d",
@@ -288,11 +311,87 @@ stmt 			: COMMENT
 			(elt->cst->c == 0) ? "false" : "true", lnum, lnum
 		);
 	}
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "cond%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
+	stack_push(istack, iraw(buf));
+
+	elt_free(elt);
+}
+				term stmts terms END
+{
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+
+	struct var *v;
+	struct cst *one;
+	struct instr *i;
+	
+	v = symbol_lookup(scopes, $2, VAR_T);
+
+	i = iload(v);
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, i);
+
+	one = cst_new(INT_T); one->i = 1;
+	i = i3addr(I_ADD, instr_get_result(i), elt_new(E_CST, one));
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, i);
+
+	i = istore(v, instr_get_result(i));
+	if (i == NULL) exit_cleanly(EXIT_FAILURE);
+	stack_push(istack, i);
+
+	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "endloop%d:", lnum);
+	stack_push(istack, iraw(buf));
+
+	free(stack_pop(labels));
+	
+	free($2);
+}
+                | WHILE 
+{
+	stack_push(labels, new_label());
+
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+
+	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "loop%d:", lnum);
+	stack_push(istack, iraw(buf));
+}
+				expr 
+{
+	struct elt *elt;
+	struct instr *cast;
+	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
+	
+	// cast expr into bool if necessary
+	if ( ! ($3->optype & I_BOO || $3->optype & I_CMP)) {
+		cast = icast(casttobool, instr_get_result($3), BOO_T);
+		stack_push(istack, cast);
+		elt = instr_get_result(cast); 
+	} else {
+		elt = instr_get_result($3);
+	}
+
+	if (elt->elttype == E_REG) {
+		size = snprintf(buf, BUFSZ,
+			"br i1 %%r%d, label %%cond%d, label %%endloop%d",
+			elt->reg->num, lnum, lnum
+		);
+	} else {
+		size = snprintf(buf, BUFSZ,
+			"br i1 %s, label %%cond%d, label %%endloop%d",
+			(elt->cst->c == 0) ? "false" : "true", lnum, lnum
+		);
+	}
+	stack_push(istack, iraw(buf));
+
+	size = snprintf(buf, BUFSZ, "cond%d:", lnum);
 	stack_push(istack, iraw(buf));
 
 	elt_free(elt);
@@ -302,11 +401,9 @@ stmt 			: COMMENT
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
 	size = snprintf(buf, BUFSZ, "br label %%loop%d", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	size = snprintf(buf, BUFSZ, "endloop%d:", lnum);
-	if (size > BUFSZ) fprintf(stderr, "Warning, instruction truncated.");
 	stack_push(istack, iraw(buf));
 
 	free(stack_pop(labels));

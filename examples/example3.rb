@@ -1,7 +1,3 @@
-b = 1
-a = 0
-if (b && false) then
-	puts 1
-else
-	puts 0
+for i in 1 .. 10
+	puts i
 end
