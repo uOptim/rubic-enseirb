@@ -155,7 +155,7 @@ le code est lu en se basant sur les opérations dans lesquelles elles
 apparaissent. Ainsi, un pointeur vers une variable apparaît dans une série
 d'instructions. Parmi elles, certaines nous permettent de réaliser des
 calculs sur les types. Par exemple, l'emploi d'une variable avec l'opérateur
-'+' permet de réduire cet ensemble aux types entier et flottant. Nous avons défini plusieurs sortes d'instruction:
+'+' permet de réduire cet ensemble aux types entier et flottant. Nous avons défini plusieurs sortes d'instructions :
 \begin{itemize}
 	\item Celles définissant des opérations sur des variables ou des registres
 		telles que les additions ou les comparaisons.
@@ -307,6 +307,81 @@ Les classes ne sont pas prises en compte bien qu'elles soient reconnues et mémo
 Une classe définit un nouveau type qui est alors ajouté à la liste des types possibles pour les paramètres d'une fonction. Une fonction faisant partie d'une classe aurait vu son nom altéré par un préfixe lors de l'opération de mangling (voir ci après) et celle-ci aurait eu un paramètre implicite ajouté du type de la classe. Ansi, si la variable \verb!a! est du type \verb!A!, \verb!a.f(p1, p2)! provoquerait l'appel à la fonction \verb!f_apres_mangling(a, p1, p2)!.
 
 \section{Génération de code}
+
+Le l'objectif principal était de produire du code assembleur LLVM à partir de code Rubic. Cependant, les variables n'étant pas explicitement typées, la génération de code à la volée\footnote{c'est-à-dire, au moment où le code Rubic est parsé} n'est possible que dans les cas très simple où le type des variables est connu au moment où on rencontre l'instruction.
+
+\paragraph{Exemple} Code dont le type des variables peut être déterminé à la volée
+\begin{verbatim}
+a = 1           # a est un entier
+b = a + 1.2     # b est un nombre flottant
+\end{verbatim}
+
+\paragraph{Exemple} Code dont le type des variables ne peut pas être déterminé à la volée
+\begin{verbatim}
+def f(a)
+    b = a       # les types de a et b sont inconnus
+    return b
+end 
+\end{verbatim}
+
+La solution employée consistant à stocker une représentation abstraite des instructions permet de résoudre ce problème.
+
+\subsection{Les fonctions}
+
+Le problème de la détermination du type des variables se manifeste particulièrement dans les fonctions. En effet, lorsque la définition d'une fonction est rencontrée, le type de ses paramètres n'est pas connus et par conséquent le type des variables locales à la fonction peut également être indéterminé.
+
+Différentes implémentations d'une même fonction peuvent donc exister selon les types donnés à ses paramètres. Ce qui signifie que la rencontre de la définition d'une fonction peut mener à la génération de plusieurs codes différents pour cette fonctions. Il est donc particulièrement utile dans ce cas de pouvoir stocker une représentation intermédiaire de la définition de la fonction afin de générer différent codes par la suite.
+
+Pour déterminer le code à générer deux solutions s'offraient à nous :
+\begin{itemize}
+	\item Essayer de générer le code en ce basant sur les appels à cette fonction. 
+	\item Générer tous les codes possibles suivant les types des paramètres.
+\end{itemize}
+
+\paragraph{Exemple} Illustration de ces deux choix
+\begin{verbatim}
+def f(a, b)
+    return a + b
+end 
+
+f(1, 2.3)
+f(67, 23)
+\end{verbatim}
+
+Avec la première solution, seules deux implémentations de la fonction \verb!f! vont être générées : l'une prenant respectivement un entier et un flottant en paramètres, l'autre prenant deux entiers en paramètres.
+Avec la deuxième solution, chaque paramètre peut être un entier ou un flottant donc $2^{2} = 4$ implémentations différentes seront générées.
+
+La première approche a l'avantage de de générer que le code nécessaire pour le fichier donné. Un binaire prenant moins de place mémoire est donc créé.
+La deuxième approche est plus puissante, elle permet par exemple de pouvoir écrire une bibliothèque de fonctions en Rubic, dont l'ensemble des implémentations possibles pour chaque fonction sera généré, malgré l'absence d'appel à celle-ci.
+
+Nous avons choisi la deuxième solution pour sa puissance et malgré l'occupation mémoire supplémentaire. Cette solution a également l'avantage de pouvoir générer le code de la fonction au moment où on rencontre la fin de sa définition, sans ce soucier du reste du code.
+
+Cependant, pour éviter une explosions combinatoire des types et des codes générés pour une fonction donnée, il est nécessaire de restreindre au plus tôt les types possibles des paramètres de la fonction.
+
+\subsubsection{Calcul des types des paramètres}
+
+\subsubsection{après le calcul des types, le calcul des combinaisons... hoho}
+
+-> algo de combinaison des types : un gros merdier
+ pourquoi qu'on a foutu des piles de paramètres nous ?
+
+\subsubsection{Mangling}
+
+Inspiré du  C++
+
+La signature de la fonction y est stocké
+le type de retour est déterminé par les types des paramètres en entrée
+
+\subsection{Détection erreur de type}
+
+si le mec file des types qui vont pas, on lui gueule dessus
+ex : "CONNARD, tu vas pas additionner des patates et des carottes"
+
+\subsection{Appel de fonction}
+
+\subsection{calcul complémentaire sur les types}
+(ouai parce que là on n'a pas encore tout déterminé)
+
 
 \section{Utilisation}
 
