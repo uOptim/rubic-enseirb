@@ -614,6 +614,7 @@ primary         : lhs
 
 		$$ = icall($1, tmp_args);
 		if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+		stack_push(istack, $$);
 	}
 }
                 | STRING 

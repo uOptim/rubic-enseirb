@@ -79,6 +79,9 @@ void func_compute_var_type(
 		hashmap_set(h, fnm, DUMMY_FUNC);
 		gencode_func(f, fnm, i_copy, h);
 	}
+	else {
+		free(fnm);
+	}
 
 	stack_free(&i_copy, instr_free);
 }

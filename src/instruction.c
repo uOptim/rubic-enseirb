@@ -331,7 +331,7 @@ struct instr * icall(char *fn, struct stack * args)
 	i->optype = I_CAL;
 	i->fn = fn;
 	i->args = args;
-	i->ret = elt_new(E_REG, reg_new(NULL));
+	i->ret = elt_new(E_REG, reg_new(var_new(fn)));
 
 	return i;
 }

@@ -143,7 +143,10 @@ void gencode_func(
 
 	printf(") {\n");
 	gencode_stack(instructions, h);
-	printf("ret void\n}\n\n");
+	if (f->ret == NULL) {
+		printf("ret void\n");
+	}
+	printf("}\n\n");
 }
 
 /*
@@ -259,8 +262,8 @@ int craft_call(
 	}
 
 	printf("call %s @%s(", 
-			fnm,
-			local2llvm_type(elt_type(f->ret)));
+			local2llvm_type(elt_type(f->ret)),
+			fnm);
 
 	stack_map(args, print_args, &arg_pos, NULL);
 	printf(")\n");
