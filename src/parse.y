@@ -56,6 +56,8 @@
 	}
 
 	void yyerror(char *);
+	void yylex_destroy();
+	int yylex();
 %}
 
 %union {
@@ -274,6 +276,10 @@ stmt 			: COMMENT
 		stack_push(istack, i);
 	}
 	
+	else if (var_isconst(var)) {
+		fprintf(stderr, "Warning: %s is suposed to be a const.\n", var->vn);
+	}
+
 	i = istore(var, instr_get_result($4));
 	if (i == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, i);
@@ -427,6 +433,10 @@ stmt 			: COMMENT
 		i = ialloca(var);
 		if (i == NULL) exit_cleanly(EXIT_FAILURE);
 		stack_push(istack, i);
+	}
+
+	else if (var_isconst(var)) {
+		fprintf(stderr, "Warning: %s is suposed to be a const.\n", var->vn);
 	}
 	
 	i = istore(var, instr_get_result($3));
@@ -791,9 +801,9 @@ int main() {
 
 	yyparse(); 
 
-	hashmap_dump(((struct block *)stack_peak(scopes, 0))->functions,
-					function_dump);
-
+//	hashmap_dump(((struct block *)stack_peak(scopes, 0))->functions,
+//					function_dump);
+//
 	gencode_main(gistack,
 				   ((struct block *)stack_peak(scopes, 0))->functions);
 
