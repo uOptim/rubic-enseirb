@@ -11,8 +11,6 @@ void           type_init(struct stack *);
 type_t         type_new(void);
 void           var_put_types(struct var *, struct stack *);
 
-int            params_type_is_known(struct function *);
-
 int            type_ispresent(struct stack *, type_t);
 struct stack * type_inter(struct stack *, struct stack *);
 struct stack * type_union(struct stack *, struct stack *);

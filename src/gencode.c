@@ -37,10 +37,14 @@ void craft_boolean_operation(
 	const struct elt *,
 	const char *);
 
-int                 craft_store(struct var *, const struct elt *);
 static const char * local2llvm_type(char);
 static void         fn_append(void *, void *, void *);
-static void         print_instr(struct instr *);
+static void         fnm_append(void *, void *, void *);
+static int          gencode_instr(struct instr *);
+static void         print_instr(struct instr *, struct hashmap *);
+static int          gencode_stack(struct stack *, struct hashmap *);
+static void         print_elt_reg(const struct elt *);
+const char *        get_mangle_name(const char *, struct stack *);
 
 static unsigned int new_varid() {
 	static unsigned int varid = 0;
@@ -65,7 +69,7 @@ int gencode_instr(struct instr *i)
 	return 0;
 }
 
-int gencode_stack(struct stack *s)
+int gencode_stack(struct stack *s, struct hashmap *h)
 {
 	struct instr *i;
 	struct stack *alloc = stack_new();
@@ -87,14 +91,14 @@ int gencode_stack(struct stack *s)
 	// gen allocs first
 	while ((i = (struct instr *) stack_pop(alloc)) != NULL) {
 		//gencode_instr(i);
-		print_instr(i);
+		print_instr(i, h);
 		stack_push(s, i);
 	}
 
 	// then generate other instruction
 	while ((i = (struct instr *) stack_pop(other)) != NULL) {
 		//gencode_instr(i);
-		print_instr(i);
+		print_instr(i, h);
 		stack_push(s, i);
 	}
 
@@ -104,7 +108,8 @@ int gencode_stack(struct stack *s)
 	return 0;
 }
 
-void gencode_main(struct stack *instructions) {
+void gencode_main(struct stack *instructions, struct hashmap *h)
+{
 	int i = 0;
 	for (; i < TYPE_NB; i++) {
 		printf("declare i32 @puts%c(%s)\n",
@@ -115,7 +120,7 @@ void gencode_main(struct stack *instructions) {
 
 	printf( "define i32 @main() {\n");
 
-	gencode_stack(instructions);
+	gencode_stack(instructions, h);
 	printf("ret i32 0\n}\n");
 }
 
@@ -123,15 +128,14 @@ void gencode_main(struct stack *instructions) {
  * determined, the function code is generated.
  * The code is printed on stdout.
  */
-void gencode_func(struct function *f, const char * fnm,
-		struct stack *instructions)
+void gencode_func(
+		struct function *f,
+		const char * fnm,
+		struct stack *instructions,
+		struct hashmap * h)
 {
 	struct var *v;
 	struct stack *tmp = stack_new();
-
-	//int is_first_param = 1;
-
-	//assert(params_type_is_known(f));
 
 	printf("define");
 	if (f->ret == NULL) {
@@ -161,7 +165,7 @@ void gencode_func(struct function *f, const char * fnm,
 	stack_free(&tmp, NULL);
 
 	printf(") {\n");
-	gencode_stack(instructions);
+	gencode_stack(instructions, h);
 	printf("ret void\n}\n\n");
 }
 
@@ -241,35 +245,64 @@ const char * local2llvm_type(char type)
 	return "UNKNOWN TYPE";
 }
 
-int craft_puts(const struct elt *e) {
+static void print_args(void *arg, void *arg_pos, void *dummy)
+{
+	struct elt * a = (struct elt *)arg;
+
+	if (dummy != NULL) {
+		return;
+	}
+
+	if (*(int *)arg_pos != 0) printf(", ");
+	printf("%s ", local2llvm_type(elt_type(a)));
+	print_elt_reg(a);
+}
+
+int craft_call(
+		const char *fn,
+		struct stack * args,
+		struct elt * ret,
+		struct hashmap * h)
+{
+	const char * fnm = get_mangle_name(fn, args);
+	struct function * f = hashmap_get(h, fnm);
+	int arg_pos = 0;
+
+	if (f == NULL) {
+		fprintf(stderr, "Incompatible parameters for function %s\n", fn);
+		return 1;
+	}
+
+	if (f->ret != NULL) {
+		print_elt_reg(ret);
+		stack_push(ret->reg->types, &possible_types[elt_type(f->ret)]);
+		printf(" = ");
+	}
+
+	printf("call %s @%s(", 
+			fnm,
+			local2llvm_type(elt_type(f->ret)));
+
+	stack_map(args, print_args, &arg_pos, NULL);
+	printf(")\n");
+
+	return 0;
+}
+
+int craft_puts(const struct elt *e)
+{
 	printf("call i32 @puts%c(%s ",
 			type2mangling[elt_type(e)], 
 			local2llvm_type(elt_type(e)));
 
-	if (e->elttype == E_REG) {
-		printf("%%r%d", e->reg->num);
-	} else {
-		switch (elt_type(e)) {
-			case INT_T:
-				printf("%d", e->cst->i);
-				break;
-			case FLO_T:
-				printf("%g", e->cst->f);
-				break;
-			case BOO_T:
-				printf("%s", (e->cst->c == 0) ? "false" : "true");
-				break;
-			case STR_T:
-				// TODO
-				break;
-		}
-	}
+	print_elt_reg(e);
 
 	printf(")\n");
 	return 0;
 }
 
-int craft_ret(const struct elt *e) {
+int craft_ret(const struct elt *e)
+{
 	printf("ret %s %%r%d\n", local2llvm_type(elt_type(e)), e->reg->num);
 
 	return 0;
@@ -278,25 +311,8 @@ int craft_ret(const struct elt *e) {
 int craft_store(struct var *var, const struct elt *e)
 {
 	printf("store %s ", local2llvm_type(var_gettype(var)));
-	if (e->elttype == E_REG) {
-		printf("%%r%d, ", e->reg->num);
-	} else {
-		switch (elt_type(e)) {
-			case INT_T:
-				printf("%d, ", e->cst->i);
-				break;
-			case FLO_T:
-				printf("%g, ", e->cst->f);
-				break;
-			case BOO_T:
-				printf("%s, ", (e->cst->c == 0) ? "false" : "true");
-				break;
-			case STR_T:
-				// TODO
-				break;
-		}
-	}
-	printf("%s* %%%s\n", local2llvm_type(var_gettype(var)), var->vn);
+	print_elt_reg(e);
+	printf(", %s* %%%s\n", local2llvm_type(var_gettype(var)), var->vn);
 	return 0;
 }
 
@@ -475,8 +491,7 @@ void craft_boolean_operation(
 	puts("");
 }
 
-// TODO finish him!
-void print_instr(struct instr *i)
+void print_instr(struct instr *i, struct hashmap *h)
 {
 	if (i->optype & I_ARI) {
 		craft_operation(
@@ -522,13 +537,42 @@ void print_instr(struct instr *i)
 	else if (i->optype == I_RAW) {
 		puts(i->rawllvm);
 	}
+	else if (i->optype == I_CAST) {
+		i->cast_func(i->tocast, &i->res);
+	}
+	else if (i->optype == I_CAL) {
+		craft_call(i->fn, i->args, i->ret, h);
+	}
 	else {
 		fprintf(stderr, "Error: Instruction not supported\n");
 	}
 }
 
+void print_elt_reg(const struct elt * e)
+{
+	if (e->elttype == E_REG) {
+		printf("%%r%d", e->reg->num);
+	} else {
+		switch (elt_type(e)) {
+			case INT_T:
+				printf("%d", e->cst->i);
+				break;
+			case FLO_T:
+				printf("%g", e->cst->f);
+				break;
+			case BOO_T:
+				printf("%s", (e->cst->c == 0) ? "false" : "true");
+				break;
+			case STR_T:
+				// TODO
+				break;
+		}
+	}
+}
+
 /* Generates a unique name for a fonction whose parameters type is
- * determined
+ * determined.
+ * Used for function definition.
  */
 const char * func_mangling(struct function *f)
 {
@@ -554,13 +598,39 @@ void fn_append(void * variable, void *d, void *i)
 	struct var *v = (struct var *)variable;
 	char * dst = (char *)d;
 	int *id = (int *)i;
-	char c = 'U';
 
 	assert(*id < MAX_FN_SIZE);
 
-	if  (var_gettype(v) != UND_T) {
-		c = type2mangling[var_gettype(v)];
-	}
-	dst[(*id)++] = c;
+	dst[(*id)++] = type2mangling[var_gettype(v)];
 }
 
+/* Used for function call.
+ */
+const char * get_mangle_name(const char * fn, struct stack * args)
+{
+	char * fnm = NULL;
+	char buffer[MAX_FN_SIZE] = "";
+	int id = 0;
+
+	id += snprintf(buffer, MAX_FN_SIZE, "%s", fn);
+	stack_map(args, fnm_append, buffer, &id);
+	buffer[id] = '\0';
+
+	fnm = strdup(buffer);
+	if (fnm == NULL) {
+		perror("strdup");
+	}
+
+	return fnm;
+}
+
+void fnm_append(void * element, void *d, void *i)
+{
+	struct elt *e = (struct elt *)element;
+	char * dst = (char *)d;
+	int *id = (int *)i;
+
+	assert(*id < MAX_FN_SIZE);
+
+	dst[(*id)++] = type2mangling[elt_type(e)];
+}

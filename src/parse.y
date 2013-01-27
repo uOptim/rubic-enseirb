@@ -29,6 +29,7 @@
 	struct stack *gistack; // global instruction stack
 	struct stack *fistack; // function instruction stack
 	struct stack *tstack; // types stack
+	struct stack *tmp_args = NULL; // function call arguments
 
 	struct var * param_lookup(struct function *, const char *);
 	void       * symbol_lookup(struct stack *, const char *, char);
@@ -217,7 +218,8 @@ endif			: ELSE
 }
 				;
 
-stmt 			: IF expr opt_terms THEN
+stmt 			: COMMENT
+                | IF expr opt_terms THEN
 {
 	stack_push(labels, new_label());
 
@@ -234,7 +236,7 @@ stmt 			: IF expr opt_terms THEN
 		);
 	} else {
 		size = snprintf(buf, BUFSZ,
-			"br i1 %s, label %%IfTrue%d, label IfFalse%d",
+			"br i1 %s, label %%IfTrue%d, label %%IfFalse%d",
 			(elt->cst->c == 0) ? "false": "true", lnum, lnum
 		);
 	}
@@ -337,7 +339,19 @@ stmt 			: IF expr opt_terms THEN
 }
                 | lhs
 {
-	// if lhs is a fonction then call it
+	struct instr *i;
+
+	// function call
+	if (tmp_args != NULL) {
+		if (symbol_lookup(scopes, $1, FUN_T) == NULL) {
+			fprintf(stderr, "Function %s not defined\n", $1);
+			exit_cleanly(EXIT_FAILURE);
+		}
+
+		i = icall($1, tmp_args);
+		if (i == NULL) exit_cleanly(EXIT_FAILURE);
+		stack_push(istack, i);
+	}
 }
                 | RETURN expr
 {
@@ -378,10 +392,10 @@ stmt 			: IF expr opt_terms THEN
 }
 				opt_params term stmts terms END
 {
-	//gencode_stack(fistack);
 	func_gen_codes(tmp_function,
                    fistack,
-                   ((struct block *)stack_peak(scopes, 0))->functions);
+                   ((struct block *)stack_peak(scopes, 1))->functions);
+
 	stack_clear(fistack, instr_free);
 
 	// change instruction scope
@@ -446,32 +460,53 @@ lhs             : ID
 	$$ = $1;
 	elt_free($3);
 }
+                | ID '(' ')'
+{
+	$$ = $1;
+	tmp_args = stack_new();
+}
                 | ID '(' exprs ')'
 {
 	$$ = $1;
+	tmp_args = stack_new();
 }
 ;
 exprs           : exprs ',' expr
 {
+	stack_push(tmp_args, instr_get_result($3));
 }
                 | expr
 {
+	stack_push(tmp_args, instr_get_result($1));
 }
 ;
 primary         : lhs
 {
-	struct var *v = symbol_lookup(scopes, $1, VAR_T);
+	// not a function call
+	if (tmp_args == NULL) {
+		struct var *v = symbol_lookup(scopes, $1, VAR_T);
 
-	if (v == NULL) {
-		fprintf(stderr, "Error: undefined variable %s\n", $1);
-		exit_cleanly(EXIT_FAILURE);
+		if (v == NULL) {
+			fprintf(stderr, "Error: undefined variable %s\n", $1);
+			exit_cleanly(EXIT_FAILURE);
+		}
+
+		$$ = iload(v);
+		if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+		stack_push(istack, $$);
+
+		free($1);
 	}
+	// function call
+	else {
+		if (symbol_lookup(scopes, $1, FUN_T) == NULL) {
+			fprintf(stderr, "Function %s not defined\n", $1);
+			exit_cleanly(EXIT_FAILURE);
+		}
 
-	$$ = iload(v);
-	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
-	stack_push(istack, $$);
-
-	free($1);
+		$$ = icall($1, tmp_args);
+		if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
+	}
 }
                 | STRING 
 {
@@ -648,7 +683,11 @@ int main() {
 
 	yyparse(); 
 
-	gencode_main(gistack);
+	hashmap_dump(((struct block *)stack_peak(scopes, 0))->functions,
+					function_dump);
+
+	gencode_main(gistack,
+				   ((struct block *)stack_peak(scopes, 0))->functions);
 
 	yylex_destroy();
 	exit_cleanly(EXIT_SUCCESS);

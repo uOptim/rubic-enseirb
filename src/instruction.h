@@ -45,6 +45,7 @@ struct instr {
 		struct {
 			char *fn;
 			struct stack *args;
+			struct elt *ret;
 		};
 
 		struct {
@@ -63,6 +64,7 @@ struct instr {
 };
 
 		
+struct instr * icall(char *, struct stack *);
 struct instr * iputs(struct elt *);
 struct instr * iret(struct elt *);
 struct instr * iload(struct var *);

@@ -121,9 +121,10 @@ void elt_free(void *e)
 	free(elt);
 }
 
-struct elt * elt_copy(struct elt *elt)
+void * elt_copy(void *element)
 {
 	struct elt *copy;
+	struct elt *elt = (struct elt *)element;
 
 	if (elt == NULL) {
 		copy = NULL;
@@ -142,7 +143,7 @@ struct elt * elt_copy(struct elt *elt)
 		}
 	}
 
-	return copy;
+	return (void *)copy;
 }
 
 void elt_dump(const struct elt *e)
@@ -170,7 +171,10 @@ type_t elt_type(const struct elt * e) {
 	}
 	else {
 		if (stack_size(e->reg->types) > 1) {
-			fprintf(stderr, "Warning, multiple types found! Using the first one by default.\n");
+			// @Benoît: lors de la génération de fonctions, c'est
+			// volontairement que les paramètres ont plusieurs types et que le
+			// premier et pris comme type par défaut
+			//fprintf(stderr, "Warning, multiple types found! Using the first one by default.\n");
 		}
 		return *(type_t *)stack_peak(e->reg->types, 0);
 	}
@@ -420,3 +424,14 @@ void function_free(void *function)
 	free(f);
 }
 
+void function_dump(void *function)
+{
+	struct function *f = (struct function *) function;
+
+	printf("Function: %s\n", f->fn);
+
+	printf("Ret:\n");
+	elt_dump(f->ret);
+
+	printf("Params:\n");
+}

@@ -6,5 +6,7 @@ def g()
 	puts 2
 end
 
+# should print 1
 puts f()
+# should print 2
 g

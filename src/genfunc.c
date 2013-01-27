@@ -25,7 +25,7 @@ void func_gen_codes(
 {
 	// function without parameter
 	if (stack_peak(f->params, 0) == NULL) {
-		gencode_func(f, f->fn, instructions);
+		gencode_func(f, f->fn, instructions, h);
 	}
 	// function with parameters, generate every combinaison
 	else {
@@ -77,7 +77,7 @@ void func_compute_var_type(
 
 	if (hashmap_get(h, fnm) == NULL) {
 		hashmap_set(h, fnm, DUMMY_FUNC);
-		gencode_func(f, fnm, i_copy);
+		gencode_func(f, fnm, i_copy, h);
 	}
 
 	stack_free(&i_copy, instr_free);

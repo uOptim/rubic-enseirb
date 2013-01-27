@@ -2,19 +2,22 @@ SRCDIR=src
 TESTSDIR=tests
 BINDIR=bin
 
+PRG=rubic2llvm
+
 .PHONY:all tests runtests clean mrproper
 
 all:
 	make -C ${SRCDIR}
-	cp ${SRCDIR}/rubic2llvm ./rubic2llvm
+	cp ${SRCDIR}/${PRG} ./${PRG}
+	cp ${SRCDIR}/${PRG} ${BINDIR}/${PRG}
 	cp ${SRCDIR}/builtins.o bin/builtins.o
 
 tests: all
-	make -C ${SRCDIR} tests
-	mv ${SRCDIR}/tests ${BINDIR}/tests
+	#make -C ${SRCDIR} tests
+	#mv ${SRCDIR}/tests ${BINDIR}/tests
 	@for FILE in `ls tests | grep "^test_.*\.rb$$"`; do                 \
 	    echo tests/$$FILE                                            && \
-	    ${BINDIR}/rubic < tests/$$FILE > tests/$$FILE.ll                && \
+	    ${BINDIR}/${PRG} < tests/$$FILE > tests/$$FILE.ll                && \
 	    llc -filetype=obj tests/$$FILE.ll                            && \
 	    rm -f tests/*.ll                                             && \
 	    gcc tests/$$FILE.o ${SRCDIR}/builtins.o -o ${BINDIR}/tests/$$FILE;    \
@@ -32,4 +35,4 @@ clean:
 
 mrproper:
 	@make clean
-	@rm -f ${BINDIR}/* 
+	@rm -f ${BINDIR}/${PRG} ${BINDIR}/tests/*

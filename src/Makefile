@@ -39,4 +39,4 @@ instruction.o: instruction.c $(HEADERS)
 
 
 clean:
-	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h rubic
+	@rm -f *~ *.o lex.yy.c y.tab.c y.tab.h rubic2llvm

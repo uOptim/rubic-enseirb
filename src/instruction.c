@@ -16,7 +16,7 @@ static struct instr * instr_new(
 		struct elt * e1,
 		struct elt * e2)
 {
-	if (optype == I_RAW) {
+	if (optype == I_RAW || optype == I_CAST || optype == I_CAL) {
 		return NULL;
 	}
 
@@ -49,6 +49,13 @@ void * instr_copy(void * instruction)
 		copy->res = elt_copy(i->res);
 	}
 
+	else if (i->optype == I_CAL) {
+		copy = malloc(sizeof *copy);
+		copy->fn = strdup(i->fn);
+		copy->args = stack_copy(i->args, elt_copy);
+		copy->ret = elt_copy(i->ret);
+	}
+
 	else {
 		copy = instr_new(i->optype,
 			i->vr,
@@ -71,6 +78,12 @@ void instr_free(void *instruction)
 	else if (i->optype == I_CAST) {
 		elt_free(i->res);
 		elt_free(i->tocast);
+	}
+
+	else if (i->optype == I_CAL) {
+		free(i->fn);
+		stack_free(&i->args, elt_free);
+		elt_free(i->ret);
 	}
 
 	else {
@@ -299,6 +312,23 @@ struct instr * iraw(const char *s)
 	return i;
 }
 
+struct instr * icall(char *fn, struct stack * args)
+{
+	struct instr *i = malloc(sizeof *i);
+
+	if (i == NULL) {
+		perror("malloc");
+		return NULL;
+	}
+
+	i->optype = I_CAL;
+	i->fn = fn;
+	i->args = args;
+	i->ret = elt_new(E_REG, reg_new(NULL));
+
+	return i;
+}
+
 struct instr * iputs(struct elt *elt)
 {
 	struct instr *i;
@@ -328,13 +358,7 @@ struct instr * iload(struct var *vr)
 	struct instr *i;
 	struct reg *reg = reg_new(vr);
 
-	i = instr_new(
-			I_LOA, 
-			vr,
-			elt_new(E_REG, reg),
-			NULL,
-			NULL
-		);
+	i = instr_new(I_LOA, vr, elt_new(E_REG, reg), NULL, NULL);
 
 	return i;
 }
@@ -379,6 +403,9 @@ struct elt * instr_get_result(const struct instr * i)
 			break;
 		case I_CAST:
 			e = elt_copy(i->res);
+			break;
+		case I_CAL:
+			e = elt_copy(i->ret);
 			break;
 		default:
 			e = elt_copy(i->er);

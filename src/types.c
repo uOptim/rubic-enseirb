@@ -5,8 +5,6 @@
 
 type_t possible_types[TYPE_NB] = {INT_T, FLO_T, BOO_T, STR_T};
 
-static void var_type_is_known(void *variable, void *params, void* dummy);
-
 
 /********************************************************************/
 /*                         Type operations                          */
@@ -34,32 +32,6 @@ void * type_copy(void *type) {
 	return type;
 }
 
-/* Returns 1 if every parameters type is determined for f
- * and 0 otherwise.
- * A type is determined when there is only one possible type
- * and it is not UND_T.
- */
-int params_type_is_known(struct function *f)
-{
-	int is_known = 1;
-
-	stack_map(f->params, var_type_is_known, &is_known, NULL);
-
-	return is_known;
-}
-
-void var_type_is_known(void *variable, void *params, void* dummy) {
-	struct var *v = (struct var *)variable;
-	int *is_known = (int *)params;
-
-	if (dummy != NULL) {
-		return;
-	}
-
-	if (var_gettype(v) == UND_T || var_type_card(v) != 1) {
-		*is_known = 0;
-	}
-}
 
 /********************************************************************/
 /*                        Type computation                          */

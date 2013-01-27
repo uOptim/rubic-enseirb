@@ -83,7 +83,7 @@ struct elt {
 
 struct elt * elt_new(char, void *);
 void         elt_free(void *);
-struct elt * elt_copy(struct elt *);
+void *       elt_copy(void *element);
 type_t       elt_type(const struct elt *);
 void         elt_dump(const struct elt *);
 
