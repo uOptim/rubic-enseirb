@@ -83,6 +83,7 @@ void instr_free(void *instruction)
 	else if (i->optype == I_CAL) {
 		free(i->fn);
 		stack_free(&i->args, elt_free);
+		stack_free(&i->ret->reg->types, NULL);
 		elt_free(i->ret);
 	}
 

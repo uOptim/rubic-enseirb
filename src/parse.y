@@ -457,6 +457,7 @@ stmt 			: COMMENT
 		}
 
 		i = icall($1, tmp_args);
+		tmp_args = NULL;
 		if (i == NULL) exit_cleanly(EXIT_FAILURE);
 		stack_push(istack, i);
 	}
@@ -613,6 +614,7 @@ primary         : lhs
 		}
 
 		$$ = icall($1, tmp_args);
+		tmp_args = NULL;
 		if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 		stack_push(istack, $$);
 	}

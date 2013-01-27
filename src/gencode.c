@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define MAX_FN_SIZE 250
@@ -43,7 +44,7 @@ static void         fnm_append(void *, void *, void *);
 static void         print_instr(struct instr *, struct hashmap *);
 static int          gencode_stack(struct stack *, struct hashmap *);
 static void         print_elt_reg(const struct elt *);
-const char *        get_mangle_name(const char *, struct stack *);
+static char *       get_mangle_name(const char *, struct stack *);
 
 
 int gencode_stack(struct stack *s, struct hashmap *h)
@@ -67,14 +68,12 @@ int gencode_stack(struct stack *s, struct hashmap *h)
 
 	// gen allocs first
 	while ((i = (struct instr *) stack_pop(alloc)) != NULL) {
-		//gencode_instr(i);
 		print_instr(i, h);
 		stack_push(s, i);
 	}
 
 	// then generate other instruction
 	while ((i = (struct instr *) stack_pop(other)) != NULL) {
-		//gencode_instr(i);
 		print_instr(i, h);
 		stack_push(s, i);
 	}
@@ -114,14 +113,14 @@ void gencode_func(
 	struct var *v;
 	struct stack *tmp = stack_new();
 
-	printf("define");
+	printf("define ");
 	if (f->ret == NULL) {
-		printf(" void ");
+		printf("void");
 	} else {
-		printf(" %s ", local2llvm_type(elt_type(f->ret)));
+		printf("%s", local2llvm_type(elt_type(f->ret)));
 	}
 
-	printf("@%s(", fnm);
+	printf(" @%s(", fnm);
 
 	// TODO: add something here to allocate space for the object passed as
 	// implicit argument if needed.
@@ -148,25 +147,6 @@ void gencode_func(
 	}
 	printf("}\n\n");
 }
-
-/*
-void gencode_param(void *param, void *is_first_param, void *dummy) {
-	struct var * p = (struct var *)param;
-	int * is_fp = (int *)is_first_param;
-
-	if (dummy == NULL) {
-		return;
-	}
-
-	if (*is_fp) {
-		printf("%s %%%s", local2llvm_type(var_gettype(p)), p->vn);
-	}
-	else {
-		printf(", %s %%%s", local2llvm_type(var_gettype(p)), p->vn);
-	}
-	*is_fp = 0;
-}
-*/
 
 void casttobool(struct elt *tocast, struct elt **res)
 {
@@ -246,7 +226,7 @@ int craft_call(
 		struct elt * ret,
 		struct hashmap * h)
 {
-	const char * fnm = get_mangle_name(fn, args);
+	char * fnm = get_mangle_name(fn, args);
 	struct function * f = hashmap_get(h, fnm);
 	int arg_pos = 0;
 
@@ -261,12 +241,18 @@ int craft_call(
 		printf(" = ");
 	}
 
-	printf("call %s @%s(", 
-			local2llvm_type(elt_type(f->ret)),
-			fnm);
+	printf("call ");
+	if (f->ret == NULL) {
+		printf("void");
+	} else {
+		printf("%s", local2llvm_type(elt_type(f->ret)));
+	}
+	printf(" @%s(", fnm);
 
 	stack_map(args, print_args, &arg_pos, NULL);
 	printf(")\n");
+
+	free(fnm);
 
 	return 0;
 }
@@ -556,7 +542,7 @@ void print_elt_reg(const struct elt * e)
  * determined.
  * Used for function definition.
  */
-const char * func_mangling(struct function *f)
+char * func_mangling(struct function *f)
 {
 	char * fn = NULL;
 	char buffer[MAX_FN_SIZE] = "";
@@ -588,7 +574,7 @@ void fn_append(void * variable, void *d, void *i)
 
 /* Used for function call.
  */
-const char * get_mangle_name(const char * fn, struct stack * args)
+char * get_mangle_name(const char * fn, struct stack * args)
 {
 	char * fnm = NULL;
 	char buffer[MAX_FN_SIZE] = "";

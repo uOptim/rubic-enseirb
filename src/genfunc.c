@@ -71,7 +71,7 @@ void func_compute_var_type(
 		struct hashmap * h)
 {
 	struct stack * i_copy = instr_stack_copy(instructions);
-	const char * fnm = func_mangling(f);
+	char * fnm = func_mangling(f);
 
 	//stack_map(i_copy, instr_constrain, NULL, NULL);
 
