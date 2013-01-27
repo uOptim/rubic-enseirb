@@ -101,6 +101,10 @@ normalement.}]\emph{(rayer la mention inutile)}
 
 \section{Analyse sémantique}
 
+La grammaire nous étant fournie, la mojorité du travail fut de rajouter des
+actions sémantique dans le parser. Nous avons tout de même complété la
+grammaire pour inclure les booléens par exemple.
+
 \subsection{Tables de hashage}
 
 Notre compilateur propose trois espaces de noms : un pour les
@@ -132,12 +136,6 @@ La recherche d'un symbole se fait en parcourant la pile pour
 tester sa présence dans la table de hashage du type correspondant dans chaque
 bloc.
 
-En ruby, les structures de controles de definissent pas un bloc séparé de la
-fonction et il est donc nécessaire de repérer les variables introduites dans
-ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace
-necessaire en début de fonction sous peine de créer une erreur de compilation
-de LLVM à cause d'allocations soumises à condition.
-
 %\begin{verbatim}
 %IF
 %    { nouveau bloc pour IF afin de stocker les éléments de expr
@@ -158,7 +156,7 @@ de LLVM à cause d'allocations soumises à condition.
 %\end{verbatim}
 
 
-\section{Typage}
+\subsection{Reconnaissance et calculs sur les types}
 
 \paragraph{} Nous avons développé un jeu de fonctions décrivant un langage intermédiaire
 proche de l'assembleur LLVM dont l'intérêt est multiple. Ce jeu d'instructions
@@ -182,7 +180,7 @@ calculs sur les types. Par exemple, l'emploi d'une variable aver l'opérateur
 '+' permet de réduire cet ensemble aux types entier et flotant. Nous avons défini plusieurs sortes d'instruction:
 \begin{itemize}
 	\item Celles définissant des opérations sur des variables ou des registres
-		telles que les additions, les comparaisons.
+		telles que les additions ou les comparaisons.
 	\item Celles pouvant insérer des instructions supplémentaires lors de la
 		génération du code suivant le types d'une variable ou d'un registre.
 		Nous les utilisons par exemple pour convertir un entier en booléen
@@ -193,18 +191,123 @@ calculs sur les types. Par exemple, l'emploi d'une variable aver l'opérateur
 		variables (load et store).
 \end{itemize}
 
-\paragraph{} Les registres peuvent être liés une unique fois à une variable lors d'un
-'store' ou d'un 'load'. Ils partagent alors avec la variable l'ensemble des
-types possible et les déductions sur le type de l'un affectera dans le même
-temps celui de l'autre. Ainsi, toutes les instructions ayant un lien direct
-avec une variable ou l'un de des registres qui lui sont liés sont affectées et
-l'ensemble des variations du code final à générer est réduit.
+\paragraph{} Les registres peuvent être liés une unique fois à une variable
+lors d'un 'store' ou d'un 'load'. Ils partagent alors avec la variable
+l'ensemble des types possible et les déductions sur le type de l'un affectera
+dans le même temps celui de l'autre. Ainsi, toutes les instructions ayant un
+lien direct avec une variable ou l'un de des registres qui lui sont liés sont
+affectées et l'ensemble des variations du code final à générer est réduit.
 
+\subsection{Structures de contrôle}
 
+\paragraph{} En ruby, les structures de controles de definissent pas un bloc séparé de la fonction et il est donc nécessaire de repérer les variables introduites dans ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace necessaire en début de fonction sous peine de créer une erreur de compilation de LLVM à cause d'allocations soumises à condition.
 
+\paragraph{} Dans une première version du compilateur, nous avons tenté de gérer proprement le problème en forçant la déclaration des variables en dehors des structures de contrôle à l'aide de blocs définissant une nouvelle portée. Cependant, après l'introduction de notre jeu d'instruction intermédiaire nous pouvions désormais réordonner les actions à loisir. Ainsi, nous avons rendu possible la déclaration de variables dans une structure de contrôle. Il suffit pour cela de stocker dans l'ordre les instructions rencontrées dans une fonction et de mettre au début toutes celles faisant des allocations lors de la génération de l'assembleur llvm.
 
+\paragraph{Exemple} Code original et code généré
+
+\vspace{0.5cm}
+
+\begin{minipage}{0.48\textwidth}
+\begin{verbatim}
+if true then
+    a = 1
+else
+    b = 5
+end
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+\begin{verbatim}
+%a = alloca i32
+%b = alloca i32
+%r1 = or i1 true, false
+br i1 %r1, label %IfTrue1, label %IfFalse1
+IfTrue1:
+    %r2 = add i32 1, 0
+    store i32 %r2, i32* %a
+    br label %EndIf1
+IfFalse1:
+    %r3 = add i32 5, 0
+    store i32 %r3, i32* %b
+    br label %EndIf1
+EndIf1:
+\end{verbatim}
+\end{minipage}
+
+\vspace{0.5cm}
+
+En testant la valeur de \verb!a! et de \verb!b!, \verb!a! vaut \verb!1! et \verb!b! vaut \verb!0!. LLVM semble initiliser la memoire à 0 lors d'allocations.
+
+\subsection{Conversion vers les booléens}
+
+Lors de l'utilisation de variables ou de constantes dans une expression servant de condition à une structure de contrôle, il peut être nécessaire de convertir un entier ou un flotant en booléen. Nous voulions qu'un nombre valant 0 soit assilé à faux et tous les autres (y compris les nombres négatifs) à vrai. La détection du besoin de réaliser une conversion se fait en fonction du type d'expression recontrée : une opération booléenne bit à bit ou une comparaison de nombres garantit de retourner un booléen. En revanche une expression retournant un nombre nécessite une conversion explicite et une opération de conversion est insérée. Cette dernière entraîne la création d'un nouveau registre dans l'assembleur llvm qui est substitué au registre de l'expression initiale lors du test de la structure de contrôle.
+
+\paragraph{Exemple} Code original et code généré
+
+\vspace{0.5cm}
+
+\begin{minipage}{0.48\textwidth}
+\begin{verbatim}
+b = 5
+a = 1
+
+while b
+    a = a*b
+    b = b - 1
+end
+
+puts a
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+\begin{verbatim}
+%b = alloca i32
+%a = alloca i32
+%r1 = add i32 5, 0
+store i32 %r1, i32* %b
+%r2 = add i32 1, 0
+store i32 %r2, i32* %a
+br label %loop1
+loop1:
+    %r3 = load i32* %b
+    %r4 = icmp ne i32 %r3, 0
+    br i1 %r4, label %cond1, label %endloop1
+cond1:
+    %r5 = load i32* %a
+    %r6 = load i32* %b
+    %r7 = mul i32 %r5, %r6
+    store i32 %r7, i32* %a
+    %r8 = load i32* %b
+    %r9 = add i32 1, 0
+    %r10 = sub i32 %r8, %r9
+    store i32 %r10, i32* %b
+    br label %loop1
+endloop1:
+%r11 = load i32* %a
+call i32 @putsI(i32 %r11)
+
+\end{verbatim}
+\end{minipage}
+
+\vspace{0.5cm}
+
+Ce code affiche le nombre $120$ correspondant bien à $5!$ .
 
 \section{Génération de code}
+
+\section{Limitations}
+
+\subsection{Améliorations envisagées}
+\begin{itemize}
+	\item Suppression de l'initialisation de registres avec des constantes via des opérations du type \verb!r = add 5, 0! ou \verb!r = or true, false! pour l'initialisation de booléens.
+\end{itemize}
+
+\subsection{Non supporté}
+\begin{itemize}
+	\item Pas de gestion de classes mais une base solide pour l'implémenter.
+	\item Pas de prise en charge des chaines de caractères. Nous savons cependant qu'elles devront être déclarées commes des constantes globales dans l'assembleur llvm.
+\end{itemize}
 
 \section{Conclusion}
 
