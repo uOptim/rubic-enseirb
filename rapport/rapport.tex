@@ -391,7 +391,9 @@ Le nombre de combinaisons générées correspond au produit des nombres possible
 
 \subsubsection{Mangling}
 
-En C++, comme dans d'autres langages de programmation, des informations telles que le types des paramètres, sont stockées dans nom des fonctions. De manière similaire, nous avons encodé dans le nom des fonctions le types de ses paramètres afin de l'identifier de manière unique. Pour une fonction dont le type des paramètres est fixé, le type de retour est également fixé, donc il n'est pas nécessaire d'ajouter celui-ci au codage.
+En C++, comme dans d'autres langages de programmation, des informations telles
+que le types des paramètres, sont stockées dans nom des fonctions. Ce procédé
+permet la surcharge de fonctions et, de manière similaire, nous avons encodé dans le nom des fonctions le types de ses paramètres afin de l'identifier de manière unique. Pour une fonction dont le type des paramètres est fixé, le type de retour est également fixé, donc il n'est pas nécessaire d'ajouter celui-ci au codage.
 
 Le principe du codage est le suivant :
 \begin{itemize}
@@ -421,7 +423,11 @@ ex : "CONNARD, tu vas pas additionner des patates et des carottes"
 
 \section{Utilisation}
 
-Un makefile à la racine permet de compiler le projet et de placer les binaires aux bons endroit. Une invocation du script \verb!rubic -o dest fichier.rb! permet de compiler \verb!fichier.rb! et de générer l'exécutable \verb!dest! correspondant.
+Un makefile à la racine permet de compiler le projet et de placer les binaires
+aux bons endroit. Une invocation du script \verb!rubic -o dest fichier.rb!
+permet de compiler \verb!fichier.rb! et de générer l'exécutable \verb!dest!
+correspondant. Le makefile permet également de compiler les fichiers de test
+présents dans le répertoire \verb!tests! et de les exécuter.
 
 
 \section{Tests et limitations}
