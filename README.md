@@ -1,5 +1,7 @@
 # Rubic
 
+A compiler for Rubic.
+
 Authors: Benoît Ruelle
          David  Bitonneau
 
@@ -11,5 +13,5 @@ $ make tests
 If there is a problem compiling a test file, compilation will stop and will
 not be performed for the following tests.
 
-Afterwards, compiled test files can be running with:
+Afterwards, compiled test files can be run with:
 $ make runtests
