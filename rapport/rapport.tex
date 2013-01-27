@@ -96,7 +96,7 @@ Enfin, par convention, les variables dont le nom commence par une majuscule sont
 
 La grammaire nous étant fournie, la majorité du travail fut de rajouter des
 actions sémantique dans le parser. Nous avons tout de même complété la
-grammaire pour inclure les booléens par exemple.
+grammaire pour inclure les booléens et les commentaires par exemple.
 
 \subsection{Piles}
 
@@ -178,7 +178,7 @@ affectées et l'ensemble des variations du code final à générer est réduit.
 
 \subsection{Structures de contrôle}
 
-\paragraph{} En Ruby, les structures de contrôles de définissent pas un bloc séparé de la fonction et il est donc nécessaire de repérer les variables introduites dans ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace nécessaire en début de fonction sous peine de créer une erreur de compilation de LLVM à cause d'allocations soumises à condition.
+\paragraph{} En Ruby, les structures de contrôles ne définissent pas un bloc séparé de la fonction et il est donc nécessaire de repérer les variables introduites dans ces blocs (qui sont d'ailleurs exécutés sous conditions) pour allouer l'espace nécessaire en début de fonction. Si nous ne faisions pas cela, cela engendrerait une erreur de compilation de LLVM due aux allocations soumises à condition.
 
 \paragraph{} Dans une première version du compilateur, nous avons tenté de gérer proprement le problème en forçant la déclaration des variables en dehors des structures de contrôle à l'aide de blocs définissant une nouvelle portée. Cependant, après l'introduction de notre jeu d'instruction intermédiaire nous pouvions désormais réordonner les actions à loisir. Ainsi, nous avons rendu possible la déclaration de variables dans une structure de contrôle. Il suffit pour cela de stocker dans l'ordre les instructions rencontrées dans une fonction et de mettre au début toutes celles faisant des allocations lors de la génération de l'assembleur LLVM.
 
