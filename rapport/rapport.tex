@@ -241,7 +241,7 @@ En testant la valeur de \verb!a! et de \verb!b!, \verb!a! vaut \verb!1! et \verb
 
 \subsection{Conversion vers les booléens}
 
-Lors de l'utilisation de variables ou de constantes dans une expression servant de condition à une structure de contrôle, il peut être nécessaire de convertir un entier ou un flotant en booléen. Nous voulions qu'un nombre valant 0 soit assilé à faux et tous les autres (y compris les nombres négatifs) à vrai. La détection du besoin de réaliser une conversion se fait en fonction du type d'expression recontrée : une opération booléenne bit à bit ou une comparaison de nombres garantit de retourner un booléen. En revanche une expression retournant un nombre nécessite une conversion explicite et une opération de conversion est insérée. Cette dernière entraîne la création d'un nouveau registre dans l'assembleur llvm qui est substitué au registre de l'expression initiale lors du test de la structure de contrôle.
+Lors de l'utilisation de variables ou de constantes dans une expression servant de condition à une structure de contrôle, il peut être nécessaire de convertir un entier ou un flotant en booléen. Nous voulions qu'un nombre valant 0 soit assimilé à faux et tous les autres (y compris les nombres négatifs) à vrai. La détection du besoin de réaliser une conversion se fait en fonction du type d'expression recontrée : une opération booléenne bit à bit ou une comparaison de nombres garantit de retourner un booléen. En revanche une expression retournant un nombre nécessite une conversion explicite et une opération de conversion est insérée. Cette dernière entraîne la création d'un nouveau registre dans l'assembleur llvm qui est substitué au registre de l'expression initiale lors du test de la structure de contrôle.
 
 \paragraph{Exemple} Code original et code généré
 
@@ -298,23 +298,21 @@ Ce code affiche le nombre $120$ correspondant bien à $5!$ .
 
 \section{Limitations}
 
-\subsection{Améliorations envisagées}
-\begin{itemize}
-	\item Suppression de l'initialisation de registres avec des constantes via des opérations du type \verb!r = add 5, 0! ou \verb!r = or true, false! pour l'initialisation de booléens.
-\end{itemize}
-
 \subsection{Non supporté}
 \begin{itemize}
 	\item Pas de gestion de classes mais une base solide pour l'implémenter.
 	\item Pas de prise en charge des chaines de caractères. Nous savons cependant qu'elles devront être déclarées commes des constantes globales dans l'assembleur llvm.
 \end{itemize}
 
+\subsection{Améliorations envisagées}
+\begin{itemize}
+	\item Suppression de l'initialisation de registres avec des constantes via des opérations du type \verb!r = add 5, 0! pour l'initialisation de nombres ou \verb!r = or true, false! pour l'initialisation de booléens.
+	\item Le support des classes devrait rendre plus robuste les calculs sur les types qui n'ont pu être testés qu'avec les nombres et les booléens.
+\end{itemize}
+
 \section{Conclusion}
 
-Les exigences du projet ont été remplies et des améliorations ont effectués.
-Le langage Rubic de base a été augmenté de fonctionnalités inspirées du
-langage Ruby telles que la possibilité de commenter du code, \textbf{[à compléter au
-fur et à mesure que l'on rajoute des fonctionnalités]}.
+Les objectifs du projet n'ont pas tous été remplis mais nous avons concentré nos efforts sur une représentation simple et flexible des instructions pour fournir les fondations du support des classes.
 
 Ce projet a permis le développement et la mise en œuvre de nombreuses
 compétences intéressantes telles que l'utilisation des outils Flex et Yacc, la
@@ -322,11 +320,5 @@ découverte du langage Ruby, l'initiation au langage LLVM et l'utilisation de
 structures de données adaptées au typage des données, à la gestion des tables
 de symboles et de la mémoire.
 
-Sur les bases de ce qui a été accompli il serait possible de réaliser un
-interpréteur pour le langage Rubic. Cela nécessiterai une modification des
-structures employées afin de pouvoir, par exemple, associer des valeurs aux
-variables. Les actions de génération de code effectuées lors du parsage
-seraient alors remplacées par des calculs de valeur des expressions par
-exemple. D'autres actions plus complexes devraient alors être développées.
 
 \end{document}
