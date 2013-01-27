@@ -328,7 +328,7 @@ La solution employée consistant à stocker une représentation abstraite des in
 
 \subsection{Les fonctions}
 
-Le problème de la détermination du type des variables se manifeste particulièrement dans les fonctions. En effet, lorsque la définition d'une fonction est rencontrée, le type de ses paramètres n'est pas connus et par conséquent le type des variables locales à la fonction peut également être indéterminé.
+Le problème de la détermination du type des variables se manifeste particulièrement dans les fonctions. En effet, lorsque la définition d'une fonction est rencontrée, le type de ses paramètres n'est pas connu et par conséquent le type de retour éventuel et ceux des variables locales à la fonction peut également être indéterminé.
 
 Différentes implémentations d'une même fonction peuvent donc exister selon les types donnés à ses paramètres. Ce qui signifie que la rencontre de la définition d'une fonction peut mener à la génération de plusieurs codes différents pour cette fonctions. Il est donc particulièrement utile dans ce cas de pouvoir stocker une représentation intermédiaire de la définition de la fonction afin de générer différent codes par la suite.
 
