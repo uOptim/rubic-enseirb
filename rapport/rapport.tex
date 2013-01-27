@@ -100,7 +100,7 @@ grammaire pour inclure les booléens et les commentaires par exemple.
 
 \subsection{Piles}
 
-La grande majorité des éléments manipulés sont stockés dans des piles. Des opération d'union, d'intersection, d'itération sur des ensembles stockés dans les piles ont été implémentées. Dans le projet, elles ont servie notamment à représenter les portées des variables, une liste de type par chaque variable ou bien une liste d'instruction à trier puis à générer.
+La grande majorité des éléments manipulés sont stockés dans des piles. Des opération d'union, d'intersection, d'itération sur des ensembles stockés dans les piles ont été implémentées. Dans le projet, elles ont servi notamment à représenter les portées des variables, une liste de types pour chaque variable, la liste des paramètres d'une fonction ou bien une liste d'instruction à trier puis à générer.
 
 
 \subsection{Tables de hashage}
@@ -304,7 +304,7 @@ end
 
 Les classes ne sont pas prises en compte bien qu'elles soient reconnues et mémorisées dans le parser. Leur introduction aurait été réalisée selon les idées suivantes.
 
-Une classe définit un nouveau type qui est alors ajouté à la liste des types possibles pour les paramètres d'une fonction. Une fonction faisant partie d'une classe aurait vu son nom altéré par un préfixe lors de l'opération de mangling (voir ci après) et celle-ci aurait eu un paramètre implicite ajouté du type de la classe. Ansi, si la variable \verb!a! est du type \verb!A!, \verb!a.f(p1, p2)! provoquerait l'appel à la fonction \verb!f_apres_mangling(a, p1, p2)!.
+Une classe définit un nouveau type qui est alors ajouté à la liste des types possibles pour les paramètres d'une fonction. Une fonction faisant partie d'une classe aurait vu son nom altéré par un préfixe lors de l'opération de mangling (voir ci après) et celle-ci aurait eu un paramètre implicite ajouté du type de la classe. Ainsi, si la variable \verb!a! est du type \verb!A!, \verb!a.f(p1, p2)! provoquerait l'appel à la fonction \verb!f_apres_mangling(a, p1, p2)!.
 
 \section{Génération de code}
 
@@ -360,10 +360,35 @@ Cependant, pour éviter une explosions combinatoire des types et des codes gén�
 
 \subsubsection{Calcul des types des paramètres}
 
-\subsubsection{après le calcul des types, le calcul des combinaisons... hoho}
+Lorsque la définition de la fonction Rubic est parsée, les instructions sont
+stockées dans des structures afin d'être représentées indépendamment des types
+des variables. En même temps, des calculs sur les types sont effectués. Afin
+de restreindre les types possibles pour les paramètres de la fonction.
 
--> algo de combinaison des types : un gros merdier
- pourquoi qu'on a foutu des piles de paramètres nous ?
+Dans l'exemple précédent, c'est donc lors de ce premier passage que l'on
+détermine que les paramètres \verb!a! et \verb!b! sont de type entier ou
+flottant.
+
+Une fois ce premier passage effectué, les diverses implémentations de la
+fonction peuvent être générées. Il est donc nécessaire de déterminer
+l'ensemble des combinaisons possibles des types des paramètres.
+
+\subsubsection{Calcul des combinaisons de types}
+
+Les types possibles pour chaque paramètre sont stockés dans une pile associée à celui-ci et chaque paramètre d'une fonction est stocké dans une pile associé à celle-ci. Il est donc nécessaire d'itérer sur les piles pour faire calculer les combinaisons.
+
+L'idée générale de l'algorithme est la suivante :
+\begin{itemize}
+	\item Pour une combinaison donnée, c'est la tête de chaque pile qui détermine le type considéré pour chaque paramètres.
+	\item Pour un ensemble de $n$ paramètres donné, l'ensemble des combinaisons possibles est l'union, sur chaque type possible du premier paramètre, des ensembles de combinaisons des $n-1$ autres paramètres.
+\end{itemize}
+
+L'algorithme consiste donc à itérer sur chaque type d'un paramètre en s'appelant récursivement sur les autres paramètres.
+
+Le nombre de combinaisons générées correspond au produit des nombres possibles de types pour chaque paramètre. Ainsi, pour une fonction de 3 paramètres ayant respectivement 3, 2 et 3 types différents possibles, on aura $3 * 2 * 3 = 18$ combinaisons différentes générées.
+
+\subsection{calcul complémentaire sur les types}
+(ouai parce que là on n'a pas encore tout déterminé)
 
 \subsubsection{Mangling}
 
@@ -378,9 +403,6 @@ si le mec file des types qui vont pas, on lui gueule dessus
 ex : "CONNARD, tu vas pas additionner des patates et des carottes"
 
 \subsection{Appel de fonction}
-
-\subsection{calcul complémentaire sur les types}
-(ouai parce que là on n'a pas encore tout déterminé)
 
 
 \section{Utilisation}
