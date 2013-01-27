@@ -412,7 +412,7 @@ Cependant, la prise en charge des classes n'ayant pas été terminée, seul le s
 
 Pour générer le code d'une implémentation donnée d'une fonction, une deuxième passe est nécessaire, pour chaque combinaison, afin de déterminer complètement le type de retour et des variables locales. Par exemple pour la fonction d'addition précédente et pour l'implémentation prenant en premier paramètre un entier et en deuxième paramètre un flottant, c'est en "examinant" l'opération d'addition entre les deux variables de type fixé qu'il peut-être décidé que le type de retour doit être flottant.
 
-\subsection{Hors de tout fonction}
+\subsection{Hors de toute fonction}
 
 Une distinction est faite entre les instructions rencontrées à l'intérieur de la définition d'une fonction et hors de celle-ci. En temps d'implémentation, cela ce traduit par l'utilisation de deux piles différentes pour y stocker les instructions rencontrées. Lorsqu'on entre dans la définition d'une fonction, on définit que les instructions doivent être empilées dans la pile correspondante. Autrement celles-ci sont stockées dans la pile des instructions "globales".
 
