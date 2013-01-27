@@ -80,6 +80,14 @@ int var_isconst(const struct var *v)
 	return 0;
 }
 
+int var_isglobal(const struct var *v)
+{
+	if (v->vn != NULL && v->vn[0] == '$')
+		return 1;
+
+	return 0;
+}
+
 
 struct elt * elt_new(char elttype, void *eltptr)
 {

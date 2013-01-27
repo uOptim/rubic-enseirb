@@ -37,6 +37,7 @@ void         var_free(void *);
 type_t       var_gettype(struct var *);
 int          var_type_card(struct var *);
 int          var_isconst(const struct var *);
+int          var_isglobal(const struct var *);
 
 
 struct reg {
