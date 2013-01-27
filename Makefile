@@ -24,9 +24,9 @@ tests: all
 	    if [ $$? -ne 0 ]; then break; fi;                               \
 	done
 
-runtests: tests
-	@for FILE in `ls ${BINDIR}/tests/`; do \
-		${BINDIR}/tests/$$FILE;            \
+runtests: 
+	@for FILE in `ls ${BINDIR}/tests/`; do                     \
+	    echo ${BINDIR}/tests/$$FILE && ${BINDIR}/tests/$$FILE; \
 	done
 
 clean:
