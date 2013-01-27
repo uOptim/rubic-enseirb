@@ -15,13 +15,14 @@ all:
 tests: all
 	#make -C ${SRCDIR} tests
 	#mv ${SRCDIR}/tests ${BINDIR}/tests
-	@for FILE in `ls tests | grep "^test_.*\.rb$$"`; do                 \
-	    echo tests/$$FILE                                            && \
-	    ${BINDIR}/${PRG} < tests/$$FILE > tests/$$FILE.ll                && \
-	    llc -filetype=obj tests/$$FILE.ll                            && \
-	    rm -f tests/*.ll                                             && \
-	    gcc tests/$$FILE.o ${SRCDIR}/builtins.o -o ${BINDIR}/tests/$$FILE;    \
-	    if [ $$? -ne 0 ]; then break; fi;                               \
+	echo "\nTests building..."
+	@for FILE in `ls tests | grep "^test_.*\.rb$$"`; do                      \
+	    echo tests/$$FILE                                                 && \
+	    ${BINDIR}/${PRG} < tests/$$FILE > tests/$$FILE.ll                 && \
+	    llc -filetype=obj tests/$$FILE.ll                                 && \
+	    rm -f tests/*.ll                                                  && \
+	    gcc tests/$$FILE.o ${SRCDIR}/builtins.o -o ${BINDIR}/tests/$$FILE;   \
+	    if [ $$? -ne 0 ]; then break; fi;                                    \
 	done
 
 runtests: 

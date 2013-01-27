@@ -1,7 +1,15 @@
 # Rubic
 
-## Pages d'info:
+Authors: Benoît Ruelle
+         David  Bitonneau
 
-* [Sujet](http://uuu.enseirb-matmeca.fr/~dbarthou/compilation/projet/)
-* [Specs du langage](http://uuu.enseirb-matmeca.fr/~dbarthou/compilation/projet/rubic.html)
-* [LLVM](http://uuu.enseirb-matmeca.fr/~dbarthou/compilation/projet/ir.html)
+The compiler can be built by running:
+$make
+
+Test files can be built by our compiler with:
+$ make tests
+If there is a problem compiling a test file, compilation will stop and will
+not be performed for the following tests.
+
+Afterwards, compiled test files can be running with:
+$ make runtests
