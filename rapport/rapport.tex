@@ -47,21 +47,10 @@
 \section{Introduction}
 
 Ce projet a pour but de créer un compilateur pour le langage Rubic, un dérivé
-simplifié du langage Ruby. Le code généré n'est pas de l'assembleur mais un
-langage intermédiaire le LLVM, assez proche du langage machine mais ayant ses
-spécificités et étant notamment indépendant de tout système. Le code généré
-est ainsi portable et peut ensuite être traité par le compilateur LLVM qui
-pourra faire des optimisations lors de la compilation vers un langage machine.
-
-L'accomplissement du projet a nécessité plusieurs étapes : la détermination de
-la grammaire du langage Rubic, le typage des données et la génération du code
-LLVM.
-Afin de faciliter la réalisation de ce compilateur, les outils d'analyse
-lexicale et syntaxique Flex (version libre de Lex) et Yacc ont été utilisés.
+simplifié du langage Ruby. Le code généré est un code assembleur intermédiaire
+portable pour LLVM.
 
 \section{Langage Rubic}
-
-\subsection{Les variables}
 
 En Ruby les noms de variables sont des étiquettes sans type et ce sont les
 objets qu'elles contiennent qui sont fortement et dynamiquement typé. Il n'y a
@@ -69,12 +58,11 @@ donc pas de vérification de typage statique et c'est à l'exécution qu'il est
 vérifié si l'appel de méthode fonctionne pour l'objet traité. Une même
 variable peut donc contenir des objets de types différents au cours de sa vie.
 
-En Rubic, le typage est également dynamique et une même variable peut
-contenir différents types d'objets au cours de sa vie, cependant les
-vérifications sont effectuées à la compilation et non à l'exécution.
+En Rubic, le typage n'est pas dynamique mais il est implicite. Une des
+difficultés du projet est de savoir reconaître le type des variables et de
+générer le code statique correspondant.
 
-\paragraph{}
-En Rubic il existe différents types de variables :
+\paragraph{} En Rubic il existe différents types de variables :
 \begin{itemize}
     \item les nombres entiers ;
     \item les nombres flottants ;
@@ -110,9 +98,6 @@ Rubic nous avons pris la même décision, seul une message d'avertissement est
 affiché lorsque des constantes sont modifiées et la compilation s'achèvera
 normalement.}]\emph{(rayer la mention inutile)}
 
-\subsection{Les fonctions}
-
-\subsection{Les classes}
 
 \section{Analyse sémantique}
 
@@ -175,7 +160,12 @@ de LLVM à cause d'allocations soumises à condition.
 
 \section{Typage}
 
-Afin de pouvoir gérer au mieux une quantité variable de types lors de l'introduction de classes, nous avons développé un jeu de fonctions décrivant un langage intermédiaire proche de l'assembleur LLVM. Ce jeu d'instructions permet de manipuler le code à générer en faisant abstraction des types des variables qui portent alors un ensemble de types possibles. Cet ensemble de types sera réduit au fur et à mesure de la lecture du code source. Par exemple, l'emploi d'une variable aver l'opérateur '+' permet de réduire cet ensemble aux types entier et flotant.
+\paragraph{} Nous avons développé un jeu de fonctions décrivant un langage intermédiaire
+proche de l'assembleur LLVM dont l'intérêt est multiple. Ce jeu d'instructions
+permet de manipuler le code à générer en faisant abstraction temporairement
+des types des variables. Cela simplifie la génération de toutes les variantes
+d'une fonction possible en fonction du type de ses paramètres et cela pose une
+base sur laquelle construire le support des classes.
 
 Ce jeu d'instruction manipule trois structures différentes :
 \begin{itemize}
@@ -184,7 +174,34 @@ Ce jeu d'instruction manipule trois structures différentes :
 	\item Les variables repérées par le token ID de certaines règles (affectation, paramètres, etc).
 \end{itemize}
 
-Les registres peuvent être liés une unique fois à une variable lors d'un 'store' ou d'un 'load'. Ils partagent alors avec la variable l'ensemble des types possible et les déductions sur le type de l'un affectera dans le même temps celui de l'autre.
+\paragraph{} Les types possibles pour chaque variables sont calculés au fur et à mesure que
+le code est lu en se basant sur les opérations dans léquelles elles
+apparaîssent. Ansi, un pointeur vers une variable apparaît dans une série
+d'instructions. Parmis elles, certaines nous permettent de réaliser des
+calculs sur les types. Par exemple, l'emploi d'une variable aver l'opérateur
+'+' permet de réduire cet ensemble aux types entier et flotant. Nous avons défini plusieurs sortes d'instruction:
+\begin{itemize}
+	\item Celles définissant des opérations sur des variables ou des registres
+		telles que les additions, les comparaisons.
+	\item Celles pouvant insérer des instructions supplémentaires lors de la
+		génération du code suivant le types d'une variable ou d'un registre.
+		Nous les utilisons par exemple pour convertir un entier en booléen
+		lorsqu'il est utilisé dans une condition.
+	\item Celles qui stockent simplement une chaîne de caractères à imprimer
+		(utilisé pour le placement de labels par exemple).
+	\item Celles permettant d'établir un lien entre des registres et une
+		variables (load et store).
+\end{itemize}
+
+\paragraph{} Les registres peuvent être liés une unique fois à une variable lors d'un
+'store' ou d'un 'load'. Ils partagent alors avec la variable l'ensemble des
+types possible et les déductions sur le type de l'un affectera dans le même
+temps celui de l'autre. Ainsi, toutes les instructions ayant un lien direct
+avec une variable ou l'un de des registres qui lui sont liés sont affectées et
+l'ensemble des variations du code final à générer est réduit.
+
+
+
 
 
 \section{Génération de code}
