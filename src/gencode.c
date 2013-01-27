@@ -40,34 +40,11 @@ void craft_boolean_operation(
 static const char * local2llvm_type(char);
 static void         fn_append(void *, void *, void *);
 static void         fnm_append(void *, void *, void *);
-static int          gencode_instr(struct instr *);
 static void         print_instr(struct instr *, struct hashmap *);
 static int          gencode_stack(struct stack *, struct hashmap *);
 static void         print_elt_reg(const struct elt *);
 const char *        get_mangle_name(const char *, struct stack *);
 
-static unsigned int new_varid() {
-	static unsigned int varid = 0;
-	return varid++;
-}
-
-// TODO: use print_instr code when finished
-int gencode_instr(struct instr *i)
-{
-	if (i->optype == I_RAW) {
-		puts(i->rawllvm);
-	} else if (i->optype & I_ARI || i->optype & I_CMP) {
-		printf("%%r%d = %#x %s %%r%d, %%r%d\n",
-				i->er->reg->num,
-				i->optype,
-				"i32",
-				i->e1->reg->num,
-				i->e2->reg->num);
-	} else {
-		printf("optype = %#x\n", i->optype);
-	}
-	return 0;
-}
 
 int gencode_stack(struct stack *s, struct hashmap *h)
 {
