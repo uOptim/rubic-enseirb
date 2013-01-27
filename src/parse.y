@@ -226,7 +226,8 @@ stmt 			: COMMENT
 	struct elt *elt;
 	unsigned int lnum = *(unsigned int *)stack_peak(labels, 0);
 
-	struct instr *cast = icast(casttobool, instr_get_result($2));
+	struct instr *cast = icast(casttobool, instr_get_result($2), BOO_T);
+	stack_push(istack, cast);
 	elt = instr_get_result(cast); 
 
 	if (elt->elttype == E_REG) {
@@ -563,13 +564,23 @@ primary         : lhs
 ;
 expr            : expr AND comp_expr
 {
-	$$ = i3addr(I_AND, instr_get_result($1), instr_get_result($3));
+	struct instr *i1 = icast(casttobool, instr_get_result($1), BOO_T);
+	struct instr *i3 = icast(casttobool, instr_get_result($3), BOO_T);
+	stack_push(istack, i1);
+	stack_push(istack, i3);
+
+	$$ = i3addr(I_AND, instr_get_result(i1), instr_get_result(i3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }
                 | expr OR comp_expr
 {
-	$$ = i3addr(I_OR, instr_get_result($1), instr_get_result($3));
+	struct instr *i1 = icast(casttobool, instr_get_result($1), BOO_T);
+	struct instr *i3 = icast(casttobool, instr_get_result($3), BOO_T);
+	stack_push(istack, i1);
+	stack_push(istack, i3);
+
+	$$ = i3addr(I_OR, instr_get_result(i1), instr_get_result(i3));
 	if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 	stack_push(istack, $$);
 }

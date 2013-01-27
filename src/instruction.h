@@ -75,7 +75,8 @@ struct instr * i3addr(char, struct elt *, struct elt *);
 
 struct instr * icast(
 	void (*cast_func)(struct elt *, struct elt **),
-	struct elt *tocast
+	struct elt *tocast,
+	type_t
 );
 
 void * instr_copy(void *);

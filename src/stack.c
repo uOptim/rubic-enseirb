@@ -94,17 +94,19 @@ struct stack * stack_copy(struct stack *src, void * (*cpy)(void*))
 	struct stack *dst, *tmp_dst;
 	struct elt *tmp_cursor;
 	
-	tmp_dst = stack_new();
 	dst = stack_new();
+	tmp_dst = stack_new();
 	tmp_cursor = src->cursor; // save cursor
 
 	stack_rewind(src);
 	while ((d = stack_next(src)) != NULL) {
 		stack_push(tmp_dst, cpy(d));
 	}
-	src->cursor = tmp_cursor; // restore cursor
-	
 	stack_move(tmp_dst, dst);
+
+	src->cursor = tmp_cursor; // restore cursor
+	dst->cursor = tmp_cursor;
+	
 	stack_free(&tmp_dst, NULL);
 
 	return dst;

@@ -189,6 +189,8 @@ static int type_vartype_constrain_boo(struct elt *e)
 
 	// TODO: Init this only once at the begining
 	tmp = stack_new();
+	stack_push(tmp, &possible_types[FLO_T]);
+	stack_push(tmp, &possible_types[INT_T]);
 	stack_push(tmp, &possible_types[BOO_T]);
 
 	if (e->elttype == E_REG) {
@@ -204,7 +206,9 @@ static int type_vartype_constrain_boo(struct elt *e)
 	} 
 	
 	else {
-		if (e->cst->type != BOO_T) {
+		if (e->cst->type != BOO_T
+				&& e->cst->type != INT_T
+				&& e->cst->type != FLO_T) {
 			ret = 0;
 		} else {
 			ret = 1;
@@ -233,8 +237,9 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 	struct instr *i;
 	struct stack *types;
 
-	/* Debug stuff
-	printf("Opcode: %d\n", optype);
+
+	/* DEBUG STUFF
+	printf("Opcode: %#x\n", optype);
 	elt_dump(e1);
 	elt_dump(e2);
 	*/
@@ -279,7 +284,7 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 
 struct instr * icast(
 	void (*cast_func)(struct elt *, struct elt **),
-	struct elt *tocast)
+	struct elt *tocast, type_t t)
 {
 	struct instr *i = malloc(sizeof *i);
 
@@ -287,6 +292,8 @@ struct instr * icast(
 	i->cast_func = cast_func;
 	i->tocast = tocast;
 	i->res = elt_new(E_REG, reg_new(NULL));
+
+	stack_push(i->res->reg->types, &possible_types[t]);
 	 
 	return i;
 }

@@ -190,13 +190,15 @@ void gencode_param(void *param, void *is_first_param, void *dummy) {
 
 void casttobool(struct elt *tocast, struct elt **res)
 {
-	stack_clear((*res)->reg->types, NULL);
-	stack_push((*res)->reg->types, &possible_types[BOO_T]);
-
 	switch (elt_type(tocast)) {
 		case BOO_T:
-			elt_free(*res);
-			*res = elt_copy(tocast);
+			printf("%%r%d = and i1 ", (*res)->reg->num);
+			if (tocast->elttype == E_REG) {
+				printf("%%r%d", tocast->reg->num);
+			} else {
+				printf("%d", tocast->cst->i);
+			}
+			printf(", true\n");
 			break;
 		case INT_T:
 			printf("%%r%d = icmp ne i32 ", (*res)->reg->num);
@@ -208,7 +210,7 @@ void casttobool(struct elt *tocast, struct elt **res)
 			printf(", 0\n");
 			break;
 		case FLO_T:
-			printf("%%r%d = fcmp ne double ", (*res)->reg->num);
+			printf("%%r%d = fcmp one double ", (*res)->reg->num);
 			if (tocast->elttype == E_REG) {
 				printf("%%r%d", tocast->reg->num);
 			} else {
@@ -476,7 +478,7 @@ void craft_boolean_operation(
 		return;
 	}
 	
-	printf("%%r%d = icmp %s i1 ", er->reg->num, op);
+	printf("%%r%d = %s i1 ", er->reg->num, op);
 	if (e1->elttype == E_REG) {
 		printf("%%r%d", e1->reg->num);
 	} else {
