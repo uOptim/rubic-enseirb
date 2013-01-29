@@ -227,17 +227,17 @@ int craft_call(
 		return 1;
 	}
 
-	if (f->ret != NULL) {
+	if (fm->ret != NULL) {
 		print_elt_reg(ret);
-		stack_push(ret->reg->types, &possible_types[elt_type(f->ret)]);
+		stack_push(ret->reg->types, &possible_types[elt_type(fm->ret)]);
 		printf(" = ");
 	}
 
 	printf("call ");
-	if (f->ret == NULL) {
+	if (fm->ret == NULL) {
 		printf("void");
 	} else {
-		printf("%s", local2llvm_type(elt_type(f->ret)));
+		printf("%s", local2llvm_type(elt_type(fm->ret)));
 	}
 	printf(" @%s(", fnm);
 
@@ -302,7 +302,7 @@ void craft_operation(
 	const char *fop)
 {
 	if (elt_type(e1) == INT_T && elt_type(e2) == INT_T) {
-		elt_set_type(result, INT_T);
+		//elt_set_type(result, INT_T);
 		printf("%%r%d = %s i32 ", result->reg->num, op);
 		print_elt_reg(e1);
 		printf(", ");
@@ -311,7 +311,7 @@ void craft_operation(
 	}
 
 	else if (elt_type(e1) == FLO_T && elt_type(e2) == FLO_T) {
-		elt_set_type(result, FLO_T);
+		//elt_set_type(result, FLO_T);
 		printf("%%r%d = %s double ", result->reg->num, fop);
 		print_elt_reg(e1);
 		printf(", ");
@@ -329,7 +329,7 @@ void craft_operation(
 			printf(" to double\n");
 		}
 
-		elt_set_type(result, FLO_T);
+		//elt_set_type(result, FLO_T);
 		printf("%%r%d = %s double ", result->reg->num, fop);
 
 		if (e1->elttype == E_REG || e1->elttype == E_VAR) {
@@ -354,7 +354,7 @@ void craft_operation(
 			printf(" to double\n");
 		}
 
-		elt_set_type(result, FLO_T);
+		//elt_set_type(result, FLO_T);
 		printf("%%r%d = %s double ", result->reg->num, fop);
 		
 		print_elt_reg(e1);

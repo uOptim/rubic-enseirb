@@ -72,11 +72,25 @@ void func_compute_var_type(
 {
 	struct stack * i_copy = instr_stack_copy(instructions);
 	char * fnm = func_mangling(f);
+	struct function * fm = NULL;
 
-	//stack_map(i_copy, instr_constrain, NULL, NULL);
+	stack_map(i_copy, instr_constrain, NULL, NULL);
 
 	if (hashmap_get(h, fnm) == NULL) {
-		hashmap_set(h, fnm, DUMMY_FUNC);
+		hashmap_set(h, fnm, function_new(fnm));
+		fm = hashmap_get(h, fnm);
+
+		if (fm == NULL) {
+			fprintf(stderr, "Error while searching function %s\n", fnm);
+			return;
+		}
+
+		// Give a specific type for fm
+		if (f->ret != NULL) {
+			fm->ret = elt_new(E_REG, reg_new(NULL));
+			elt_set_type(fm->ret, elt_type(f->ret));
+		}
+
 		gencode_func(f, fnm, i_copy, h);
 	}
 	else {

@@ -262,6 +262,29 @@ struct stack * type_constrain_boo(struct elt *e1, struct elt *e2)
 	return types;
 }
 
+void instr_constrain(void *instruction, void *dummy1, void *dummy2)
+{
+	struct instr *i = (struct instr *)instruction;
+
+	if (dummy1 != NULL || dummy2 != NULL) {
+		return;
+	}
+
+	if (i->optype & I_ARI || i->optype & I_CMP) {
+
+		if (elt_type(i->e1) == INT_T && elt_type(i->e2) == INT_T) {
+			elt_set_type(i->er, INT_T);
+		}
+		else if (  (elt_type(i->e1) == INT_T && elt_type(i->e2) == INT_T)
+				|| (elt_type(i->e1) == INT_T && elt_type(i->e2) == FLO_T)
+				|| (elt_type(i->e1) == FLO_T && elt_type(i->e2) == INT_T)
+				|| (elt_type(i->e1) == FLO_T && elt_type(i->e2) == FLO_T)
+				) {
+			elt_set_type(i->er, FLO_T);
+		}
+	}
+}
+
 struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 {
 	struct reg *reg;
