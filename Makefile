@@ -7,15 +7,13 @@ PRG=rubic2llvm
 .PHONY:all tests runtests clean mrproper
 
 all:
-	make -C ${SRCDIR}
-	cp ${SRCDIR}/${PRG} ./${PRG}
-	cp ${SRCDIR}/${PRG} ${BINDIR}/${PRG}
-	cp ${SRCDIR}/builtins.o bin/builtins.o
+	@make -C ${SRCDIR}
+	@cp ${SRCDIR}/${PRG} ./${PRG}
+	@cp ${SRCDIR}/${PRG} ${BINDIR}/${PRG}
+	@cp ${SRCDIR}/builtins.o bin/builtins.o
 
 tests: all
-	#make -C ${SRCDIR} tests
-	#mv ${SRCDIR}/tests ${BINDIR}/tests
-	echo "\nTests building..."
+	@echo "\nTests building..."
 	@for FILE in `ls tests | grep "^test_.*\.rb$$"`; do                      \
 	    echo tests/$$FILE                                                 && \
 	    ${BINDIR}/${PRG} < tests/$$FILE > tests/$$FILE.ll                 && \
@@ -37,3 +35,4 @@ clean:
 mrproper:
 	@make clean
 	@rm -f ${BINDIR}/${PRG} ${BINDIR}/tests/*
+	@rm -f z.*

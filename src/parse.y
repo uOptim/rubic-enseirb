@@ -534,6 +534,7 @@ opt_params      : /* none */
 params          : ID ',' params
 {
 	struct var *var = var_new($1);
+	var->is_params = 1;
 
 	// masks possible variables with the same name in the parent block
 	hashmap_set(
@@ -548,6 +549,7 @@ params          : ID ',' params
                 | ID
 {
 	struct var *var = var_new($1);
+	var->is_params = 1;
 
 	// masks possible variables with the same name in the parent block
 	hashmap_set(
@@ -577,7 +579,6 @@ lhs             : ID
                 | ID '(' exprs ')'
 {
 	$$ = $1;
-	tmp_args = stack_new();
 }
 ;
 exprs           : exprs ',' expr
@@ -586,6 +587,7 @@ exprs           : exprs ',' expr
 }
                 | expr
 {
+	tmp_args = stack_new();
 	stack_push(tmp_args, instr_get_result($1));
 }
 ;
@@ -600,10 +602,15 @@ primary         : lhs
 			exit_cleanly(EXIT_FAILURE);
 		}
 
-		$$ = iload(v);
+		if (v->is_params) {
+			$$ = idummy(v);
+		}
+		else {
+			$$ = iload(v);
+		}
+
 		if ($$ == NULL) exit_cleanly(EXIT_FAILURE);
 		stack_push(istack, $$);
-
 		free($1);
 	}
 	// function call

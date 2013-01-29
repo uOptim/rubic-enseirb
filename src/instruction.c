@@ -119,6 +119,18 @@ static int type_vartype_constrain_ari(struct elt *e)
 		stack_free(&inter, NULL);
 	} 
 	
+	else if (e->elttype == E_VAR) {
+		inter = type_inter(tmp, e->var->t);
+		ret = stack_size(inter);
+
+		if (ret != 0) {
+			// replace old stack with the new one
+			var_put_types(e->var, inter);
+		}
+
+		stack_free(&inter, NULL);
+	} 
+
 	else {
 		if (e->cst->type != FLO_T && e->cst->type != INT_T) {
 			ret = 0;
@@ -143,6 +155,9 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 
 	if (e1->elttype == E_REG) {
 		tmp1 = e1->reg->types;
+	}
+	else if (e1->elttype == E_VAR) {
+		tmp1 = e1->var->t;
 	} else {
 		tmp1 = stack_new();
 		stack_push(tmp1, &possible_types[(int)e1->cst->type]);
@@ -150,6 +165,9 @@ struct stack * type_constrain_ari(struct elt *e1, struct elt *e2)
 
 	if (e2->elttype == E_REG) {
 		tmp2 = e2->reg->types;
+	}
+	else if (e2->elttype == E_VAR) {
+		tmp2 = e2->var->t;
 	} else {
 		tmp2 = stack_new();
 		stack_push(tmp2, &possible_types[(int)e2->cst->type]);
@@ -201,6 +219,18 @@ static int type_vartype_constrain_boo(struct elt *e)
 		if (ret != 0) {
 			// replace old stack with the new one
 			reg_settypes(e->reg, inter);
+		}
+
+		stack_free(&inter, NULL);
+	} 
+
+	if (e->elttype == E_VAR) {
+		inter = type_inter(tmp, e->var->t);
+		ret = stack_size(inter);
+
+		if (ret != 0) {
+			// replace old stack with the new one
+			var_put_types(e->var, inter);
 		}
 
 		stack_free(&inter, NULL);
@@ -274,7 +304,8 @@ struct instr * i3addr(char optype, struct elt *e1, struct elt *e2)
 		return NULL;
 	}
 
-	reg = reg_new(NULL);
+	// TODO: ameliorer le vieux rafistolage
+	reg = reg_new(var_new("dummy"));
 	reg_settypes(reg, types);
 	i = instr_new(optype, NULL, elt_new(E_REG, reg), e1, e2);
 
@@ -400,6 +431,14 @@ struct instr * istore(struct var *vr, struct elt *elt)
 	return i;
 }
 
+struct instr * idummy(struct var *vr)
+{
+	struct instr *i;
+
+	i = instr_new(I_DUM, vr, NULL, NULL, NULL);
+
+	return i;
+}
 
 struct elt * instr_get_result(const struct instr * i)
 {
@@ -414,6 +453,9 @@ struct elt * instr_get_result(const struct instr * i)
 			break;
 		case I_CAL:
 			e = elt_copy(i->ret);
+			break;
+		case I_DUM:
+			e = elt_new(E_VAR, i->vr);
 			break;
 		default:
 			e = elt_copy(i->er);

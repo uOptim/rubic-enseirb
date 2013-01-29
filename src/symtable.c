@@ -19,6 +19,7 @@ struct var * var_new(const char *name)
 	if (v == NULL) return NULL;
 
 	v->vn = strdup(name);
+	v->is_params = 0;
 	v->t = stack_new();
 	type_init(v->t);
 
@@ -102,6 +103,9 @@ struct elt * elt_new(char elttype, void *eltptr)
 		case E_REG:
 			elt->reg = eltptr;
 			break;
+		case E_VAR:
+			elt->var = eltptr;
+			break;
 		default:
 			free(elt);
 			elt = NULL;
@@ -146,6 +150,9 @@ void * elt_copy(void *element)
 			case E_REG:
 				copy = elt_new(E_REG, reg_copy(elt->reg));
 				break;
+			case E_VAR:
+				copy = elt_new(E_VAR, elt->var);
+				break;
 			default:
 				copy = NULL;
 		}
@@ -177,6 +184,9 @@ type_t elt_type(const struct elt * e) {
 	if (e->elttype == E_CST) {
 		return e->cst->type;
 	}
+	else if (e->elttype == E_VAR) {
+		return *(type_t *)stack_peak(e->var->t, 0);
+	}
 	else {
 		if (stack_size(e->reg->types) > 1) {
 			// @Benoît: lors de la génération de fonctions, c'est
@@ -185,6 +195,38 @@ type_t elt_type(const struct elt * e) {
 			//fprintf(stderr, "Warning, multiple types found! Using the first one by default.\n");
 		}
 		return *(type_t *)stack_peak(e->reg->types, 0);
+	}
+}
+
+void elt_set_type(struct elt * e, type_t type)
+{
+	if (e->elttype == E_CST) {
+		e->cst->type = type;
+	}
+	else if (e->elttype == E_VAR) {
+		var_set_type(e->var, &possible_types[(int)type]);
+	}
+	else if (e->elttype == E_REG) {
+		reg_set_type(e->reg, &possible_types[(int)type]);
+	}
+	else {
+		printf("Error: Problem in element type.");
+	}
+}
+
+void elt_set_types(struct elt * e, struct stack * types)
+{
+	if (e->elttype == E_CST) {
+		e->cst->type = *(type_t *)stack_peak(types, 0);
+	}
+	else if (e->elttype == E_VAR) {
+		var_put_types(e->var, types);
+	}
+	else if (e->elttype == E_REG) {
+		reg_settypes(e->reg, types);
+	}
+	else {
+		printf("Error: Problem in element type.");
 	}
 }
 
@@ -221,6 +263,12 @@ void reg_bind(struct reg *r, struct var *v)
 		r->bound = 0;
 		r->types = stack_new();
 	}
+}
+
+
+void reg_set_type(struct reg *r, type_t *type) {
+	stack_clear(r->types, NULL);
+	stack_push(r->types, type);
 }
 
 void reg_settypes(struct reg *r, struct stack *types)

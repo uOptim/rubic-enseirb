@@ -9,6 +9,7 @@ extern type_t possible_types[TYPE_NB];
 
 void           type_init(struct stack *);
 type_t         type_new(void);
+void           var_set_type(struct var *, type_t *);
 void           var_put_types(struct var *, struct stack *);
 
 int            type_ispresent(struct stack *, type_t);

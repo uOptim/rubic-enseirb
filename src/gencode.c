@@ -26,7 +26,7 @@ static char * local2llvm_instr[10][2] = {
 };
 
 void craft_operation(
-	const struct elt *,
+	struct elt *,
 	const struct elt *,
 	const struct elt *,
 	const char *,
@@ -126,18 +126,15 @@ void gencode_func(
 	// implicit argument if needed.
 
 	while ((v = (struct var *) stack_pop(f->params)) != NULL) {
-		// allocate space for params
-		stack_push(instructions, ialloca(v));
+		// DO NOT allocate space for params !
+		//stack_push(instructions, ialloca(v));
 		stack_push(tmp, v);
+
+		printf("%s %%%s", local2llvm_type(var_gettype(v)), v->vn);
+		if (stack_peak(f->params, 0) != NULL) printf(", ");
 	}
 
-	while ((v = (struct var *) stack_pop(tmp)) != NULL) {
-		// allocate space for params
-		stack_push(f->params, v);
-
-		printf("%s %s", local2llvm_type(var_gettype(v)), v->vn);
-		if (stack_peak(tmp, 0) != NULL) printf(", ");
-	}
+	stack_move(tmp, f->params);
 	stack_free(&tmp, NULL);
 
 	printf(") {\n");
@@ -153,29 +150,17 @@ void casttobool(struct elt *tocast, struct elt **res)
 	switch (elt_type(tocast)) {
 		case BOO_T:
 			printf("%%r%d = and i1 ", (*res)->reg->num);
-			if (tocast->elttype == E_REG) {
-				printf("%%r%d", tocast->reg->num);
-			} else {
-				printf("%d", tocast->cst->i);
-			}
+			print_elt_reg(tocast);
 			printf(", true\n");
 			break;
 		case INT_T:
 			printf("%%r%d = icmp ne i32 ", (*res)->reg->num);
-			if (tocast->elttype == E_REG) {
-				printf("%%r%d", tocast->reg->num);
-			} else {
-				printf("%d", tocast->cst->i);
-			}
+			print_elt_reg(tocast);
 			printf(", 0\n");
 			break;
 		case FLO_T:
 			printf("%%r%d = fcmp one double ", (*res)->reg->num);
-			if (tocast->elttype == E_REG) {
-				printf("%%r%d", tocast->reg->num);
-			} else {
-				printf("%#g", tocast->cst->f);
-			}
+			print_elt_reg(tocast);
 			printf(", 0.0\n");
 			break;
 		default:
@@ -218,6 +203,7 @@ static void print_args(void *arg, void *arg_pos, void *dummy)
 	if (*(int *)arg_pos != 0) printf(", ");
 	printf("%s ", local2llvm_type(elt_type(a)));
 	print_elt_reg(a);
+	(*(int *)arg_pos)++;
 }
 
 int craft_call(
@@ -227,11 +213,17 @@ int craft_call(
 		struct hashmap * h)
 {
 	char * fnm = get_mangle_name(fn, args);
-	struct function * f = hashmap_get(h, fnm);
+	struct function * f = hashmap_get(h, fn);
+	struct function * fm = hashmap_get(h, fnm);
 	int arg_pos = 0;
 
 	if (f == NULL) {
-		fprintf(stderr, "Incompatible parameters for function %s\n", fn);
+		fprintf(stderr, "Function %s does not exist\n", fn);
+		return 1;
+	}
+
+	if (fm == NULL) {
+		fprintf(stderr, "Incompatible parameters for function %s, no %s\n", fn, fnm);
 		return 1;
 	}
 
@@ -271,7 +263,9 @@ int craft_puts(const struct elt *e)
 
 int craft_ret(const struct elt *e)
 {
-	printf("ret %s %%r%d\n", local2llvm_type(elt_type(e)), e->reg->num);
+	printf("ret %s ", local2llvm_type(elt_type(e)));
+	print_elt_reg(e);
+	printf("\n");
 
 	return 0;
 }
@@ -301,88 +295,71 @@ int craft_alloca(struct var *var)
 }
 
 void craft_operation(
-	const struct elt *result,
+	struct elt *result,
 	const struct elt *e1,
 	const struct elt *e2,
 	const char *op,
 	const char *fop)
 {
 	if (elt_type(e1) == INT_T && elt_type(e2) == INT_T) {
+		elt_set_type(result, INT_T);
 		printf("%%r%d = %s i32 ", result->reg->num, op);
-		if (e1->elttype == E_REG) {
-			printf("%%r%d", e1->reg->num);
-		} else {
-			printf("%d", e1->cst->i);
-		}
+		print_elt_reg(e1);
 		printf(", ");
-		if (e2->elttype == E_REG) {
-			printf("%%r%d", e2->reg->num);
-		} else {
-			printf("%d", e2->cst->i);
-		}
+		print_elt_reg(e2);
 		puts("");
 	}
 
 	else if (elt_type(e1) == FLO_T && elt_type(e2) == FLO_T) {
+		elt_set_type(result, FLO_T);
 		printf("%%r%d = %s double ", result->reg->num, fop);
-		if (e1->elttype == E_REG) {
-			printf("%%r%d", e1->reg->num);
-		} else {
-			printf("%#g", e1->cst->f);
-		}
+		print_elt_reg(e1);
 		printf(", ");
-		if (e2->elttype == E_REG) {
-			printf("%%r%d", e2->reg->num);
-		} else {
-			printf("%#g", e2->cst->f);
-		}
+		print_elt_reg(e2);
 		puts("");
 	}
 
 	else if (elt_type(e1) == INT_T && elt_type(e2) == FLO_T) {
 		struct reg * r;
-		if (e1->elttype == E_REG) {
+		if (e1->elttype == E_REG || e1->elttype == E_VAR) {
 			// conversion needed
 			r = reg_new(NULL);
-			printf("%%r%d = sitofp i32 %%r%d to double\n", 
-					r->num, e1->reg->num);
+			printf("%%r%d = sitofp i32 ", r->num);
+			print_elt_reg(e1);
+			printf(" to double\n");
 		}
 
+		elt_set_type(result, FLO_T);
 		printf("%%r%d = %s double ", result->reg->num, fop);
 
-		if (e1->elttype == E_REG) {
+		if (e1->elttype == E_REG || e1->elttype == E_VAR) {
 			printf("%%r%d", r->num);
 			reg_free(r);
 		} else {
 			printf("%d.0", e1->cst->i);
 		}
 		printf(", ");
-		if (e2->elttype == E_REG) {
-			printf("%%r%d", e2->reg->num);
-		} else {
-			printf("%#g", e2->cst->f);
-		}
+		print_elt_reg(e2);
 		puts("");
 	}
 
 	else if (elt_type(e1) == FLO_T && elt_type(e2) == INT_T) {
 		struct reg * r;
 
-		if (e2->elttype == E_REG) {
-			// conversion
+		if (e2->elttype == E_REG || e2->elttype == E_VAR) {
+			// conversion needed
 			r = reg_new(NULL);
-			printf("%%r%d = sitofp i32 %%r%d to double\n",
-					r->num, e2->reg->num);
+			printf("%%r%d = sitofp i32 ", r->num);
+			print_elt_reg(e2);
+			printf(" to double\n");
 		}
+
+		elt_set_type(result, FLO_T);
 		printf("%%r%d = %s double ", result->reg->num, fop);
 		
-		if (e1->elttype == E_REG) {
-			printf("%%r%d", e1->reg->num);
-		} else {
-			printf("%#g", e1->cst->f);
-		}
+		print_elt_reg(e1);
 		printf(", ");
-		if (e2->elttype == E_REG) {
+		if (e2->elttype == E_REG || e2->elttype == E_VAR) {
 			printf("%%r%d", r->num);
 			reg_free(r);
 		} else {
@@ -402,11 +379,7 @@ struct elt * craft_boolean_conversion(struct elt *e1)
 			stack_push(c->reg->types, &possible_types[BOO_T]);
 
 			printf("%%r%d = icmp ne i32 ", c->reg->num);
-			if (e1->elttype == E_REG) {
-				printf("%%r%d", e1->reg->num);
-			} else {
-				printf("%d", e1->cst->i);
-			}
+			print_elt_reg(e1);
 			printf(", 0\n");
 			break;
 		case FLO_T:
@@ -414,11 +387,7 @@ struct elt * craft_boolean_conversion(struct elt *e1)
 			stack_push(c->reg->types, &possible_types[BOO_T]);
 
 			printf("%%r%d = fcmp ne double ", c->reg->num);
-			if (e1->elttype == E_REG) {
-				printf("%%r%d", e1->reg->num);
-			} else {
-				printf("%#g", e1->cst->f);
-			}
+			print_elt_reg(e1);
 			printf(", 0.0\n");
 			break;
 		default:
@@ -445,17 +414,9 @@ void craft_boolean_operation(
 	}
 	
 	printf("%%r%d = %s i1 ", er->reg->num, op);
-	if (e1->elttype == E_REG) {
-		printf("%%r%d", e1->reg->num);
-	} else {
-		printf("%s", (e1->cst->c > 0) ? "true" : "false");
-	}
+	print_elt_reg(e1);
 	printf(", ");
-	if (e2->elttype == E_REG) {
-		printf("%%r%d", e2->reg->num);
-	} else {
-		printf("%s", (e2->cst->c > 0) ? "true" : "false");
-	}
+	print_elt_reg(e2);
 	puts("");
 }
 
@@ -511,6 +472,9 @@ void print_instr(struct instr *i, struct hashmap *h)
 	else if (i->optype == I_CAL) {
 		craft_call(i->fn, i->args, i->ret, h);
 	}
+	else if (i->optype == I_DUM) {
+		; // do nothing
+	}
 	else {
 		fprintf(stderr, "Error: Instruction not supported\n");
 	}
@@ -520,13 +484,16 @@ void print_elt_reg(const struct elt * e)
 {
 	if (e->elttype == E_REG) {
 		printf("%%r%d", e->reg->num);
+	}
+	else if (e->elttype == E_VAR) {
+		printf("%%%s", e->var->vn);
 	} else {
 		switch (elt_type(e)) {
 			case INT_T:
 				printf("%d", e->cst->i);
 				break;
 			case FLO_T:
-				printf("%g", e->cst->f);
+				printf("%#g", e->cst->f);
 				break;
 			case BOO_T:
 				printf("%s", (e->cst->c == 0) ? "false" : "true");

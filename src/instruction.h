@@ -9,6 +9,7 @@
 #define I_ALO	0x03	// allocate
 #define I_CAL	0x04	// call function
 #define I_PUT	0x05	// puts
+#define I_DUM	0x06	// dummy expression
 
 /* Arithmetic operation, be careful if changing this */
 #define I_ARI	0x10
@@ -72,6 +73,7 @@ struct instr * iraw(const char *s);
 struct instr * ialloca(struct var *);
 struct instr * istore(struct var *, struct elt *);
 struct instr * i3addr(char, struct elt *, struct elt *);
+struct instr * idummy(struct var *);
 
 struct instr * icast(
 	void (*cast_func)(struct elt *, struct elt **),

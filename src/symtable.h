@@ -27,6 +27,7 @@ extern const char compatibility_table[3][3];
 
 struct var {
 	char *vn;
+	char is_params;  // tells if the variable is a function parameter
 	struct stack *t; // possible types
 };
 
@@ -49,6 +50,7 @@ struct reg {
 struct reg * reg_new(struct var *);
 void         reg_free(struct reg *);
 void         reg_bind(struct reg *, struct var *);
+void         reg_set_type(struct reg *, type_t *);
 void         reg_settypes(struct reg *, struct stack *);
 struct reg * reg_copy(struct reg *);
 void         reg_dump(const struct reg *);
@@ -73,12 +75,14 @@ void         cst_dump(const struct cst *);
 
 #define E_CST 0
 #define E_REG 1
+#define E_VAR 2
 
 struct elt {
 	char elttype;
 	union {
 		struct reg *reg;
 		struct cst *cst;
+		struct var *var;
 	};
 };
 
@@ -86,6 +90,8 @@ struct elt * elt_new(char, void *);
 void         elt_free(void *);
 void *       elt_copy(void *element);
 type_t       elt_type(const struct elt *);
+void         elt_set_type(struct elt *, type_t);
+void         elt_set_types(struct elt *, struct stack *);
 void         elt_dump(const struct elt *);
 
 

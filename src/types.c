@@ -28,6 +28,11 @@ void var_put_types(struct var *v, struct stack *types) {
 	v->t = stack_copy(types, type_copy);
 }
 
+void var_set_type(struct var *v, type_t *type) {
+	stack_clear(v->t, NULL);
+	stack_push(v->t, type);
+}
+
 void * type_copy(void *type) {
 	return type;
 }
